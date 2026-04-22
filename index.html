@@ -854,11 +854,15 @@
           <button
             id="whatsapp-followup-btn"
             type="button"
-            class="inline-flex items-center gap-1.5 rounded-xl border border-emerald-600/40 bg-emerald-500 px-4 py-3 text-sm font-medium text-white shadow-glow transition hover:bg-emerald-600 sm:py-2"
-            title="WhatsApp"
+            class="inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-[#25D366] px-3 py-3 text-sm font-medium text-white shadow-glow transition hover:bg-[#20bd5a] sm:px-4 sm:py-2"
+            title="WhatsApp Web"
           >
-            <span aria-hidden="true">💬</span>
-            <span>WhatsApp</span>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5 shrink-0 sm:h-4 sm:w-4" aria-hidden="true">
+              <path
+                d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.123 1.035 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.435 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"
+              />
+            </svg>
+            <span class="hidden sm:inline">WhatsApp</span>
           </button>
         </div>
 
@@ -1847,6 +1851,14 @@
     const CRM_ROW_ACTION_BTN =
       "rounded-md shrink-0 border px-1.5 py-0.5 text-[11px] font-medium leading-tight transition";
 
+    /** WhatsApp 品牌绿 #25D366；小屏仅图标，sm 及以上显示文案。 */
+    const WHATSAPP_ROW_BTN_CLASS =
+      CRM_ROW_ACTION_BTN +
+      " inline-flex items-center gap-0.5 border border-white/15 bg-[#25D366] text-white hover:bg-[#20bd5a] shadow-sm";
+
+    const WHATSAPP_ICON_SVG_ROW =
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="h-3.5 w-3.5 shrink-0"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.123 1.035 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.435 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>';
+
     function sortCustomersByLastFollowUp(rows) {
       const list = Array.isArray(rows) ? [...rows] : [];
       list.sort((a, b) => {
@@ -1900,13 +1912,13 @@
       return d.toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
     }
 
-    async function touchCustomerLastFollowUp(customerId) {
+    async function updateLastFollowUp(customerId) {
       const id = typeof customerId === "number" ? customerId : Number.parseInt(String(customerId), 10);
       if (!Number.isInteger(id) || id <= 0) return { error: new Error("无效的客户 ID") };
       return await supabaseClient.from("customers").update({ last_follow_up: new Date().toISOString() }).eq("id", id);
     }
 
-    /** Strip +、空格等，仅保留数字，用于 wa.me 国际号码。 */
+    /** 移除 +、空格、横线等非数字字符，供 WhatsApp Web 链接使用。 */
     function normalizeWhatsAppPhoneDigits(phone) {
       if (phone == null || phone === undefined) return "";
       const s = String(phone).trim();
@@ -1915,15 +1927,16 @@
     }
 
     /**
-     * 打开 WhatsApp 对话；成功打开时返回 true。无有效号码时提示并返回 false。
+     * 在新标签页打开 WhatsApp Web（避免唤起本地 App）；成功返回 true。
      */
-    function jumpToWhatsApp(phone) {
-      const digits = normalizeWhatsAppPhoneDigits(phone);
-      if (!digits) {
-        showToast("该客户未录入手机号", "error");
+    function openWhatsAppWeb(phone) {
+      const processedPhone = normalizeWhatsAppPhoneDigits(phone);
+      if (!processedPhone) {
+        showToast("未录入手机号", "error");
         return false;
       }
-      window.open("https://wa.me/" + encodeURIComponent(digits), "_blank", "noopener,noreferrer");
+      const url = "https://web.whatsapp.com/send?phone=" + encodeURIComponent(processedPhone);
+      window.open(url, "_blank", "noopener,noreferrer");
       return true;
     }
 
@@ -1931,7 +1944,7 @@
     async function touchFollowUpAfterChannelClick(customer) {
       const cid = Number.parseInt(String(customer.id), 10);
       if (!Number.isInteger(cid) || cid <= 0) return;
-      await touchCustomerLastFollowUp(cid);
+      await updateLastFollowUp(cid);
       await Promise.all([loadCustomers(), loadPublicCustomers(), loadClosedCustomers()]);
       pinClosedCustomersViewVisible();
     }
@@ -2764,14 +2777,12 @@
 
         const waBtn = document.createElement("button");
         waBtn.type = "button";
-        waBtn.className =
-          CRM_ROW_ACTION_BTN +
-          " border border-emerald-600/40 bg-emerald-500 text-white hover:bg-emerald-600 shadow-sm";
-        waBtn.title = "WhatsApp";
+        waBtn.className = WHATSAPP_ROW_BTN_CLASS;
+        waBtn.title = "WhatsApp Web";
         waBtn.setAttribute("aria-label", "WhatsApp");
-        waBtn.innerHTML = '<span aria-hidden="true">💬</span>';
+        waBtn.innerHTML = WHATSAPP_ICON_SVG_ROW + '<span class="hidden sm:inline">WhatsApp</span>';
         waBtn.addEventListener("click", async () => {
-          if (!jumpToWhatsApp(customer.phone)) return;
+          if (!openWhatsAppWeb(customer.phone)) return;
           await touchFollowUpAfterChannelClick(customer);
         });
         actionWrap.appendChild(waBtn);
@@ -2917,14 +2928,12 @@
 
         const waBtn = document.createElement("button");
         waBtn.type = "button";
-        waBtn.className =
-          CRM_ROW_ACTION_BTN +
-          " border border-emerald-600/40 bg-emerald-500 text-white hover:bg-emerald-600 shadow-sm";
-        waBtn.title = "WhatsApp";
+        waBtn.className = WHATSAPP_ROW_BTN_CLASS;
+        waBtn.title = "WhatsApp Web";
         waBtn.setAttribute("aria-label", "WhatsApp");
-        waBtn.innerHTML = '<span aria-hidden="true">💬</span>';
+        waBtn.innerHTML = WHATSAPP_ICON_SVG_ROW + '<span class="hidden sm:inline">WhatsApp</span>';
         waBtn.addEventListener("click", async () => {
-          if (!jumpToWhatsApp(customer.phone)) return;
+          if (!openWhatsAppWeb(customer.phone)) return;
           await touchFollowUpAfterChannelClick(customer);
         });
         actionWrap.appendChild(waBtn);
@@ -3051,14 +3060,12 @@
 
         const waBtn = document.createElement("button");
         waBtn.type = "button";
-        waBtn.className =
-          CRM_ROW_ACTION_BTN +
-          " border border-emerald-600/40 bg-emerald-500 text-white hover:bg-emerald-600 shadow-sm";
-        waBtn.title = "WhatsApp";
+        waBtn.className = WHATSAPP_ROW_BTN_CLASS;
+        waBtn.title = "WhatsApp Web";
         waBtn.setAttribute("aria-label", "WhatsApp");
-        waBtn.innerHTML = '<span aria-hidden="true">💬</span>';
+        waBtn.innerHTML = WHATSAPP_ICON_SVG_ROW + '<span class="hidden sm:inline">WhatsApp</span>';
         waBtn.addEventListener("click", async () => {
-          if (!jumpToWhatsApp(customer.phone)) return;
+          if (!openWhatsAppWeb(customer.phone)) return;
           await touchFollowUpAfterChannelClick(customer);
         });
         actionWrap.appendChild(waBtn);
@@ -4118,7 +4125,7 @@
         return;
       }
 
-      const touchRes = await touchCustomerLastFollowUp(customerId);
+      const touchRes = await updateLastFollowUp(customerId);
       if (touchRes && touchRes.error) {
         showToast("跟进已保存，但更新最后跟进时间失败：" + touchRes.error.message, "error");
       }
@@ -4166,7 +4173,7 @@
         showToast("自动写入跟进失败：" + error.message, "error");
         return;
       }
-      await touchCustomerLastFollowUp(customerId);
+      await updateLastFollowUp(customerId);
       await loadFollowups(customerId);
       await Promise.all([loadCustomers(), loadClosedCustomers()]);
     }
@@ -4176,7 +4183,7 @@
         showToast("请先在客户列表中选择一个客户。", "error");
         return;
       }
-      if (!jumpToWhatsApp(selectedCustomer.phone)) return;
+      if (!openWhatsAppWeb(selectedCustomer.phone)) return;
       await touchFollowUpAfterChannelClick(selectedCustomer);
     }
 
@@ -4196,7 +4203,7 @@
 
       const mailCid = Number.parseInt(selectedCustomer.id, 10);
       if (Number.isInteger(mailCid)) {
-        await touchCustomerLastFollowUp(mailCid);
+        await updateLastFollowUp(mailCid);
         await Promise.all([loadCustomers(), loadClosedCustomers()]);
       }
 
