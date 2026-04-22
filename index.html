@@ -376,7 +376,7 @@
             <p id="closed-customers-status" class="text-sm text-slate-400">加载中...</p>
           </div>
           <div class="mt-4 -mx-1 overflow-x-auto sm:mx-0">
-            <table class="min-w-[720px] w-full text-sm">
+            <table class="min-w-[920px] w-full text-sm">
               <thead class="bg-slate-800/70 text-slate-200">
                 <tr>
                   <th class="min-w-[7rem] px-3 py-3 text-left font-medium sm:px-4">客户名</th>
@@ -384,7 +384,7 @@
                   <th class="hidden min-w-[7rem] px-3 py-3 text-left font-medium sm:table-cell sm:px-4">最后跟进</th>
                   <th class="hidden min-w-[10rem] px-3 py-3 text-left font-medium md:table-cell md:px-4">邮箱</th>
                   <th class="hidden min-w-[5rem] px-3 py-3 text-left font-medium lg:table-cell lg:px-4">国家</th>
-                  <th class="min-w-[9rem] whitespace-nowrap px-2 py-3 text-left font-medium sm:min-w-[11rem] sm:px-4">操作</th>
+                  <th class="min-w-[15rem] whitespace-nowrap px-2 py-3 text-left font-medium sm:min-w-[17rem] sm:px-4">操作</th>
                 </tr>
               </thead>
               <tbody id="closed-customers-table-body" class="divide-y divide-slate-800 text-slate-300">
@@ -1593,6 +1593,19 @@
         dashboardView.classList.remove("hidden");
         setNavActive("dashboard");
       }
+    }
+
+    /** 从老客户列表执行编辑/退回/删除后，保持停留在成交老客户视图（不切换回工作台）。 */
+    function pinClosedCustomersViewVisible() {
+      if (currentView !== "closedCustomers") return;
+      dashboardView.classList.add("hidden");
+      publicPoolView.classList.add("hidden");
+      closedCustomersView.classList.remove("hidden");
+      salesReportView.classList.add("hidden");
+      productsView.classList.add("hidden");
+      quotationsView.classList.add("hidden");
+      holidaysView.classList.add("hidden");
+      setNavActive("closedCustomers");
     }
 
     const HOLIDAY_COUNTRIES = ["CN", "US", "GB", "DE", "FR", "IT", "ES", "NL", "PL", "RU", "TR", "BR", "MX", "CA", "AU", "JP", "KR", "IN", "VN", "TH", "MY", "SG", "ID", "AE", "SA", "ZA", "EG", "NG", "CL"];
@@ -2950,6 +2963,39 @@
         });
         actionWrap.appendChild(mailBtn);
 
+        const editBtn = document.createElement("button");
+        editBtn.type = "button";
+        editBtn.className =
+          CRM_ROW_ACTION_BTN +
+          " border border-violet-400/40 bg-violet-500/15 text-violet-200 hover:bg-violet-500/30 hover:text-white";
+        editBtn.textContent = "编辑";
+        editBtn.addEventListener("click", () => {
+          editCustomer(customer);
+        });
+        actionWrap.appendChild(editBtn);
+
+        const toPublicBtn = document.createElement("button");
+        toPublicBtn.type = "button";
+        toPublicBtn.className =
+          CRM_ROW_ACTION_BTN +
+          " border border-amber-400/40 bg-amber-500/15 text-amber-200 hover:bg-amber-500/30 hover:text-white";
+        toPublicBtn.textContent = "退回公海";
+        toPublicBtn.addEventListener("click", async () => {
+          await setCustomerPublicState(customer.id, true);
+        });
+        actionWrap.appendChild(toPublicBtn);
+
+        const deleteClosedBtn = document.createElement("button");
+        deleteClosedBtn.type = "button";
+        deleteClosedBtn.className =
+          CRM_ROW_ACTION_BTN +
+          " border border-rose-400/40 bg-rose-500/15 text-rose-200 hover:bg-rose-500/30 hover:text-white";
+        deleteClosedBtn.textContent = "删除";
+        deleteClosedBtn.addEventListener("click", async () => {
+          await deleteCustomer(customer.id, customer.company_name || "未命名客户");
+        });
+        actionWrap.appendChild(deleteClosedBtn);
+
         actionCell.appendChild(actionWrap);
 
         row.appendChild(companyCell);
@@ -3706,6 +3752,7 @@
 
       await Promise.all([loadCustomers(), loadPublicCustomers(), loadClosedCustomers()]);
       showToast(isPublic ? "已退回公海" : "认领成功，客户已回到私有列表", "success");
+      pinClosedCustomersViewVisible();
     }
 
     async function deleteCustomer(customerId, companyName) {
@@ -3727,6 +3774,7 @@
 
       showSuccessCelebration("删除成功，客户已移除。");
       await Promise.all([loadCustomers(), loadClosedCustomers()]);
+      pinClosedCustomersViewVisible();
     }
 
     async function renderCharts() {
@@ -3905,6 +3953,7 @@
 
       closeCustomerModal();
       await Promise.all([loadCustomers(), loadClosedCustomers()]);
+      pinClosedCustomersViewVisible();
     }
 
     /** 保存跟进记录（对应「保存粘贴内容」）；成功后写入 last_follow_up。 */
