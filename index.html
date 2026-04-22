@@ -895,6 +895,28 @@
     </div>
   </div>
 
+  <div
+    id="custom-confirm-modal"
+    class="hidden fixed inset-0 z-[1000] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+  >
+    <div class="relative mx-4 w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
+      <h3 id="confirm-title" class="mb-2 text-xl font-bold text-white">确认操作</h3>
+      <p id="confirm-message" class="mb-6 text-slate-400">你确定要执行此操作吗？</p>
+      <div class="flex justify-end gap-3">
+        <button
+          id="confirm-cancel-btn"
+          type="button"
+          class="rounded-lg px-4 py-2 text-slate-300 transition-colors hover:bg-slate-800"
+        >
+          取消
+        </button>
+        <button id="confirm-ok-btn" type="button" class="rounded-lg bg-rose-600 px-4 py-2 text-white transition-colors hover:bg-rose-500">
+          确定执行
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const SUPABASE_URL = "https://msurrijrfyepjzfydrwb.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1zdXJyaWpyZnllcGp6ZnlkcndiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2MzM4OTcsImV4cCI6MjA5MjIwOTg5N30.0AQbAXEh2vi49xLJ2GgUzAAqZVFPBpmrc-rDE4UxHTg";
@@ -2015,13 +2037,112 @@
         btn.textContent = "一键生成祝福语";
         btn.addEventListener("click", () => {
           const message = buildHolidayIntelFromEvent(item).social_template;
-          window.alert("祝福语示例:\n\n" + message);
+          showToast("祝福语示例:\n\n" + message, "success");
         });
 
         card.appendChild(top);
         card.appendChild(title);
         card.appendChild(btn);
         upcomingHolidaysListEl.appendChild(card);
+      });
+    }
+
+    function showToast(message, type = "success") {
+      const toast = document.createElement("div");
+      toast.className =
+        "fixed top-5 left-1/2 -translate-x-1/2 z-[999] max-w-[min(92vw,28rem)] whitespace-pre-wrap px-6 py-3 rounded-full shadow-xl text-sm font-medium ease-out transition-all duration-300 opacity-0 -translate-y-5 pointer-events-none backdrop-blur-lg border";
+
+      if (type === "error") {
+        toast.classList.add(
+          "bg-rose-950/85",
+          "text-rose-100",
+          "border-rose-500/35",
+          "shadow-rose-950/40",
+          "ring-1",
+          "ring-rose-400/10",
+        );
+      } else {
+        toast.classList.add(
+          "bg-emerald-950/80",
+          "text-emerald-50",
+          "border-emerald-500/30",
+          "shadow-emerald-950/45",
+          "shadow-lg",
+          "ring-1",
+          "ring-emerald-400/15",
+        );
+      }
+
+      toast.textContent = message;
+      document.body.appendChild(toast);
+
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          toast.classList.remove("opacity-0", "-translate-y-5");
+        });
+      });
+
+      setTimeout(() => {
+        toast.classList.add("opacity-0", "-translate-y-5");
+        setTimeout(() => {
+          if (document.body.contains(toast)) {
+            document.body.removeChild(toast);
+          }
+        }, 300);
+      }, 3000);
+    }
+
+    function showConfirm(title, message) {
+      return new Promise((resolve) => {
+        const modal = document.getElementById("custom-confirm-modal");
+        const titleEl = document.getElementById("confirm-title");
+        const messageEl = document.getElementById("confirm-message");
+        const okBtn = document.getElementById("confirm-ok-btn");
+        const cancelBtn = document.getElementById("confirm-cancel-btn");
+        if (!modal || !titleEl || !messageEl || !okBtn || !cancelBtn) {
+          resolve(false);
+          return;
+        }
+
+        titleEl.textContent = title;
+        messageEl.textContent = message;
+        modal.classList.remove("hidden");
+
+        let settled = false;
+
+        function finish(result) {
+          if (settled) return;
+          settled = true;
+          modal.classList.add("hidden");
+          okBtn.removeEventListener("click", handleOk);
+          cancelBtn.removeEventListener("click", handleCancel);
+          modal.removeEventListener("click", handleBackdrop);
+          document.removeEventListener("keydown", handleEscape);
+          resolve(result);
+        }
+
+        function handleOk(event) {
+          event.stopPropagation();
+          finish(true);
+        }
+
+        function handleCancel(event) {
+          event.stopPropagation();
+          finish(false);
+        }
+
+        function handleBackdrop(event) {
+          if (event.target === modal) finish(false);
+        }
+
+        function handleEscape(event) {
+          if (event.key === "Escape") finish(false);
+        }
+
+        okBtn.addEventListener("click", handleOk);
+        cancelBtn.addEventListener("click", handleCancel);
+        modal.addEventListener("click", handleBackdrop);
+        document.addEventListener("keydown", handleEscape);
       });
     }
 
@@ -2237,7 +2358,7 @@
 
     function exportQuotationPdf() {
       if (typeof html2pdf === "undefined") {
-        window.alert("PDF 导出库加载失败，请刷新页面后重试。");
+        showToast("PDF 导出库加载失败，请刷新页面后重试。", "error");
         return;
       }
       const customer = quotationCustomers.find((item) => String(item.id) === String(selectedQuotationCustomerId));
@@ -2257,11 +2378,11 @@
       const totalAmount = getQuotationTotalAmount();
 
       if (!Number.isInteger(customerId) || customerId <= 0) {
-        window.alert("请先选择客户。");
+        showToast("请先选择客户。", "error");
         return;
       }
       if (!quotationItems.length || totalAmount <= 0) {
-        window.alert("请先添加产品并确认总金额大于 0。");
+        showToast("请先添加产品并确认总金额大于 0。", "error");
         return;
       }
 
@@ -2275,13 +2396,13 @@
       confirmOrderBtn.disabled = false;
 
       if (error) {
-        window.alert("成交保存失败：" + error.message);
+        showToast("成交保存失败：" + error.message, "error");
         return;
       }
 
       const { error: closedErr } = await supabaseClient.from("customers").update({ is_closed: true }).eq("id", customerId);
       if (closedErr) {
-        window.alert("订单已保存，但更新客户成交状态失败：" + closedErr.message);
+        showToast("订单已保存，但更新客户成交状态失败：" + closedErr.message, "error");
       }
 
       showSuccessCelebration("保存成功，订单已确认成交！");
@@ -2354,7 +2475,7 @@
 
     function handleDirectBulkEmail() {
       if (!selectedCustomerEmails.length) {
-        window.alert("请先勾选至少一个客户邮箱。");
+        showToast("请先勾选至少一个客户邮箱。", "error");
         return;
       }
       window.location.href = "mailto:?bcc=" + selectedCustomerEmails.join(",");
@@ -2492,8 +2613,6 @@
         toPublicBtn.className = "rounded-lg border border-amber-400/40 bg-amber-500/15 px-3 py-1.5 text-xs font-medium text-amber-200 transition hover:bg-amber-500/30 hover:text-white";
         toPublicBtn.textContent = "退回公海";
         toPublicBtn.addEventListener("click", async () => {
-          const ok = window.confirm("确认将该客户退回公海吗？");
-          if (!ok) return;
           await setCustomerPublicState(customer.id, true);
         });
         actionWrap.appendChild(toPublicBtn);
@@ -2603,13 +2722,16 @@
     }
 
     async function markCustomerClosed(customerId) {
-      const ok = window.confirm("确认将该客户标记为成交老客户吗？标记后将移出私海列表。");
-      if (!ok) return;
+      const confirmed = await showConfirm(
+        "标记成交",
+        "确认将该客户标记为成交老客户吗？标记后将移出私海列表。",
+      );
+      if (!confirmed) return;
 
       const { error } = await supabaseClient.from("customers").update({ is_closed: true }).eq("id", customerId);
 
       if (error) {
-        window.alert("标记失败：" + error.message);
+        showToast("标记失败：" + error.message, "error");
         return;
       }
 
@@ -2685,7 +2807,7 @@
         mailBtn.addEventListener("click", () => {
           const email = (customer.email || "").trim();
           if (!email) {
-            window.alert("该客户没有邮箱地址。");
+            showToast("该客户没有邮箱地址。", "error");
             return;
           }
           window.location.href = "mailto:" + email;
@@ -3299,19 +3421,20 @@
 
     async function deleteSalesRecord(recordId, orderNo) {
       if (recordId == null || recordId === "") {
-        window.alert("无法删除：缺少记录 ID。");
+        showToast("无法删除：缺少记录 ID。", "error");
         return;
       }
       const piLabel = orderNo != null && orderNo !== "" ? String(orderNo) : "-";
-      const ok = window.confirm(
+      const confirmed = await showConfirm(
+        "删除销售记录",
         "确定要删除这笔 PI 为 [" + piLabel + "] 的销售记录吗？此操作不可撤销。",
       );
-      if (!ok) return;
+      if (!confirmed) return;
 
       const { error } = await supabaseClient.from("sales_records").delete().eq("id", recordId);
 
       if (error) {
-        window.alert("删除失败：" + error.message);
+        showToast("删除失败：" + error.message, "error");
         return;
       }
 
@@ -3433,17 +3556,20 @@
         .eq("id", customerId);
 
       if (error) {
-        window.alert((isPublic ? "退回公海失败：" : "认领失败：") + error.message);
+        showToast((isPublic ? "退回公海失败：" : "认领失败：") + error.message, "error");
         return;
       }
 
       await Promise.all([loadCustomers(), loadPublicCustomers(), loadClosedCustomers()]);
-      window.alert(isPublic ? "已退回公海" : "认领成功，客户已回到私有列表");
+      showToast(isPublic ? "已退回公海" : "认领成功，客户已回到私有列表", "success");
     }
 
     async function deleteCustomer(customerId, companyName) {
-      const ok = window.confirm('确认删除客户 "' + companyName + '" 吗？此操作不可撤销。');
-      if (!ok) return;
+      const confirmed = await showConfirm(
+        "删除客户",
+        '确认删除客户 "' + companyName + '" 吗？此操作不可撤销。',
+      );
+      if (!confirmed) return;
 
       const { error } = await supabaseClient
         .from("customers")
@@ -3451,7 +3577,7 @@
         .eq("id", customerId);
 
       if (error) {
-        window.alert("删除失败：" + error.message);
+        showToast("删除失败：" + error.message, "error");
         return;
       }
 
@@ -3701,7 +3827,7 @@
       followupFormStatusEl.textContent = "保存成功";
       followupFormStatusEl.className = "min-h-5 text-sm text-emerald-300";
       saveFollowupBtn.disabled = false;
-      window.alert("保存成功");
+      showToast("保存成功", "success");
       await loadFollowups(customerId);
       await Promise.all([loadCustomers(), loadClosedCustomers()]);
     }
@@ -3720,7 +3846,7 @@
       ]);
 
       if (error) {
-        window.alert("自动写入跟进失败：" + error.message);
+        showToast("自动写入跟进失败：" + error.message, "error");
         return;
       }
       await loadFollowups(customerId);
@@ -3728,19 +3854,22 @@
 
     async function handleSendEmail() {
       if (!selectedCustomer) {
-        window.alert("请先在客户列表中选择一个客户。");
+        showToast("请先在客户列表中选择一个客户。", "error");
         return;
       }
 
       const email = (selectedCustomer.email || "").trim();
       if (!email) {
-        window.alert("该客户没有邮箱地址，无法发起邮件。");
+        showToast("该客户没有邮箱地址，无法发起邮件。", "error");
         return;
       }
 
       window.location.href = "mailto:" + email;
 
-      const shouldAutoFollowup = window.confirm("是否自动生成一条‘已发邮件’的跟进记录？");
+      const shouldAutoFollowup = await showConfirm(
+        "写入跟进记录",
+        "是否自动生成一条「已发邮件」的跟进记录？",
+      );
       if (!shouldAutoFollowup) return;
       await insertAutoEmailFollowup();
     }
