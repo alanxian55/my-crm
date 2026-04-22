@@ -1,0 +1,3868 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>外贸 CRM 工作台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          boxShadow: {
+            glow: "0 0 0 1px rgba(99,102,241,0.35), 0 10px 30px rgba(99,102,241,0.18)",
+          },
+        },
+      },
+    };
+  </script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+  <style>
+    #holidays-view .holiday-glass {
+      background: rgba(15, 23, 42, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.08), 0 10px 30px rgba(2, 6, 23, 0.45);
+      backdrop-filter: blur(12px);
+    }
+    #holiday-calendar .fc {
+      height: 100%;
+      color: #e2e8f0;
+    }
+    #holiday-calendar .fc .fc-toolbar-title {
+      color: #f8fafc;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    #holiday-calendar .fc .fc-button {
+      background: rgba(15, 23, 42, 0.65);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+    }
+    #holiday-calendar .fc .fc-button:hover {
+      background: rgba(30, 41, 59, 0.85);
+    }
+    #holiday-calendar .fc .fc-daygrid-day-frame {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      border-radius: 10px;
+    }
+    #holiday-calendar .fc .fc-daygrid-day:hover .fc-daygrid-day-frame {
+      transform: scale(1.02);
+      box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.35), 0 8px 20px rgba(30, 64, 175, 0.2);
+    }
+    #holiday-calendar .fc .fc-day-today {
+      background: rgba(37, 99, 235, 0.15) !important;
+      box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.95);
+      animation: todayPulse 2s ease-in-out infinite;
+    }
+    @keyframes todayPulse {
+      0% { box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.95), 0 0 0 0 rgba(59, 130, 246, 0.3); }
+      70% { box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.95), 0 0 0 12px rgba(59, 130, 246, 0); }
+      100% { box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.95), 0 0 0 0 rgba(59, 130, 246, 0); }
+    }
+    #holiday-calendar .fc .fc-event {
+      border: none !important;
+      background: transparent !important;
+    }
+    #holiday-calendar .fc .fc-daygrid-day-events {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    #holiday-calendar .holiday-event-tag {
+      border-radius: 8px;
+      padding: 2px 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 20px;
+    }
+    #holiday-calendar .holiday-event-dim .holiday-event-tag {
+      opacity: 0.45;
+      filter: grayscale(0.2);
+    }
+    #holiday-calendar .holiday-event-focus .holiday-event-tag {
+      opacity: 1;
+      box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.35), 0 4px 10px rgba(56, 189, 248, 0.2);
+    }
+    #followup-list {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(148, 163, 184, 0.4) rgba(30, 41, 59, 0.3);
+    }
+    #followup-list::-webkit-scrollbar {
+      width: 6px;
+    }
+    #followup-list::-webkit-scrollbar-track {
+      background: rgba(30, 41, 59, 0.3);
+      border-radius: 10px;
+    }
+    #followup-list::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.4);
+      border-radius: 10px;
+      transition: background 0.2s ease;
+    }
+    #followup-list::-webkit-scrollbar-thumb:hover {
+      background: rgba(148, 163, 184, 0.6);
+    }
+    .followup-card {
+      overflow-wrap: break-word;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100">
+  <div class="flex min-h-screen">
+    <aside class="w-72 bg-slate-900/95 border-r border-slate-800 p-6 flex flex-col">
+      <div class="mb-10">
+        <p class="text-xs uppercase tracking-[0.28em] text-indigo-400/80">MyCRM</p>
+        <h1 class="mt-2 text-2xl font-semibold text-white">HI，Alan</h1>
+      </div>
+
+      <nav class="space-y-2">
+        <a id="nav-dashboard" href="#" class="flex items-center gap-3 rounded-xl bg-indigo-500/20 px-4 py-3 text-indigo-200 border border-indigo-400/30 shadow-glow">
+          <span class="h-2.5 w-2.5 rounded-full bg-indigo-300"></span>
+          <span class="font-medium">工作台</span>
+        </a>
+        <a id="nav-public-pool" href="#" class="flex items-center gap-3 rounded-xl px-4 py-3 text-slate-300 hover:bg-slate-800/70 hover:text-white transition">
+          <span class="h-2.5 w-2.5 rounded-full bg-cyan-300"></span>
+          <span class="font-medium">客户公海</span>
+        </a>
+        <a id="nav-closed-customers" href="#" class="flex items-center gap-3 rounded-xl px-4 py-3 text-slate-300 hover:bg-slate-800/70 hover:text-white transition">
+          <span class="h-2.5 w-2.5 rounded-full bg-rose-300"></span>
+          <span class="font-medium">成交老客户</span>
+        </a>
+        <a id="nav-sales-report" href="#" class="flex items-center gap-3 rounded-xl px-4 py-3 text-slate-300 hover:bg-slate-800/70 hover:text-white transition">
+          <span class="h-2.5 w-2.5 rounded-full bg-pink-300"></span>
+          <span class="font-medium">销售报表</span>
+        </a>
+        <a id="nav-quotations" href="#" class="flex items-center gap-3 rounded-xl px-4 py-3 text-slate-300 hover:bg-slate-800/70 hover:text-white transition">
+          <span class="h-2.5 w-2.5 rounded-full bg-amber-300"></span>
+          <span class="font-medium">报价单</span>
+        </a>
+        <a id="nav-products" href="#" class="flex items-center gap-3 rounded-xl px-4 py-3 text-slate-300 hover:bg-slate-800/70 hover:text-white transition">
+          <span class="h-2.5 w-2.5 rounded-full bg-violet-300"></span>
+          <span class="font-medium">产品管理</span>
+        </a>
+        <a id="nav-holidays" href="#" class="flex items-center gap-3 rounded-xl px-4 py-3 text-slate-300 hover:bg-slate-800/70 hover:text-white transition">
+          <span class="h-2.5 w-2.5 rounded-full bg-sky-300"></span>
+          <span class="font-medium">全球节日</span>
+        </a>
+      </nav>
+
+      <div class="mt-auto rounded-2xl border border-slate-800 bg-slate-800/40 p-4">
+        <p class="text-sm text-slate-300">今日线索跟进率</p>
+        <div class="mt-3 h-2 rounded-full bg-slate-700 overflow-hidden">
+          <div class="h-full w-3/4 rounded-full bg-gradient-to-r from-indigo-400 via-cyan-400 to-emerald-400"></div>
+        </div>
+        <p class="mt-2 text-xs text-slate-400">75% · 比昨日 +12%</p>
+      </div>
+    </aside>
+
+    <main class="flex-1 min-w-0 p-8 lg:p-10 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+      <div id="dashboard-view">
+      <header class="mb-8">
+        <p class="text-sm text-slate-400">欢迎回来，销售总监</p>
+        <h2 class="mt-2 text-3xl lg:text-4xl font-bold tracking-tight">
+          业务数据看板
+        </h2>
+      </header>
+
+      <section class="grid gap-6 md:grid-cols-3">
+        <article class="relative overflow-hidden rounded-2xl border border-indigo-400/30 bg-slate-900/60 p-6 shadow-glow backdrop-blur">
+          <div class="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-indigo-500/20 blur-2xl"></div>
+          <p class="text-sm text-slate-300">本月新增线索</p>
+          <p id="kpi-customers-total" class="mt-4 text-4xl font-bold text-white">--</p>
+          <p class="mt-3 text-sm text-emerald-300">+18.4% 较上月增长</p>
+        </article>
+
+        <article class="relative overflow-hidden rounded-2xl border border-cyan-400/30 bg-slate-900/60 p-6 shadow-glow backdrop-blur">
+          <div class="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-cyan-500/20 blur-2xl"></div>
+          <p class="text-sm text-slate-300">发件数量</p>
+          <p id="kpi-email-followups-total" class="mt-4 text-4xl font-bold text-white">--</p>
+          <p class="mt-3 text-sm text-cyan-300">平均回复率 27.6%</p>
+        </article>
+
+        <article class="relative overflow-hidden rounded-2xl border border-emerald-400/30 bg-slate-900/60 p-6 shadow-glow backdrop-blur">
+          <div class="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-emerald-500/20 blur-2xl"></div>
+          <p class="text-sm text-slate-300">成单金额</p>
+          <p id="kpi-orders-total-amount" class="mt-4 text-4xl font-bold text-white">$0.00</p>
+          <p id="kpi-orders-count" class="mt-3 text-sm text-emerald-300">已签 0 单</p>
+        </article>
+      </section>
+
+      <section class="mt-8 grid gap-6 lg:grid-cols-5">
+        <div class="lg:col-span-3 rounded-2xl border border-slate-800 bg-slate-900/50 p-6">
+          <h3 class="text-lg font-semibold text-white">每月成交趋势</h3>
+          <div class="mt-4 relative h-64 w-full">
+            <canvas id="revenue-chart"></canvas>
+          </div>
+        </div>
+
+        <div class="lg:col-span-2 flex flex-col gap-6">
+          <div class="rounded-2xl border border-slate-800 bg-slate-900/50 p-6">
+            <h3 class="text-lg font-semibold text-white">今日待办跟进</h3>
+            <ul id="today-followups-list" class="mt-4 space-y-3 text-sm">
+              <li class="rounded-lg bg-slate-800/70 px-3 py-2 text-slate-400">正在加载待办...</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="mt-8 rounded-2xl border border-slate-800 bg-slate-900/50 p-6">
+        <div class="flex items-center justify-between gap-4">
+          <h3 class="text-lg font-semibold text-white">客户列表</h3>
+          <div class="flex items-center gap-3">
+            <div class="relative">
+              <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">🔍</span>
+              <input id="customer-search-input" type="text" class="w-64 rounded-xl border border-slate-700 bg-slate-800/80 py-2 pl-9 pr-3 text-sm text-slate-100 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/30" placeholder="搜索公司/邮箱/联系人/国家" />
+            </div>
+            <p id="customers-status" class="text-sm text-slate-400">加载中...</p>
+            <p id="customer-country-filter-label" class="hidden rounded-lg border border-sky-400/40 bg-sky-500/15 px-2 py-1 text-xs text-sky-200"></p>
+            <button id="clear-customer-country-filter-btn" type="button" class="hidden rounded-lg border border-slate-600 px-2 py-1 text-xs text-slate-300 transition hover:bg-slate-800 hover:text-white">清除筛选</button>
+            <button
+              id="open-bulk-email-btn"
+              type="button"
+              class="hidden rounded-xl border border-sky-400/50 bg-sky-500/20 px-4 py-2 text-sm font-medium text-sky-200 shadow-glow transition hover:bg-sky-500/30 hover:text-white"
+            >
+              群发邮件 (<span id="selected-count">0</span>)
+            </button>
+            <button
+              id="open-customer-modal-btn"
+              type="button"
+              class="rounded-xl border border-indigo-400/50 bg-indigo-500/20 px-4 py-2 text-sm font-medium text-indigo-200 shadow-glow transition hover:bg-indigo-500/30 hover:text-white"
+            >
+              + 新增客户
+            </button>
+          </div>
+        </div>
+        <div class="mt-4 overflow-x-auto">
+          <table class="min-w-full text-sm">
+            <thead class="bg-slate-800/70 text-slate-200">
+              <tr>
+                <th class="px-4 py-3 text-left font-medium"><input type="checkbox" id="select-all-customers" /></th>
+                <th class="px-4 py-3 text-left font-medium">客户名</th>
+                <th class="px-4 py-3 text-left font-medium">邮箱</th>
+                <th class="px-4 py-3 text-left font-medium">国家</th>
+                <th class="px-4 py-3 text-left font-medium">操作</th>
+              </tr>
+            </thead>
+            <tbody id="customers-table-body" class="divide-y divide-slate-800 text-slate-300">
+              <tr>
+                <td colspan="5" class="px-4 py-4 text-center text-slate-400">正在获取客户数据...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      </div>
+
+      <div id="public-pool-view" class="hidden">
+        <header class="mb-8">
+          <p class="text-sm text-slate-400">Public Leads Pool</p>
+          <h2 class="mt-2 text-3xl lg:text-4xl font-bold tracking-tight">客户公海</h2>
+        </header>
+        <section class="rounded-2xl border border-slate-800 bg-slate-900/50 p-6">
+          <div class="flex flex-wrap items-center justify-between gap-4">
+            <h3 class="text-lg font-semibold text-white">公海客户列表</h3>
+            <div class="flex items-center gap-3">
+              <p id="public-customers-status" class="text-sm text-slate-400">加载中...</p>
+              <button
+                id="open-public-bulk-email-btn"
+                type="button"
+                class="hidden rounded-xl border border-sky-400/50 bg-sky-500/20 px-4 py-2 text-sm font-medium text-sky-200 shadow-glow transition hover:bg-sky-500/30 hover:text-white"
+              >
+                群发邮件 (<span id="public-selected-count">0</span>)
+              </button>
+            </div>
+          </div>
+          <div class="mt-4 overflow-x-auto">
+            <table class="min-w-full text-sm">
+              <thead class="bg-slate-800/70 text-slate-200">
+                <tr>
+                  <th class="px-4 py-3 text-left font-medium"><input type="checkbox" id="select-all-public-customers" title="全选当前列表" /></th>
+                  <th class="px-4 py-3 text-left font-medium">客户名</th>
+                  <th class="px-4 py-3 text-left font-medium">邮箱</th>
+                  <th class="px-4 py-3 text-left font-medium">国家</th>
+                  <th class="px-4 py-3 text-left font-medium">操作</th>
+                </tr>
+              </thead>
+              <tbody id="public-customers-table-body" class="divide-y divide-slate-800 text-slate-300">
+                <tr>
+                  <td colspan="5" class="px-4 py-4 text-center text-slate-400">正在获取公海客户数据...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <div id="closed-customers-view" class="hidden">
+        <header class="mb-8">
+          <p class="text-sm text-rose-300/90">Closed Deals</p>
+          <h2 class="mt-2 text-3xl lg:text-4xl font-bold tracking-tight text-white">成交老客户</h2>
+          <p class="mt-2 max-w-2xl text-sm text-slate-400">已标记成交的客户集中维护：跟进记录、邮件联络与档案编辑。</p>
+        </header>
+        <section class="rounded-2xl border border-rose-900/35 bg-slate-900/50 p-6 shadow-[0_0_0_1px_rgba(251,113,133,0.08)]">
+          <div class="flex items-center justify-between gap-4">
+            <h3 class="text-lg font-semibold text-white">老客户列表</h3>
+            <p id="closed-customers-status" class="text-sm text-slate-400">加载中...</p>
+          </div>
+          <div class="mt-4 overflow-x-auto">
+            <table class="min-w-full text-sm">
+              <thead class="bg-slate-800/70 text-slate-200">
+                <tr>
+                  <th class="px-4 py-3 text-left font-medium">客户名</th>
+                  <th class="px-4 py-3 text-left font-medium">邮箱</th>
+                  <th class="px-4 py-3 text-left font-medium">国家</th>
+                  <th class="px-4 py-3 text-left font-medium">操作</th>
+                </tr>
+              </thead>
+              <tbody id="closed-customers-table-body" class="divide-y divide-slate-800 text-slate-300">
+                <tr>
+                  <td colspan="4" class="px-4 py-4 text-center text-slate-400">正在获取成交客户...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <div id="sales-report-view" class="hidden">
+        <header class="mb-6 flex flex-wrap items-start justify-between gap-4 border-b border-slate-800 pb-6">
+          <div>
+            <p class="text-sm text-pink-300/90">Sales Records</p>
+            <h2 class="mt-2 text-3xl font-bold tracking-tight text-white">年度销售报表</h2>
+          </div>
+          <div class="flex flex-wrap items-center gap-3">
+            <button
+              id="open-sales-record-modal-btn"
+              type="button"
+              class="rounded-xl border border-pink-400/45 bg-pink-500/15 px-4 py-2 text-sm font-medium text-pink-200 shadow-glow transition hover:bg-pink-500/25 hover:text-white"
+            >
+              + 新增记录
+            </button>
+            <label class="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2 text-sm text-slate-200 shadow-sm transition hover:border-slate-600">
+              <span aria-hidden="true">📅</span>
+              <span class="text-slate-400">选择年份</span>
+              <select
+                id="sales-report-year-select"
+                class="rounded-lg border border-slate-600 bg-slate-800 px-2 py-1.5 text-sm text-slate-100 outline-none transition focus:border-pink-400 focus:ring-2 focus:ring-pink-500/25"
+              ></select>
+            </label>
+            <button
+              id="export-sales-report-csv-btn"
+              type="button"
+              class="rounded-xl border border-emerald-400/55 bg-emerald-500/20 px-4 py-2 text-sm font-medium text-emerald-200 shadow-glow transition hover:bg-emerald-500/30 hover:text-white"
+            >
+              ⬇️ 导出 CSV
+            </button>
+          </div>
+        </header>
+        <p id="sales-report-status" class="mb-3 min-h-5 text-sm text-slate-400"></p>
+        <div class="w-full overflow-x-auto rounded-xl border border-slate-700 bg-slate-900/50">
+          <table class="w-full min-w-[1600px] border-collapse text-left text-sm leading-tight whitespace-nowrap">
+            <thead class="sticky top-0 z-10 bg-slate-800 text-left text-slate-100 shadow-sm">
+              <tr>
+                <th class="border border-slate-600 px-2 py-1.5 font-semibold whitespace-nowrap">单号(PI)</th>
+                <th class="border border-slate-600 px-2 py-1.5 font-semibold whitespace-nowrap">日期</th>
+                <th class="border border-slate-600 px-2 py-1.5 font-semibold whitespace-nowrap">客户</th>
+                <th class="border border-slate-600 px-2 py-1.5 font-semibold whitespace-nowrap">国家</th>
+                <th class="border border-slate-600 px-2 py-1.5 font-semibold whitespace-nowrap">型号</th>
+                <th class="border border-slate-600 px-2 py-1.5 font-semibold whitespace-nowrap">名称</th>
+                <th class="border border-slate-600 px-2 py-1.5 text-right font-semibold whitespace-nowrap">数量</th>
+                <th class="border border-slate-600 px-2 py-1.5 text-right font-semibold whitespace-nowrap">单价</th>
+                <th class="border border-slate-600 px-2 py-1.5 text-right font-semibold whitespace-nowrap">总额(USD)</th>
+                <th class="border border-slate-600 px-2 py-1.5 text-right font-semibold whitespace-nowrap">运费(USD)</th>
+                <th class="border border-slate-600 px-2 py-1.5 text-right font-semibold whitespace-nowrap">合计(USD)</th>
+                <th class="border border-slate-600 px-2 py-1.5 font-semibold whitespace-nowrap">收款银行</th>
+                <th class="border border-slate-600 px-2 py-1.5 font-semibold whitespace-nowrap">备注</th>
+                <th class="border border-slate-600 px-2 py-1.5 font-semibold whitespace-nowrap">操作</th>
+              </tr>
+            </thead>
+            <tbody id="sales-report-table-body" class="divide-y divide-slate-700 bg-slate-950/60 text-slate-200"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="products-view" class="hidden">
+        <header class="mb-8">
+          <p class="text-sm text-slate-400">产品中心</p>
+          <h2 class="mt-2 text-3xl lg:text-4xl font-bold tracking-tight">产品管理</h2>
+        </header>
+        <section class="rounded-2xl border border-slate-800 bg-slate-900/50 p-6">
+          <div class="flex items-center justify-between gap-4">
+            <h3 class="text-lg font-semibold text-white">产品列表</h3>
+            <div class="flex items-center gap-3">
+              <p id="products-status" class="text-sm text-slate-400">加载中...</p>
+              <button id="open-product-modal-btn" type="button" class="rounded-xl border border-violet-400/50 bg-violet-500/20 px-4 py-2 text-sm font-medium text-violet-200 shadow-glow transition hover:bg-violet-500/30 hover:text-white">
+                + 新增产品
+              </button>
+            </div>
+          </div>
+          <div class="mt-4 overflow-x-auto">
+            <table class="min-w-full text-sm">
+              <thead class="bg-slate-800/70 text-slate-200">
+                <tr>
+                  <th class="px-4 py-3 text-left font-medium">产品名称</th>
+                  <th class="px-4 py-3 text-left font-medium">型号</th>
+                  <th class="px-4 py-3 text-left font-medium">价格</th>
+                  <th class="px-4 py-3 text-left font-medium">图片地址</th>
+                </tr>
+              </thead>
+              <tbody id="products-table-body" class="divide-y divide-slate-800 text-slate-300">
+                <tr>
+                  <td colspan="4" class="px-4 py-4 text-center text-slate-400">正在获取产品数据...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <div id="quotations-view" class="hidden">
+        <header class="mb-8 flex items-start justify-between gap-4">
+          <div>
+            <p class="text-sm text-slate-400">Quotation Center</p>
+            <h2 class="mt-2 text-3xl lg:text-4xl font-bold tracking-tight">报价单工作台</h2>
+          </div>
+          <div class="flex items-center gap-3">
+            <button id="confirm-order-btn" type="button" class="rounded-xl border border-lime-400/60 bg-lime-500/20 px-5 py-2.5 text-sm font-semibold text-lime-200 shadow-glow transition hover:bg-lime-500/30 hover:text-white">
+              确认成交 (Confirm Order)
+            </button>
+            <button id="export-pdf-btn" type="button" class="rounded-xl border border-emerald-400/50 bg-emerald-500/20 px-5 py-2.5 text-sm font-semibold text-emerald-200 shadow-glow transition hover:bg-emerald-500/30 hover:text-white">
+              导出 PDF (Export PDF)
+            </button>
+          </div>
+        </header>
+
+        <section class="rounded-2xl border border-slate-800 bg-slate-900/50 p-6">
+          <div class="grid gap-4 lg:grid-cols-2">
+            <div>
+              <label for="quote-customer-select" class="mb-1 block text-sm text-slate-300">下拉框 A：选择客户</label>
+              <select id="quote-customer-select" class="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-2 text-slate-100 outline-none transition focus:border-amber-400 focus:ring-2 focus:ring-amber-500/30">
+                <option value="">请选择客户...</option>
+              </select>
+            </div>
+            <div>
+              <label for="quote-product-select" class="mb-1 block text-sm text-slate-300">下拉框 B：选择产品</label>
+              <div class="flex gap-2">
+                <select id="quote-product-select" class="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-2 text-slate-100 outline-none transition focus:border-amber-400 focus:ring-2 focus:ring-amber-500/30">
+                  <option value="">请选择产品...</option>
+                </select>
+                <input id="quote-product-qty" type="number" min="1" value="1" class="w-24 rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-2 text-slate-100 outline-none transition focus:border-amber-400 focus:ring-2 focus:ring-amber-500/30" />
+                <button id="add-quote-item-btn" type="button" class="rounded-xl border border-amber-400/50 bg-amber-500/20 px-3 py-2 text-sm font-medium text-amber-200 transition hover:bg-amber-500/30 hover:text-white">添加</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-5 overflow-x-auto rounded-xl border border-slate-800">
+            <table class="min-w-full text-sm">
+              <thead class="bg-slate-800/70 text-slate-200">
+                <tr>
+                  <th class="px-4 py-3 text-left font-medium">Product</th>
+                  <th class="px-4 py-3 text-left font-medium">SKU</th>
+                  <th class="px-4 py-3 text-right font-medium">Qty</th>
+                  <th class="px-4 py-3 text-right font-medium">Unit Price</th>
+                  <th class="px-4 py-3 text-right font-medium">Line Total</th>
+                  <th class="px-4 py-3 text-right font-medium">Action</th>
+                </tr>
+              </thead>
+              <tbody id="quote-items-body" class="divide-y divide-slate-800 text-slate-300">
+                <tr>
+                  <td colspan="6" class="px-4 py-4 text-center text-slate-400">请先添加产品项目</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p id="quote-builder-status" class="mt-3 min-h-5 text-sm text-slate-400"></p>
+        </section>
+
+        <section class="mt-8">
+          <div class="overflow-auto rounded-2xl border border-slate-800 bg-slate-900/50 p-6">
+            <div id="quote-a4-preview" class="mx-auto w-[794px] min-h-[1123px] bg-white p-12 text-slate-800 shadow-2xl">
+              <div class="border-b border-slate-300 pb-6">
+                <div class="flex items-start justify-between">
+                  <div>
+                    <p class="text-xs uppercase tracking-[0.3em] text-slate-500">MyCRM Export</p>
+                    <h3 class="mt-2 text-4xl font-bold text-slate-900">QUOTATION</h3>
+                  </div>
+                  <div class="text-right text-sm">
+                    <p class="font-semibold text-slate-900">MyCRM Global Trade Ltd.</p>
+                    <p class="mt-1 text-slate-600">Email: sales@mycrm-global.com</p>
+                    <p class="text-slate-600">Tel: +86 755 8888 0000</p>
+                    <p id="quote-doc-date" class="mt-2 text-slate-500"></p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-8 grid grid-cols-2 gap-8">
+                <div>
+                  <p class="text-xs uppercase tracking-[0.2em] text-slate-500">Bill To</p>
+                  <p id="quote-preview-customer-name" class="mt-2 text-lg font-semibold text-slate-900">Please select a customer</p>
+                  <p id="quote-preview-customer-country" class="mt-1 text-sm text-slate-600">Country: -</p>
+                </div>
+                <div class="text-right">
+                  <p class="text-xs uppercase tracking-[0.2em] text-slate-500">Quotation No.</p>
+                  <p id="quote-doc-no" class="mt-2 text-lg font-semibold text-slate-900"></p>
+                </div>
+              </div>
+
+              <div class="mt-8 overflow-hidden rounded-lg border border-slate-300">
+                <table class="min-w-full text-sm">
+                  <thead class="bg-slate-100 text-slate-700">
+                    <tr>
+                      <th class="px-4 py-3 text-left font-semibold">Description</th>
+                      <th class="px-4 py-3 text-left font-semibold">SKU</th>
+                      <th class="px-4 py-3 text-right font-semibold">Qty</th>
+                      <th class="px-4 py-3 text-right font-semibold">Unit Price</th>
+                      <th class="px-4 py-3 text-right font-semibold">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody id="quote-preview-items-body" class="divide-y divide-slate-200 text-slate-700">
+                    <tr>
+                      <td colspan="5" class="px-4 py-6 text-center text-slate-400">No items selected</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="mt-8 flex justify-end">
+                <div class="w-72 space-y-2 text-sm">
+                  <div class="flex items-center justify-between">
+                    <span class="text-slate-600">Subtotal</span>
+                    <span id="quote-preview-subtotal" class="font-semibold text-slate-900">$0.00</span>
+                  </div>
+                  <div class="flex items-center justify-between border-t border-slate-300 pt-2 text-base">
+                    <span class="font-semibold text-slate-700">Total</span>
+                    <span id="quote-preview-total" class="font-bold text-slate-900">$0.00</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-14 border-t border-slate-300 pt-6 text-xs text-slate-500">
+                <p>Terms: 50% deposit before production, balance before shipment. Validity: 15 days.</p>
+                <p class="mt-1">Thank you for your interest. We look forward to working with you.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div id="holidays-view" class="hidden h-full">
+        <header class="mb-8">
+          <p class="text-sm text-slate-400">Global Holiday Calendar</p>
+          <h2 class="mt-2 text-3xl lg:text-4xl font-bold tracking-tight">智能节日社交看板</h2>
+        </header>
+        <section class="rounded-2xl border border-slate-800 p-4 lg:p-6" style="background: linear-gradient(145deg, #0f172a 0%, #020617 100%);">
+          <div class="flex flex-col lg:flex-row gap-5" style="display: flex; flex-direction: row; gap: 20px;">
+            <div class="holiday-glass rounded-2xl p-4 lg:p-5" style="width: 65%;">
+              <div id="holiday-calendar" class="h-full"></div>
+            </div>
+            <div class="holiday-glass rounded-2xl p-4" style="width: 35%; position: sticky; top: 20px; align-self: flex-start;">
+              <h3 class="text-base font-semibold text-white">近期节日提醒</h3>
+              <p class="mt-1 text-xs text-slate-300">未来 7 天内的重要节日与快速祝福入口</p>
+              <div id="upcoming-holidays-list" class="mt-4 space-y-3 overflow-y-auto max-h-56">
+                <div class="rounded-xl border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-400">正在加载节日提醒...</div>
+              </div>
+              <div id="holiday-intel-panel" class="mt-4 rounded-2xl border border-slate-700 bg-slate-900/65 p-4 overflow-y-auto max-h-[58vh] transition-all duration-300 ease-out opacity-100">
+                <p class="text-sm text-slate-300">请点击左侧日历上的节日查看社交情报。</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div id="customer-modal-overlay" class="fixed inset-0 z-40 hidden bg-slate-950/70 backdrop-blur-sm"></div>
+  <div id="customer-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div class="w-full max-w-md max-h-[88vh] overflow-y-auto rounded-2xl border border-slate-700 bg-slate-900/90 p-6 shadow-glow">
+      <div class="flex items-center justify-between">
+        <h3 id="customer-modal-title" class="text-xl font-semibold text-white">新增客户</h3>
+        <button id="close-customer-modal-btn" type="button" class="rounded-lg px-2 py-1 text-slate-400 transition hover:bg-slate-800 hover:text-white">✕</button>
+      </div>
+      <p id="customer-modal-desc" class="mt-2 text-sm text-slate-400">填写客户基础信息后将自动写入 `customers` 表。</p>
+
+      <form id="customer-form" class="mt-5 space-y-4">
+        <div>
+          <label for="company-name" class="mb-1 block text-sm text-slate-300">公司名称</label>
+          <input id="company-name" name="company_name" type="text" required class="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-2 text-slate-100 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/30" placeholder="例如：Acme Trading Ltd." />
+        </div>
+        <div>
+          <label for="contact-name" class="mb-1 block text-sm text-slate-300">联系人名字</label>
+          <input id="contact-name" name="contact_name" type="text" class="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-2 text-slate-100 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/30" placeholder="例如：John Smith" />
+        </div>
+        <div>
+          <label for="customer-email" class="mb-1 block text-sm text-slate-300">邮箱</label>
+          <input id="customer-email" name="email" type="email" required class="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-2 text-slate-100 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/30" placeholder="name@company.com" />
+        </div>
+        <div>
+          <label for="customer-phone" class="mb-1 block text-sm text-slate-300">电话</label>
+          <input id="customer-phone" name="phone" type="text" class="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-2 text-slate-100 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/30" placeholder="+1 234 567 890" />
+        </div>
+        <div>
+          <label for="customer-country" class="mb-1 block text-sm text-slate-300">国家</label>
+          <input id="customer-country" name="country" list="customer-country-list" type="text" required class="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-2 text-slate-100 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/30" placeholder="可搜索国家（例如：中国 / 美国 / 德国）" />
+          <datalist id="customer-country-list"></datalist>
+        </div>
+        <div>
+          <label for="customer-address" class="mb-1 block text-sm text-slate-300">地址</label>
+          <input id="customer-address" name="address" type="text" class="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-2 text-slate-100 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/30" placeholder="例如：123 Main St, Los Angeles" />
+        </div>
+        <div>
+          <label for="customer-source" class="mb-1 block text-sm text-slate-300">客户来源</label>
+          <select id="customer-source" name="source" class="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-2 text-slate-100 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/30">
+            <option value="">请选择来源</option>
+            <option value="Google搜索">Google搜索</option>
+            <option value="阿里巴巴">阿里巴巴</option>
+            <option value="MIC">MIC</option>
+            <option value="线下展会">线下展会</option>
+            <option value="海关数据">海关数据</option>
+            <option value="社交媒体">社交媒体</option>
+            <option value="其他">其他</option>
+          </select>
+        </div>
+        <div>
+          <label for="customer-social-media" class="mb-1 block text-sm text-slate-300">社交媒体</label>
+          <select id="customer-social-media" name="social_media" class="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-2 text-slate-100 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/30">
+            <option value="">请选择社交媒体</option>
+            <option value="TK">TK</option>
+            <option value="INS">INS</option>
+            <option value="FB">FB</option>
+            <option value="其他">其他</option>
+          </select>
+        </div>
+
+        <p id="customer-form-status" class="min-h-5 text-sm text-slate-400"></p>
+        <div class="flex justify-end gap-3 pt-1">
+          <button id="cancel-customer-btn" type="button" class="rounded-xl border border-slate-600 px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-800 hover:text-white">取消</button>
+          <button id="submit-customer-btn" type="submit" class="rounded-xl border border-emerald-400/50 bg-emerald-500/20 px-4 py-2 text-sm font-medium text-emerald-200 transition hover:bg-emerald-500/30 hover:text-white">提交客户</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="sales-record-modal-overlay" class="fixed inset-0 z-40 hidden bg-slate-950/70 backdrop-blur-sm"></div>
+  <div id="sales-record-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div class="w-full max-w-lg max-h-[92vh] overflow-y-auto rounded-2xl border border-pink-900/40 bg-slate-900/95 p-6 shadow-glow">
+      <div class="flex items-center justify-between">
+        <h3 id="sales-record-modal-title" class="text-xl font-semibold text-white">新增销售记录</h3>
+        <button id="close-sales-record-modal-btn" type="button" class="rounded-lg px-2 py-1 text-slate-400 transition hover:bg-slate-800 hover:text-white">✕</button>
+      </div>
+      <p id="sales-record-modal-desc" class="mt-2 text-sm text-slate-400">填写后写入 `sales_records` 表；总额与合计将在保存时自动计算。</p>
+
+      <form id="sales-record-form" class="mt-5 space-y-4">
+        <div>
+          <label for="sales-order-no" class="mb-1 block text-sm text-slate-300">单号 (order_no)</label>
+          <input id="sales-order-no" name="order_no" type="text" required class="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-2 text-slate-100 outline-none transition focus:border-pink-400 focus:ring-2 focus:ring-pink-500/25" placeholder="例如：PI-2026-001" />
+        </div>
+        <div>
+          <label for="sales-date" class="mb-1 block text-sm text-slate-300">日期 (date)</label>
+          <input id="sales-date" name="date" type="date" required class="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-2 text-slate-100 outline-none transition focus:border-pink-400 focus:ring-2 focus:ring-pink-500/25" />
+        </div>
+        <div>
+          <label for="sales-customer-name" class="mb-1 block text-sm text-slate-300">客户 (customer_name)</label>
+          <input id="sales-customer-name" name="customer_name" type="text" required class="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-2 text-slate-100 outline-none transition focus:border-pink-400 focus:ring-2 focus:ring-pink-500/25" placeholder="公司名称" />
+        </div>
+        <div>
+          <label for="sales-country" class="mb-1 block text-sm text-slate-300">国家 (country)</label>
+          <input id="sales-country" name="country" type="text" class="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-2 text-slate-100 outline-none transition focus:border-pink-400 focus:ring-2 focus:ring-pink-500/25" placeholder="国家/地区" />
+        </div>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label for="sales-model" class="mb-1 block text-sm text-slate-300">型号 (model)</label>
+            <input id="sales-model" name="model" type="text" class="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-2 text-slate-100 outline-none transition focus:border-pink-400 focus:ring-2 focus:ring-pink-500/25" />
+          </div>
+          <div>
+            <label for="sales-product-name" class="mb-1 block text-sm text-slate-300">名称 (product_name)</label>
+            <input id="sales-product-name" name="product_name" type="text" class="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-2 text-slate-100 outline-none transition focus:border-pink-400 focus:ring-2 focus:ring-pink-500/25" />
+          </div>
+        </div>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label for="sales-qty" class="mb-1 block text-sm text-slate-300">数量 (qty)</label>
+            <input id="sales-qty" name="qty" type="number" step="any" min="0" required class="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-2 text-slate-100 outline-none transition focus:border-pink-400 focus:ring-2 focus:ring-pink-500/25" placeholder="0" />
+          </div>
+          <div>
+            <label for="sales-unit-price" class="mb-1 block text-sm text-slate-300">单价 (unit_price, USD)</label>
+            <input id="sales-unit-price" name="unit_price" type="number" step="0.01" min="0" required class="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-2 text-slate-100 outline-none transition focus:border-pink-400 focus:ring-2 focus:ring-pink-500/25" placeholder="0.00" />
+          </div>
+        </div>
+        <div>
+          <label for="sales-shipping-usd" class="mb-1 block text-sm text-slate-300">运费 (shipping_usd)</label>
+          <input id="sales-shipping-usd" name="shipping_usd" type="number" step="0.01" min="0" class="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-2 text-slate-100 outline-none transition focus:border-pink-400 focus:ring-2 focus:ring-pink-500/25" placeholder="0.00" />
+        </div>
+        <div
+          id="sales-computed-summary"
+          class="rounded-xl border border-slate-700/80 bg-slate-900/50 px-3 py-2.5 text-sm text-slate-300"
+        >
+          <span class="tabular-nums"
+            >总额 (USD)：<strong id="sales-preview-total-usd" class="text-emerald-200/95">—</strong></span
+          >
+          <span class="mx-2 text-slate-600">·</span>
+          <span class="tabular-nums"
+            >合计 (USD)：<strong id="sales-preview-grand-total-usd" class="text-emerald-200/95">—</strong></span
+          >
+        </div>
+        <div>
+          <label for="sales-bank" class="mb-1 block text-sm text-slate-300">收款银行 (bank)</label>
+          <input id="sales-bank" name="bank" type="text" class="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-2 text-slate-100 outline-none transition focus:border-pink-400 focus:ring-2 focus:ring-pink-500/25" placeholder="开户行 / 账号摘要" />
+        </div>
+        <div>
+          <label for="sales-notes" class="mb-1 block text-sm text-slate-300">备注 (notes)</label>
+          <textarea id="sales-notes" name="notes" rows="3" class="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-pink-400 focus:ring-2 focus:ring-pink-500/25 whitespace-pre-wrap" placeholder="可选"></textarea>
+        </div>
+
+        <p id="sales-form-status" class="min-h-5 text-sm text-slate-400"></p>
+        <div class="flex justify-end gap-3 pt-1">
+          <button id="cancel-sales-record-btn" type="button" class="rounded-xl border border-slate-600 px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-800 hover:text-white">取消</button>
+          <button id="submit-sales-record-btn" type="submit" class="rounded-xl border border-emerald-400/50 bg-emerald-500/20 px-4 py-2 text-sm font-medium text-emerald-200 transition hover:bg-emerald-500/30 hover:text-white">保存记录</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="followup-drawer-overlay" class="fixed inset-0 z-40 hidden bg-slate-950/60 backdrop-blur-sm"></div>
+  <aside id="followup-drawer" class="fixed right-3 top-3 z-50 h-[calc(100vh-1.5rem)] w-full max-w-[980px] translate-x-[110%] rounded-2xl border border-slate-700 bg-slate-900/95 p-4 shadow-2xl transition-transform duration-300 overflow-hidden">
+    <div class="flex items-center justify-between">
+      <div>
+        <h3 class="text-lg font-semibold text-white">客户跟进详情</h3>
+        <p id="followup-customer-name" class="mt-0.5 text-sm text-slate-400">请选择客户</p>
+      </div>
+      <button id="close-followup-drawer-btn" type="button" class="rounded-lg px-2 py-1 text-slate-400 transition hover:bg-slate-800 hover:text-white">✕</button>
+    </div>
+
+    <div class="mt-3 grid h-[calc(100%-48px)] grid-cols-1 gap-3 lg:grid-cols-2">
+      <section class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 overflow-y-auto">
+        <h4 class="text-sm font-semibold text-white">客户基础信息</h4>
+        <div class="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+          <div class="rounded-lg bg-slate-800/70 px-3 py-2 text-slate-200"><span class="text-slate-400">🏢 公司名称</span><p id="followup-customer-company" class="mt-1 break-words">-</p></div>
+          <div class="rounded-lg bg-slate-800/70 px-3 py-2 text-slate-200"><span class="text-slate-400">👤 联系人</span><p id="followup-customer-contact-name" class="mt-1 break-words">-</p></div>
+          <div class="rounded-lg bg-slate-800/70 px-3 py-2 text-slate-200">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-slate-400">✉️ 邮箱</span>
+              <button id="copy-customer-email-btn" type="button" class="rounded border border-slate-600 px-2 py-0.5 text-[11px] text-slate-300 transition hover:bg-slate-700 hover:text-white">复制</button>
+            </div>
+            <p id="followup-customer-email" class="mt-1 break-words">-</p>
+          </div>
+          <div class="rounded-lg bg-slate-800/70 px-3 py-2 text-slate-200">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-slate-400">📞 电话</span>
+              <button id="copy-customer-phone-btn" type="button" class="rounded border border-slate-600 px-2 py-0.5 text-[11px] text-slate-300 transition hover:bg-slate-700 hover:text-white">复制</button>
+            </div>
+            <p id="followup-customer-phone" class="mt-1 break-words">-</p>
+          </div>
+          <div class="rounded-lg bg-slate-800/70 px-3 py-2 text-slate-200"><span class="text-slate-400">🌍 国家</span><p id="followup-customer-country" class="mt-1 break-words">-</p></div>
+          <div class="rounded-lg bg-slate-800/70 px-3 py-2 text-slate-200"><span class="text-slate-400">📍 地址</span><p id="followup-customer-address" class="mt-1 break-words">-</p></div>
+          <div class="rounded-lg bg-slate-800/70 px-3 py-2 text-slate-200"><span class="text-slate-400">🧭 客户来源</span><p id="followup-customer-source" class="mt-1 break-words">-</p></div>
+          <div class="rounded-lg bg-slate-800/70 px-3 py-2 text-slate-200">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-slate-400">💬 社交账号</span>
+              <button id="copy-customer-social-btn" type="button" class="rounded border border-slate-600 px-2 py-0.5 text-[11px] text-slate-300 transition hover:bg-slate-700 hover:text-white">复制</button>
+            </div>
+            <p id="followup-customer-social" class="mt-1 break-words">-</p>
+          </div>
+          <div class="rounded-lg bg-slate-800/70 px-3 py-2 text-slate-200 sm:col-span-2">
+            <span class="text-slate-400">🕒 当地时间</span>
+            <p id="followup-customer-local-time" class="mt-1 font-medium text-slate-200">-</p>
+            <p id="followup-customer-time-warning" class="mt-2 hidden rounded-lg border border-rose-500/45 bg-rose-950/45 px-2 py-1.5 text-xs font-medium text-rose-300"></p>
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <button id="send-email-btn" type="button" class="rounded-xl border border-indigo-400/50 bg-indigo-500/20 px-4 py-2 text-sm font-medium text-indigo-200 shadow-glow transition hover:bg-indigo-500/30 hover:text-white">发送邮件</button>
+        </div>
+
+      </section>
+
+      <section class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+        <div class="border-b border-slate-800 pb-3">
+          <h4 class="text-sm font-semibold text-white">跟进动态流</h4>
+          <p id="followup-status" class="mt-1 text-sm text-slate-400">加载中...</p>
+        </div>
+
+        <form id="followup-form" class="mt-4 space-y-3">
+          <textarea id="followup-content" rows="6" required class="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-3 text-sm text-slate-100 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/30 whitespace-pre-wrap" placeholder="在此粘贴客户聊天记录或邮件内容..."></textarea>
+          <div>
+            <label for="next-followup-datetime" class="mb-1 block text-xs text-slate-400">设置下次跟进提醒</label>
+            <input id="next-followup-datetime" type="datetime-local" class="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/30" />
+          </div>
+          <div class="flex items-center justify-between gap-3">
+            <p id="followup-form-status" class="min-h-5 text-sm text-slate-400"></p>
+            <button id="save-followup-btn" type="submit" class="rounded-xl border border-cyan-400/50 bg-cyan-500/20 px-4 py-2 text-sm font-medium text-cyan-200 transition hover:bg-cyan-500/30 hover:text-white">保存粘贴内容</button>
+          </div>
+        </form>
+
+        <div id="followup-list" class="mt-4 h-[550px] space-y-3 overflow-y-auto pr-2 pb-2 scroll-smooth">
+          <p class="rounded-lg bg-slate-800/70 px-3 py-2 text-sm text-slate-400">正在获取跟进记录...</p>
+        </div>
+      </section>
+    </div>
+  </aside>
+  <div id="product-modal-overlay" class="fixed inset-0 z-40 hidden bg-slate-950/70 backdrop-blur-sm"></div>
+  <div id="product-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div class="w-full max-w-lg rounded-2xl border border-slate-700 bg-slate-900/90 p-6 shadow-glow">
+      <div class="flex items-center justify-between">
+        <h3 class="text-xl font-semibold text-white">新增产品</h3>
+        <button id="close-product-modal-btn" type="button" class="rounded-lg px-2 py-1 text-slate-400 transition hover:bg-slate-800 hover:text-white">✕</button>
+      </div>
+      <p class="mt-2 text-sm text-slate-400">保存到 `products` 表并自动刷新产品列表。</p>
+
+      <form id="product-form" class="mt-5 space-y-4">
+        <div>
+          <label for="product-name" class="mb-1 block text-sm text-slate-300">产品名称 (name)</label>
+          <input id="product-name" type="text" required class="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-2 text-slate-100 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-500/30" placeholder="例如：Solar Inverter" />
+        </div>
+        <div>
+          <label for="product-sku" class="mb-1 block text-sm text-slate-300">型号 (sku)</label>
+          <input id="product-sku" type="text" required class="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-2 text-slate-100 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-500/30" placeholder="例如：INV-3KW-A1" />
+        </div>
+        <div>
+          <label for="product-price" class="mb-1 block text-sm text-slate-300">价格 (price)</label>
+          <input id="product-price" type="number" min="0" step="0.01" required class="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-2 text-slate-100 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-500/30" placeholder="例如：1299.00" />
+        </div>
+        <div>
+          <label for="product-image-url" class="mb-1 block text-sm text-slate-300">图片地址 (image_url)</label>
+          <input id="product-image-url" type="url" required class="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-2 text-slate-100 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-500/30" placeholder="https://example.com/product.jpg" />
+        </div>
+
+        <p id="product-form-status" class="min-h-5 text-sm text-slate-400"></p>
+        <div class="flex justify-end gap-3 pt-1">
+          <button id="cancel-product-btn" type="button" class="rounded-xl border border-slate-600 px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-800 hover:text-white">取消</button>
+          <button id="submit-product-btn" type="submit" class="rounded-xl border border-violet-400/50 bg-violet-500/20 px-4 py-2 text-sm font-medium text-violet-200 transition hover:bg-violet-500/30 hover:text-white">保存产品</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = "https://msurrijrfyepjzfydrwb.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1zdXJyaWpyZnllcGp6ZnlkcndiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2MzM4OTcsImV4cCI6MjA5MjIwOTg5N30.0AQbAXEh2vi49xLJ2GgUzAAqZVFPBpmrc-rDE4UxHTg";
+
+    const statusEl = document.getElementById("customers-status");
+    const kpiCustomersTotalEl = document.getElementById("kpi-customers-total");
+    const kpiEmailFollowupsTotalEl = document.getElementById("kpi-email-followups-total");
+    const kpiOrdersTotalAmountEl = document.getElementById("kpi-orders-total-amount");
+    const kpiOrdersCountEl = document.getElementById("kpi-orders-count");
+    const tableBodyEl = document.getElementById("customers-table-body");
+    const openModalBtn = document.getElementById("open-customer-modal-btn");
+    const openBulkEmailBtn = document.getElementById("open-bulk-email-btn");
+    const openPublicBulkEmailBtn = document.getElementById("open-public-bulk-email-btn");
+    const selectedCountEl = document.getElementById("selected-count");
+    const publicSelectedCountEl = document.getElementById("public-selected-count");
+    const selectAllCustomersEl = document.getElementById("select-all-customers");
+    const selectAllPublicCustomersEl = document.getElementById("select-all-public-customers");
+    const closeModalBtn = document.getElementById("close-customer-modal-btn");
+    const cancelBtn = document.getElementById("cancel-customer-btn");
+    const modalEl = document.getElementById("customer-modal");
+    const modalOverlayEl = document.getElementById("customer-modal-overlay");
+    const customerForm = document.getElementById("customer-form");
+    const customerModalTitleEl = document.getElementById("customer-modal-title");
+    const customerModalDescEl = document.getElementById("customer-modal-desc");
+    const companyNameInput = document.getElementById("company-name");
+    const contactNameInput = document.getElementById("contact-name");
+    const customerEmailInput = document.getElementById("customer-email");
+    const customerPhoneInput = document.getElementById("customer-phone");
+    const customerCountryInput = document.getElementById("customer-country");
+    const customerCountryListEl = document.getElementById("customer-country-list");
+    const customerAddressInput = document.getElementById("customer-address");
+    const customerSourceInput = document.getElementById("customer-source");
+    const customerSocialMediaInput = document.getElementById("customer-social-media");
+    const submitCustomerBtn = document.getElementById("submit-customer-btn");
+    const customerFormStatus = document.getElementById("customer-form-status");
+    const followupDrawerOverlay = document.getElementById("followup-drawer-overlay");
+    const followupDrawer = document.getElementById("followup-drawer");
+    const closeFollowupDrawerBtn = document.getElementById("close-followup-drawer-btn");
+    const followupCustomerNameEl = document.getElementById("followup-customer-name");
+    const followupCustomerCompanyEl = document.getElementById("followup-customer-company");
+    const followupCustomerContactNameEl = document.getElementById("followup-customer-contact-name");
+    const followupCustomerEmailEl = document.getElementById("followup-customer-email");
+    const followupCustomerPhoneEl = document.getElementById("followup-customer-phone");
+    const followupCustomerCountryEl = document.getElementById("followup-customer-country");
+    const followupCustomerAddressEl = document.getElementById("followup-customer-address");
+    const followupCustomerSourceEl = document.getElementById("followup-customer-source");
+    const followupCustomerSocialEl = document.getElementById("followup-customer-social");
+    const followupCustomerLocalTimeEl = document.getElementById("followup-customer-local-time");
+    const followupCustomerTimeWarningEl = document.getElementById("followup-customer-time-warning");
+    const copyCustomerEmailBtn = document.getElementById("copy-customer-email-btn");
+    const copyCustomerPhoneBtn = document.getElementById("copy-customer-phone-btn");
+    const copyCustomerSocialBtn = document.getElementById("copy-customer-social-btn");
+    const followupStatusEl = document.getElementById("followup-status");
+    const followupListEl = document.getElementById("followup-list");
+    const followupForm = document.getElementById("followup-form");
+    const followupContentInput = document.getElementById("followup-content");
+    const nextFollowupDatetimeInput = document.getElementById("next-followup-datetime");
+    const followupFormStatusEl = document.getElementById("followup-form-status");
+    const saveFollowupBtn = document.getElementById("save-followup-btn");
+    const sendEmailBtn = document.getElementById("send-email-btn");
+    const navDashboard = document.getElementById("nav-dashboard");
+    const navPublicPool = document.getElementById("nav-public-pool");
+    const navClosedCustomers = document.getElementById("nav-closed-customers");
+    const navSalesReport = document.getElementById("nav-sales-report");
+    const navProducts = document.getElementById("nav-products");
+    const navQuotations = document.getElementById("nav-quotations");
+    const navHolidays = document.getElementById("nav-holidays");
+    const dashboardView = document.getElementById("dashboard-view");
+    const publicPoolView = document.getElementById("public-pool-view");
+    const closedCustomersView = document.getElementById("closed-customers-view");
+    const productsView = document.getElementById("products-view");
+    const quotationsView = document.getElementById("quotations-view");
+    const salesReportView = document.getElementById("sales-report-view");
+    const holidaysView = document.getElementById("holidays-view");
+    const salesReportYearSelect = document.getElementById("sales-report-year-select");
+    const salesReportTableBody = document.getElementById("sales-report-table-body");
+    const salesReportStatusEl = document.getElementById("sales-report-status");
+    const exportSalesReportCsvBtn = document.getElementById("export-sales-report-csv-btn");
+    const openSalesRecordModalBtn = document.getElementById("open-sales-record-modal-btn");
+    const salesRecordModalOverlayEl = document.getElementById("sales-record-modal-overlay");
+    const salesRecordModalEl = document.getElementById("sales-record-modal");
+    const closeSalesRecordModalBtn = document.getElementById("close-sales-record-modal-btn");
+    const salesRecordForm = document.getElementById("sales-record-form");
+    const cancelSalesRecordBtn = document.getElementById("cancel-sales-record-btn");
+    const submitSalesRecordBtn = document.getElementById("submit-sales-record-btn");
+    const salesFormStatusEl = document.getElementById("sales-form-status");
+    const salesRecordModalTitleEl = document.getElementById("sales-record-modal-title");
+    const salesRecordModalDescEl = document.getElementById("sales-record-modal-desc");
+    const publicCustomersStatusEl = document.getElementById("public-customers-status");
+    const publicCustomersTableBodyEl = document.getElementById("public-customers-table-body");
+    const closedCustomersStatusEl = document.getElementById("closed-customers-status");
+    const closedCustomersTableBodyEl = document.getElementById("closed-customers-table-body");
+    const productsStatusEl = document.getElementById("products-status");
+    const productsTableBodyEl = document.getElementById("products-table-body");
+    const openProductModalBtn = document.getElementById("open-product-modal-btn");
+    const closeProductModalBtn = document.getElementById("close-product-modal-btn");
+    const cancelProductBtn = document.getElementById("cancel-product-btn");
+    const productModalOverlayEl = document.getElementById("product-modal-overlay");
+    const productModalEl = document.getElementById("product-modal");
+    const productForm = document.getElementById("product-form");
+    const productNameInput = document.getElementById("product-name");
+    const productSkuInput = document.getElementById("product-sku");
+    const productPriceInput = document.getElementById("product-price");
+    const productImageUrlInput = document.getElementById("product-image-url");
+    const productFormStatusEl = document.getElementById("product-form-status");
+    const submitProductBtn = document.getElementById("submit-product-btn");
+    const confirmOrderBtn = document.getElementById("confirm-order-btn");
+    const exportPdfBtn = document.getElementById("export-pdf-btn");
+    const quoteCustomerSelect = document.getElementById("quote-customer-select");
+    const quoteProductSelect = document.getElementById("quote-product-select");
+    const quoteProductQtyInput = document.getElementById("quote-product-qty");
+    const addQuoteItemBtn = document.getElementById("add-quote-item-btn");
+    const quoteItemsBody = document.getElementById("quote-items-body");
+    const quoteBuilderStatusEl = document.getElementById("quote-builder-status");
+    const quoteA4Preview = document.getElementById("quote-a4-preview");
+    const quoteDocDateEl = document.getElementById("quote-doc-date");
+    const quoteDocNoEl = document.getElementById("quote-doc-no");
+    const quotePreviewCustomerNameEl = document.getElementById("quote-preview-customer-name");
+    const quotePreviewCustomerCountryEl = document.getElementById("quote-preview-customer-country");
+    const quotePreviewItemsBody = document.getElementById("quote-preview-items-body");
+    const quotePreviewSubtotalEl = document.getElementById("quote-preview-subtotal");
+    const quotePreviewTotalEl = document.getElementById("quote-preview-total");
+    const todayFollowupsListEl = document.getElementById("today-followups-list");
+    const customerCountryFilterLabelEl = document.getElementById("customer-country-filter-label");
+    const clearCustomerCountryFilterBtn = document.getElementById("clear-customer-country-filter-btn");
+    const customerSearchInput = document.getElementById("customer-search-input");
+    const holidayCalendarEl = document.getElementById("holiday-calendar");
+    const upcomingHolidaysListEl = document.getElementById("upcoming-holidays-list");
+    const holidayIntelPanelEl = document.getElementById("holiday-intel-panel");
+    const FOLLOWUPS_TABLE = "customer_followups";
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    let selectedCustomer = null;
+    let currentView = "dashboard";
+    let quotationCustomers = [];
+    let quotationProducts = [];
+    let selectedQuotationCustomerId = "";
+    let quotationItems = [];
+    let privateCustomersCache = [];
+    let closedCustomersCache = [];
+    let revenueChartInstance = null;
+    let selectedCustomerEmails = [];
+    let editingCustomerId = null;
+    let customerCountryFilter = "";
+    let currentSearchQuery = "";
+    let selectedHolidayCountry = "";
+    let holidayCalendarInstance = null;
+    let holidayEventsData = [];
+    const holidayEventCache = {};
+    let holidayIntelRequestToken = 0;
+    let salesReportRecordsCache = [];
+    let editingSalesRecordId = null;
+    let liveTimeInterval = null;
+
+    const COUNTRY_TO_TZ = {
+      // 亚洲
+      "中国": "Asia/Shanghai",
+      china: "Asia/Shanghai",
+      "香港": "Asia/Hong_Kong",
+      "hong kong": "Asia/Hong_Kong",
+      "台湾": "Asia/Taipei",
+      taiwan: "Asia/Taipei",
+      "澳门": "Asia/Macau",
+      macau: "Asia/Macau",
+      "日本": "Asia/Tokyo",
+      japan: "Asia/Tokyo",
+      "韩国": "Asia/Seoul",
+      "south korea": "Asia/Seoul",
+      "朝鲜": "Asia/Pyongyang",
+      "north korea": "Asia/Pyongyang",
+      "蒙古": "Asia/Ulaanbaatar",
+      mongolia: "Asia/Ulaanbaatar",
+      "印度": "Asia/Kolkata",
+      india: "Asia/Kolkata",
+      "巴基斯坦": "Asia/Karachi",
+      pakistan: "Asia/Karachi",
+      "孟加拉国": "Asia/Dhaka",
+      bangladesh: "Asia/Dhaka",
+      "斯里兰卡": "Asia/Colombo",
+      "sri lanka": "Asia/Colombo",
+      "尼泊尔": "Asia/Kathmandu",
+      nepal: "Asia/Kathmandu",
+      "越南": "Asia/Ho_Chi_Minh",
+      vietnam: "Asia/Ho_Chi_Minh",
+      "泰国": "Asia/Bangkok",
+      thailand: "Asia/Bangkok",
+      "马来西亚": "Asia/Kuala_Lumpur",
+      malaysia: "Asia/Kuala_Lumpur",
+      "新加坡": "Asia/Singapore",
+      singapore: "Asia/Singapore",
+      "印度尼西亚": "Asia/Jakarta",
+      indonesia: "Asia/Jakarta",
+      "菲律宾": "Asia/Manila",
+      philippines: "Asia/Manila",
+      "柬埔寨": "Asia/Phnom_Penh",
+      cambodia: "Asia/Phnom_Penh",
+      "缅甸": "Asia/Yangon",
+      myanmar: "Asia/Yangon",
+      "老挝": "Asia/Vientiane",
+      laos: "Asia/Vientiane",
+      "文莱": "Asia/Brunei",
+      brunei: "Asia/Brunei",
+      "马尔代夫": "Indian/Maldives",
+      maldives: "Indian/Maldives",
+      "哈萨克斯坦": "Asia/Almaty",
+      kazakhstan: "Asia/Almaty",
+      "乌兹别克斯坦": "Asia/Tashkent",
+      uzbekistan: "Asia/Tashkent",
+      "土库曼斯坦": "Asia/Ashgabat",
+      turkmenistan: "Asia/Ashgabat",
+      "吉尔吉斯斯坦": "Asia/Bishkek",
+      kyrgyzstan: "Asia/Bishkek",
+      "塔吉克斯坦": "Asia/Dushanbe",
+      tajikistan: "Asia/Dushanbe",
+      "阿富汗": "Asia/Kabul",
+      afghanistan: "Asia/Kabul",
+      // 中东
+      "阿联酋": "Asia/Dubai",
+      uae: "Asia/Dubai",
+      "united arab emirates": "Asia/Dubai",
+      "沙特阿拉伯": "Asia/Riyadh",
+      "saudi arabia": "Asia/Riyadh",
+      "卡塔尔": "Asia/Qatar",
+      qatar: "Asia/Qatar",
+      "阿曼": "Asia/Muscat",
+      oman: "Asia/Muscat",
+      "科威特": "Asia/Kuwait",
+      kuwait: "Asia/Kuwait",
+      "巴林": "Asia/Bahrain",
+      bahrain: "Asia/Bahrain",
+      "以色列": "Asia/Jerusalem",
+      israel: "Asia/Jerusalem",
+      "约旦": "Asia/Amman",
+      jordan: "Asia/Amman",
+      "黎巴嫩": "Asia/Beirut",
+      lebanon: "Asia/Beirut",
+      "叙利亚": "Asia/Damascus",
+      syria: "Asia/Damascus",
+      "伊拉克": "Asia/Baghdad",
+      iraq: "Asia/Baghdad",
+      "伊朗": "Asia/Tehran",
+      iran: "Asia/Tehran",
+      "土耳其": "Europe/Istanbul",
+      turkey: "Europe/Istanbul",
+      "也门": "Asia/Aden",
+      yemen: "Asia/Aden",
+      // 欧洲
+      "英国": "Europe/London",
+      uk: "Europe/London",
+      "united kingdom": "Europe/London",
+      "德国": "Europe/Berlin",
+      germany: "Europe/Berlin",
+      "法国": "Europe/Paris",
+      france: "Europe/Paris",
+      "意大利": "Europe/Rome",
+      italy: "Europe/Rome",
+      "西班牙": "Europe/Madrid",
+      spain: "Europe/Madrid",
+      "葡萄牙": "Europe/Lisbon",
+      portugal: "Europe/Lisbon",
+      "荷兰": "Europe/Amsterdam",
+      netherlands: "Europe/Amsterdam",
+      "比利时": "Europe/Brussels",
+      belgium: "Europe/Brussels",
+      "瑞士": "Europe/Zurich",
+      switzerland: "Europe/Zurich",
+      "奥地利": "Europe/Vienna",
+      austria: "Europe/Vienna",
+      "爱尔兰": "Europe/Dublin",
+      ireland: "Europe/Dublin",
+      "瑞典": "Europe/Stockholm",
+      sweden: "Europe/Stockholm",
+      "挪威": "Europe/Oslo",
+      norway: "Europe/Oslo",
+      "丹麦": "Europe/Copenhagen",
+      denmark: "Europe/Copenhagen",
+      "芬兰": "Europe/Helsinki",
+      finland: "Europe/Helsinki",
+      "波兰": "Europe/Warsaw",
+      poland: "Europe/Warsaw",
+      "捷克": "Europe/Prague",
+      czech: "Europe/Prague",
+      "斯洛伐克": "Europe/Bratislava",
+      slovakia: "Europe/Bratislava",
+      "匈牙利": "Europe/Budapest",
+      hungary: "Europe/Budapest",
+      "罗马尼亚": "Europe/Bucharest",
+      romania: "Europe/Bucharest",
+      "保加利亚": "Europe/Sofia",
+      bulgaria: "Europe/Sofia",
+      "希腊": "Europe/Athens",
+      greece: "Europe/Athens",
+      "俄罗斯": "Europe/Moscow",
+      russia: "Europe/Moscow",
+      "乌克兰": "Europe/Kyiv",
+      ukraine: "Europe/Kyiv",
+      "白俄罗斯": "Europe/Minsk",
+      belarus: "Europe/Minsk",
+      "塞尔维亚": "Europe/Belgrade",
+      serbia: "Europe/Belgrade",
+      "克罗地亚": "Europe/Zagreb",
+      croatia: "Europe/Zagreb",
+      "阿尔巴尼亚": "Europe/Tirane",
+      albania: "Europe/Tirane",
+      // 北美洲
+      "美国": "America/New_York",
+      us: "America/New_York",
+      usa: "America/New_York",
+      "united states": "America/New_York",
+      "加拿大": "America/Toronto",
+      canada: "America/Toronto",
+      "墨西哥": "America/Mexico_City",
+      mexico: "America/Mexico_City",
+      "古巴": "America/Havana",
+      cuba: "America/Havana",
+      "牙买加": "America/Jamaica",
+      jamaica: "America/Jamaica",
+      "巴拿马": "America/Panama",
+      panama: "America/Panama",
+      "哥斯达黎加": "America/Costa_Rica",
+      "costa rica": "America/Costa_Rica",
+      // 南美洲
+      "巴西": "America/Sao_Paulo",
+      brazil: "America/Sao_Paulo",
+      "阿根廷": "America/Argentina/Buenos_Aires",
+      argentina: "America/Argentina/Buenos_Aires",
+      "智利": "America/Santiago",
+      chile: "America/Santiago",
+      "秘鲁": "America/Lima",
+      peru: "America/Lima",
+      "哥伦比亚": "America/Bogota",
+      colombia: "America/Bogota",
+      "委内瑞拉": "America/Caracas",
+      venezuela: "America/Caracas",
+      "厄瓜多尔": "America/Guayaquil",
+      ecuador: "America/Guayaquil",
+      "乌拉圭": "America/Montevideo",
+      uruguay: "America/Montevideo",
+      "巴拉圭": "America/Asuncion",
+      paraguay: "America/Asuncion",
+      "玻利维亚": "America/La_Paz",
+      bolivia: "America/La_Paz",
+      // 非洲
+      "南非": "Africa/Johannesburg",
+      "south africa": "Africa/Johannesburg",
+      "埃及": "Africa/Cairo",
+      egypt: "Africa/Cairo",
+      "尼日利亚": "Africa/Lagos",
+      nigeria: "Africa/Lagos",
+      "肯尼亚": "Africa/Nairobi",
+      kenya: "Africa/Nairobi",
+      "摩洛哥": "Africa/Casablanca",
+      morocco: "Africa/Casablanca",
+      "阿尔及利亚": "Africa/Algiers",
+      algeria: "Africa/Algiers",
+      "埃塞俄比亚": "Africa/Addis_Ababa",
+      ethiopia: "Africa/Addis_Ababa",
+      "索马里": "Africa/Mogadishu",
+      somalia: "Africa/Mogadishu",
+      "苏丹": "Africa/Khartoum",
+      sudan: "Africa/Khartoum",
+      "加纳": "Africa/Accra",
+      ghana: "Africa/Accra",
+      "坦桑尼亚": "Africa/Dar_es_Salaam",
+      tanzania: "Africa/Dar_es_Salaam",
+      "安哥拉": "Africa/Luanda",
+      angola: "Africa/Luanda",
+      "科特迪瓦": "Africa/Abidjan",
+      "ivory coast": "Africa/Abidjan",
+      "cote d'ivoire": "Africa/Abidjan",
+      "喀麦隆": "Africa/Douala",
+      cameroon: "Africa/Douala",
+      "突尼斯": "Africa/Tunis",
+      tunisia: "Africa/Tunis",
+      "利比亚": "Africa/Tripoli",
+      libya: "Africa/Tripoli",
+      "乌干达": "Africa/Kampala",
+      uganda: "Africa/Kampala",
+      "塞内加尔": "Africa/Dakar",
+      senegal: "Africa/Dakar",
+      "津巴布韦": "Africa/Harare",
+      zimbabwe: "Africa/Harare",
+      "赞比亚": "Africa/Lusaka",
+      zambia: "Africa/Lusaka",
+      "马达加斯加": "Indian/Antananarivo",
+      madagascar: "Indian/Antananarivo",
+      "毛里求斯": "Indian/Mauritius",
+      mauritius: "Indian/Mauritius",
+      // 大洋洲
+      "澳大利亚": "Australia/Sydney",
+      australia: "Australia/Sydney",
+      "新西兰": "Pacific/Auckland",
+      "new zealand": "Pacific/Auckland",
+      "斐济": "Pacific/Fiji",
+      fiji: "Pacific/Fiji",
+      "巴布亚新几内亚": "Pacific/Port_Moresby",
+      "papua new guinea": "Pacific/Port_Moresby",
+    };
+
+    function resetFollowupLocalTimeUI() {
+      if (liveTimeInterval !== null) {
+        clearInterval(liveTimeInterval);
+        liveTimeInterval = null;
+      }
+      if (followupCustomerLocalTimeEl) {
+        followupCustomerLocalTimeEl.textContent = "-";
+        followupCustomerLocalTimeEl.className = "mt-1 font-medium text-slate-200";
+      }
+      if (followupCustomerTimeWarningEl) {
+        followupCustomerTimeWarningEl.textContent = "";
+        followupCustomerTimeWarningEl.className =
+          "mt-2 hidden rounded-lg border border-rose-500/45 bg-rose-950/45 px-2 py-1.5 text-xs font-medium text-rose-300";
+      }
+    }
+
+    function startCustomerLocalTime(countryString) {
+      if (liveTimeInterval !== null) {
+        clearInterval(liveTimeInterval);
+        liveTimeInterval = null;
+      }
+
+      let tz = null;
+      const raw = (countryString || "").trim();
+      if (raw) {
+        const countryStr = raw.toLowerCase();
+        const keys = Object.keys(COUNTRY_TO_TZ);
+        for (let i = 0; i < keys.length; i++) {
+          const key = keys[i];
+          if (countryStr.includes(key) || key.includes(countryStr)) {
+            tz = COUNTRY_TO_TZ[key];
+            break;
+          }
+        }
+      }
+
+      function tick() {
+        if (!followupCustomerLocalTimeEl || !followupCustomerTimeWarningEl) return;
+
+        if (!tz) {
+          followupCustomerLocalTimeEl.textContent = "未知时区";
+          followupCustomerLocalTimeEl.className = "mt-1 font-medium text-slate-400";
+          followupCustomerTimeWarningEl.textContent = "";
+          followupCustomerTimeWarningEl.className =
+            "mt-2 hidden rounded-lg border border-rose-500/45 bg-rose-950/45 px-2 py-1.5 text-xs font-medium text-rose-300";
+          return;
+        }
+
+        const now = new Date();
+        const parts = new Intl.DateTimeFormat("en-US", {
+          timeZone: tz,
+          hour: "numeric",
+          minute: "numeric",
+          hour12: false,
+        }).formatToParts(now);
+        let hour = 0;
+        parts.forEach((p) => {
+          if (p.type === "hour") hour = Number(p.value);
+        });
+
+        const displayTime = new Intl.DateTimeFormat("zh-CN", {
+          timeZone: tz,
+          hour: "numeric",
+          minute: "numeric",
+          hour12: false,
+        }).format(now);
+
+        const isRestHours = hour < 8 || hour >= 22;
+
+        followupCustomerLocalTimeEl.textContent = displayTime + " · " + tz;
+        if (!isRestHours) {
+          followupCustomerLocalTimeEl.className = "mt-1 font-medium text-slate-200";
+          followupCustomerTimeWarningEl.textContent = "";
+          followupCustomerTimeWarningEl.className =
+            "mt-2 hidden rounded-lg border border-rose-500/45 bg-rose-950/45 px-2 py-1.5 text-xs font-medium text-rose-300";
+        } else {
+          followupCustomerLocalTimeEl.className = "mt-1 font-medium text-rose-400";
+          followupCustomerTimeWarningEl.textContent = "⚠️ 当前为客户休息时间";
+          followupCustomerTimeWarningEl.className =
+            "mt-2 rounded-lg border border-rose-500/50 bg-rose-950/55 px-2 py-1.5 text-xs font-medium text-rose-300 animate-pulse";
+        }
+      }
+
+      tick();
+      if (tz) {
+        liveTimeInterval = setInterval(tick, 60 * 1000);
+      }
+    }
+
+    const BILINGUAL_COUNTRIES = [
+      "中国 (China)",
+      "美国 (United States)",
+      "加拿大 (Canada)",
+      "墨西哥 (Mexico)",
+      "巴西 (Brazil)",
+      "阿根廷 (Argentina)",
+      "英国 (United Kingdom)",
+      "德国 (Germany)",
+      "法国 (France)",
+      "意大利 (Italy)",
+      "西班牙 (Spain)",
+      "葡萄牙 (Portugal)",
+      "荷兰 (Netherlands)",
+      "比利时 (Belgium)",
+      "瑞士 (Switzerland)",
+      "奥地利 (Austria)",
+      "瑞典 (Sweden)",
+      "挪威 (Norway)",
+      "丹麦 (Denmark)",
+      "芬兰 (Finland)",
+      "波兰 (Poland)",
+      "捷克 (Czech Republic)",
+      "俄罗斯 (Russia)",
+      "土耳其 (Turkey)",
+      "乌克兰 (Ukraine)",
+      "阿联酋 (United Arab Emirates)",
+      "沙特阿拉伯 (Saudi Arabia)",
+      "卡塔尔 (Qatar)",
+      "以色列 (Israel)",
+      "埃及 (Egypt)",
+      "南非 (South Africa)",
+      "尼日利亚 (Nigeria)",
+      "肯尼亚 (Kenya)",
+      "摩洛哥 (Morocco)",
+      "日本 (Japan)",
+      "韩国 (South Korea)",
+      "印度 (India)",
+      "巴基斯坦 (Pakistan)",
+      "孟加拉国 (Bangladesh)",
+      "越南 (Vietnam)",
+      "泰国 (Thailand)",
+      "马来西亚 (Malaysia)",
+      "新加坡 (Singapore)",
+      "印度尼西亚 (Indonesia)",
+      "菲律宾 (Philippines)",
+      "澳大利亚 (Australia)",
+      "新西兰 (New Zealand)",
+      "智利 (Chile)",
+      "秘鲁 (Peru)",
+      "哥伦比亚 (Colombia)"
+    ];
+
+    function setNavActive(activeTab) {
+      const activeClasses = ["bg-indigo-500/20", "text-indigo-200", "border", "border-indigo-400/30", "shadow-glow"];
+      const activeRoseClasses = ["bg-rose-500/20", "text-rose-200", "border", "border-rose-400/35", "shadow-glow"];
+      const activePinkClasses = ["bg-pink-500/20", "text-pink-200", "border", "border-pink-400/35", "shadow-glow"];
+      const inactiveClasses = ["text-slate-300"];
+      [
+        navDashboard,
+        navPublicPool,
+        navClosedCustomers,
+        navSalesReport,
+        navProducts,
+        navQuotations,
+        navHolidays,
+      ].forEach((nav) => {
+        nav.classList.remove(...activeClasses, ...activeRoseClasses, ...activePinkClasses);
+        nav.classList.add(...inactiveClasses);
+      });
+      if (activeTab === "publicPool") {
+        navPublicPool.classList.add(...activeClasses);
+      } else if (activeTab === "closedCustomers") {
+        navClosedCustomers.classList.add(...activeRoseClasses);
+      } else if (activeTab === "salesReport") {
+        navSalesReport.classList.add(...activePinkClasses);
+      } else if (activeTab === "products") {
+        navProducts.classList.add(...activeClasses);
+      } else if (activeTab === "quotations") {
+        navQuotations.classList.add(...activeClasses);
+      } else if (activeTab === "holidays") {
+        navHolidays.classList.add(...activeClasses);
+      } else {
+        navDashboard.classList.add(...activeClasses);
+      }
+    }
+
+    function switchView(viewName) {
+      currentView = viewName;
+      if (viewName === "products") {
+        dashboardView.classList.add("hidden");
+        publicPoolView.classList.add("hidden");
+        closedCustomersView.classList.add("hidden");
+        salesReportView.classList.add("hidden");
+        productsView.classList.remove("hidden");
+        quotationsView.classList.add("hidden");
+        holidaysView.classList.add("hidden");
+        setNavActive("products");
+        loadProducts();
+      } else if (viewName === "publicPool") {
+        dashboardView.classList.add("hidden");
+        publicPoolView.classList.remove("hidden");
+        closedCustomersView.classList.add("hidden");
+        salesReportView.classList.add("hidden");
+        productsView.classList.add("hidden");
+        quotationsView.classList.add("hidden");
+        holidaysView.classList.add("hidden");
+        setNavActive("publicPool");
+        loadPublicCustomers();
+      } else if (viewName === "closedCustomers") {
+        dashboardView.classList.add("hidden");
+        publicPoolView.classList.add("hidden");
+        closedCustomersView.classList.remove("hidden");
+        salesReportView.classList.add("hidden");
+        productsView.classList.add("hidden");
+        quotationsView.classList.add("hidden");
+        holidaysView.classList.add("hidden");
+        setNavActive("closedCustomers");
+        loadClosedCustomers();
+      } else if (viewName === "salesReport") {
+        dashboardView.classList.add("hidden");
+        publicPoolView.classList.add("hidden");
+        closedCustomersView.classList.add("hidden");
+        salesReportView.classList.remove("hidden");
+        productsView.classList.add("hidden");
+        quotationsView.classList.add("hidden");
+        holidaysView.classList.add("hidden");
+        setNavActive("salesReport");
+        const y = Number.parseInt(salesReportYearSelect.value, 10);
+        loadSalesReport(Number.isFinite(y) ? y : 2026);
+      } else if (viewName === "quotations") {
+        dashboardView.classList.add("hidden");
+        publicPoolView.classList.add("hidden");
+        closedCustomersView.classList.add("hidden");
+        salesReportView.classList.add("hidden");
+        productsView.classList.add("hidden");
+        quotationsView.classList.remove("hidden");
+        holidaysView.classList.add("hidden");
+        setNavActive("quotations");
+        loadQuotationOptions();
+      } else if (viewName === "holidays") {
+        dashboardView.classList.add("hidden");
+        publicPoolView.classList.add("hidden");
+        closedCustomersView.classList.add("hidden");
+        salesReportView.classList.add("hidden");
+        productsView.classList.add("hidden");
+        quotationsView.classList.add("hidden");
+        holidaysView.classList.remove("hidden");
+        setNavActive("holidays");
+        renderHolidayCalendar();
+      } else {
+        publicPoolView.classList.add("hidden");
+        closedCustomersView.classList.add("hidden");
+        salesReportView.classList.add("hidden");
+        quotationsView.classList.add("hidden");
+        productsView.classList.add("hidden");
+        holidaysView.classList.add("hidden");
+        dashboardView.classList.remove("hidden");
+        setNavActive("dashboard");
+      }
+    }
+
+    const HOLIDAY_COUNTRIES = ["CN", "US", "GB", "DE", "FR", "IT", "ES", "NL", "PL", "RU", "TR", "BR", "MX", "CA", "AU", "JP", "KR", "IN", "VN", "TH", "MY", "SG", "ID", "AE", "SA", "ZA", "EG", "NG", "CL"];
+    const HOLIDAY_COUNTRY_META = {
+      CN: { nameZh: "中国", nameEn: "China", flag: "🇨🇳", palette: "#f97316" },
+      US: { nameZh: "美国", nameEn: "United States", flag: "🇺🇸", palette: "#60a5fa" },
+      GB: { nameZh: "英国", nameEn: "United Kingdom", flag: "🇬🇧", palette: "#fde68a" },
+      DE: { nameZh: "德国", nameEn: "Germany", flag: "🇩🇪", palette: "#fcd34d" },
+      FR: { nameZh: "法国", nameEn: "France", flag: "🇫🇷", palette: "#93c5fd" },
+      IT: { nameZh: "意大利", nameEn: "Italy", flag: "🇮🇹", palette: "#86efac" },
+      ES: { nameZh: "西班牙", nameEn: "Spain", flag: "🇪🇸", palette: "#fca5a5" },
+      NL: { nameZh: "荷兰", nameEn: "Netherlands", flag: "🇳🇱", palette: "#fdba74" },
+      PL: { nameZh: "波兰", nameEn: "Poland", flag: "🇵🇱", palette: "#fda4af" },
+      RU: { nameZh: "俄罗斯", nameEn: "Russia", flag: "🇷🇺", palette: "#93c5fd" },
+      TR: { nameZh: "土耳其", nameEn: "Turkey", flag: "🇹🇷", palette: "#f87171" },
+      AU: { nameZh: "澳洲", nameEn: "Australia", flag: "🇦🇺", palette: "#93c5fd" },
+      BR: { nameZh: "巴西", nameEn: "Brazil", flag: "🇧🇷", palette: "#86efac" },
+      MX: { nameZh: "墨西哥", nameEn: "Mexico", flag: "🇲🇽", palette: "#6ee7b7" },
+      CA: { nameZh: "加拿大", nameEn: "Canada", flag: "🇨🇦", palette: "#fca5a5" },
+      JP: { nameZh: "日本", nameEn: "Japan", flag: "🇯🇵", palette: "#fda4af" },
+      KR: { nameZh: "韩国", nameEn: "South Korea", flag: "🇰🇷", palette: "#c4b5fd" },
+      IN: { nameZh: "印度", nameEn: "India", flag: "🇮🇳", palette: "#fdba74" },
+      VN: { nameZh: "越南", nameEn: "Vietnam", flag: "🇻🇳", palette: "#f87171" },
+      TH: { nameZh: "泰国", nameEn: "Thailand", flag: "🇹🇭", palette: "#facc15" },
+      MY: { nameZh: "马来西亚", nameEn: "Malaysia", flag: "🇲🇾", palette: "#67e8f9" },
+      SG: { nameZh: "新加坡", nameEn: "Singapore", flag: "🇸🇬", palette: "#fb7185" },
+      ID: { nameZh: "印度尼西亚", nameEn: "Indonesia", flag: "🇮🇩", palette: "#fca5a5" },
+      AE: { nameZh: "阿联酋", nameEn: "United Arab Emirates", flag: "🇦🇪", palette: "#6ee7b7" },
+      SA: { nameZh: "沙特阿拉伯", nameEn: "Saudi Arabia", flag: "🇸🇦", palette: "#86efac" },
+      ZA: { nameZh: "南非", nameEn: "South Africa", flag: "🇿🇦", palette: "#facc15" },
+      EG: { nameZh: "埃及", nameEn: "Egypt", flag: "🇪🇬", palette: "#fdba74" },
+      NG: { nameZh: "尼日利亚", nameEn: "Nigeria", flag: "🇳🇬", palette: "#4ade80" },
+      CL: { nameZh: "智利", nameEn: "Chile", flag: "🇨🇱", palette: "#60a5fa" },
+    };
+    const CN_STATUTORY_FALLBACK = {
+      2026: [
+        { date: "2026-01-01", name: "New Year's Day", localName: "元旦" },
+        { date: "2026-02-17", name: "Chinese New Year", localName: "春节" },
+        { date: "2026-04-05", name: "Qingming Festival", localName: "清明节" },
+        { date: "2026-05-01", name: "Labour Day", localName: "劳动节" },
+        { date: "2026-06-19", name: "Dragon Boat Festival", localName: "端午节" },
+        { date: "2026-09-25", name: "Mid-Autumn Festival", localName: "中秋节" },
+        { date: "2026-10-01", name: "National Day", localName: "国庆节" },
+      ],
+    };
+    const HOLIDAY_NAME_ZH = {
+      "New Year's Day": "元旦",
+      "Chinese New Year": "春节",
+      "Qingming Festival": "清明节",
+      "Dragon Boat Festival": "端午节",
+      "Mid-Autumn Festival": "中秋节",
+      "Christmas Day": "圣诞节",
+      "Good Friday": "耶稣受难日",
+      "Easter Monday": "复活节星期一",
+      "Easter Sunday": "复活节",
+      "Independence Day": "独立日",
+      "Thanksgiving Day": "感恩节",
+      "Labour Day": "劳动节",
+      "Labor Day": "劳动节",
+      "National Day": "国庆日",
+      "Boxing Day": "节礼日",
+      "Ascension Day": "耶稣升天日",
+      "Whit Monday": "圣灵降临节后的星期一",
+      "Corpus Christi": "基督圣体节",
+      "Eid al-Fitr": "开斋节",
+      "Eid al-Adha": "宰牲节",
+    };
+    const COUNTRY_CODE_ALIASES = {
+      cn: "CN", china: "CN", 中国: "CN",
+      us: "US", usa: "US", america: "US", unitedstates: "US", 美国: "US",
+      gb: "GB", uk: "GB", unitedkingdom: "GB", england: "GB", 英国: "GB",
+      de: "DE", germany: "DE", 德国: "DE",
+      fr: "FR", france: "FR", 法国: "FR",
+      it: "IT", italy: "IT", 意大利: "IT",
+      es: "ES", spain: "ES", 西班牙: "ES",
+      jp: "JP", japan: "JP", 日本: "JP",
+      kr: "KR", korea: "KR", southkorea: "KR", 韩国: "KR",
+      in: "IN", india: "IN", 印度: "IN",
+      br: "BR", brazil: "BR", 巴西: "BR",
+      ae: "AE", uae: "AE", emirates: "AE", 阿联酋: "AE",
+    };
+
+    function normalizeCountry(value) {
+      return (value || "").trim().toLowerCase();
+    }
+
+    function getCountryZh(countryCode) {
+      return HOLIDAY_COUNTRY_META[countryCode]?.nameZh || countryCode;
+    }
+
+    function getHolidayZh(holidayEn) {
+      return HOLIDAY_NAME_ZH[holidayEn] || holidayEn;
+    }
+
+    function toHolidayEvent(item, countryCode) {
+      const meta = HOLIDAY_COUNTRY_META[countryCode] || { nameZh: countryCode, nameEn: countryCode, flag: "🌍", palette: "#60a5fa" };
+      const holidayEn = item.name || item.localName || "Holiday";
+      return {
+        id: countryCode + ":" + item.date + ":" + holidayEn,
+        title: "[" + meta.nameZh + "] " + getHolidayZh(holidayEn),
+        date: item.date,
+        start: item.date,
+        allDay: true,
+        extendedProps: {
+          countryCode,
+          country: meta.nameZh,
+          countryEn: meta.nameEn,
+          flag: meta.flag,
+          palette: meta.palette,
+          holiday: getHolidayZh(holidayEn),
+          holidayEn,
+          localName: item.localName || holidayEn,
+        },
+      };
+    }
+
+    function ensureChinaStatutoryHolidays(events, year) {
+      const required = CN_STATUTORY_FALLBACK[year] || [];
+      if (!required.length) return events;
+      const exists = new Set(events.filter((e) => e.extendedProps.countryCode === "CN").map((e) => e.start + ":" + e.extendedProps.holidayEn));
+      const additions = required
+        .filter((item) => !exists.has(item.date + ":" + item.name))
+        .map((item) => toHolidayEvent(item, "CN"));
+      return events.concat(additions);
+    }
+
+    function parseCountryCodeFromFilter(raw) {
+      const value = normalizeCountry(raw).replace(/\s+/g, "");
+      if (!value) return null;
+      if (COUNTRY_CODE_ALIASES[value]) return COUNTRY_CODE_ALIASES[value];
+      const exactCode = Object.keys(HOLIDAY_COUNTRY_META).find((code) => normalizeCountry(code) === value);
+      if (exactCode) return exactCode;
+      const byMeta = Object.entries(HOLIDAY_COUNTRY_META).find(([, meta]) => {
+        const zh = normalizeCountry(meta.nameZh).replace(/\s+/g, "");
+        const en = normalizeCountry(meta.nameEn).replace(/\s+/g, "");
+        return zh.includes(value) || en.includes(value) || value.includes(zh) || value.includes(en);
+      });
+      return byMeta ? byMeta[0] : null;
+    }
+
+    function getHolidayFocusCountryCodes() {
+      const fromFilter = parseCountryCodeFromFilter(customerCountryFilter);
+      return fromFilter ? [fromFilter] : HOLIDAY_COUNTRIES;
+    }
+
+    async function fetchGlobalHolidays(year) {
+      const requests = HOLIDAY_COUNTRIES.map(async (countryCode) => {
+        const url = "https://date.nager.at/api/v3/PublicHolidays/" + year + "/" + countryCode;
+        try {
+          const response = await fetch(url);
+          if (!response.ok) return [];
+          const items = await response.json();
+          return (items || []).map((item) => toHolidayEvent(item, countryCode));
+        } catch (error) {
+          return [];
+        }
+      });
+
+      const results = await Promise.all(requests);
+      const merged = results.flat();
+      return ensureChinaStatutoryHolidays(merged, year);
+    }
+
+    function countryMatches(customerCountry, filterCountry) {
+      const left = normalizeCountry(customerCountry);
+      const right = normalizeCountry(filterCountry);
+      if (!left || !right) return false;
+      return left === right || left.includes(right) || right.includes(left);
+    }
+
+    function setCustomerCountryFilter(country) {
+      customerCountryFilter = country || "";
+      const hasFilter = Boolean(customerCountryFilter);
+      customerCountryFilterLabelEl.classList.toggle("hidden", !hasFilter);
+      clearCustomerCountryFilterBtn.classList.toggle("hidden", !hasFilter);
+      if (hasFilter) {
+        customerCountryFilterLabelEl.textContent = "国家筛选: " + customerCountryFilter;
+      }
+      renderRows(privateCustomersCache);
+      if (holidayCalendarInstance) {
+        holidayCalendarInstance.rerenderEvents();
+        renderUpcomingHolidayCards();
+      }
+    }
+
+    function copyTextWithFeedback(text, button) {
+      navigator.clipboard.writeText(text).then(() => {
+        const original = button.textContent;
+        button.textContent = "已复制 ✓";
+        window.setTimeout(() => {
+          button.textContent = original;
+        }, 1000);
+      });
+    }
+
+    function copyFieldTextWithFeedback(text, button) {
+      const content = (text || "").trim();
+      if (!content || content === "-") return;
+      const original = button.textContent;
+      navigator.clipboard.writeText(content).then(() => {
+        button.textContent = "已复制";
+        window.setTimeout(() => {
+          button.textContent = original;
+        }, 1000);
+      });
+    }
+
+    function initCountryDatalist() {
+      if (!customerCountryListEl) return;
+      customerCountryListEl.innerHTML = "";
+      BILINGUAL_COUNTRIES.forEach((country) => {
+        const option = document.createElement("option");
+        option.value = country;
+        customerCountryListEl.appendChild(option);
+      });
+    }
+
+    function ensureSelectHasValue(selectEl, value) {
+      if (!value) return;
+      const exists = Array.from(selectEl.options).some((opt) => opt.value === value);
+      if (!exists) {
+        const customOption = document.createElement("option");
+        customOption.value = value;
+        customOption.textContent = value;
+        selectEl.appendChild(customOption);
+      }
+    }
+
+    function renderHolidayIntelLoading(holidayEvent) {
+      const p = holidayEvent.extendedProps || {};
+      const country = p.country || p.countryCode || "该国";
+      const holiday = p.holiday || holidayEvent.title;
+      holidayIntelPanelEl.classList.add("opacity-0", "translate-y-1");
+      window.setTimeout(() => {
+        holidayIntelPanelEl.innerHTML = '<div class="flex items-center gap-3 rounded-xl border border-slate-700 bg-slate-900/70 p-4"><span class="h-5 w-5 animate-spin rounded-full border-2 border-sky-300 border-t-transparent"></span><p class="text-sm text-slate-200">正在生成 [' + country + "] [" + holiday + "] 的深度社交情报与话术...</p></div>";
+        holidayIntelPanelEl.classList.remove("opacity-0", "translate-y-1");
+      }, 80);
+    }
+
+    function buildHolidayIntelFromEvent(holidayEvent) {
+      const p = holidayEvent.extendedProps || {};
+      const countryZh = p.country || getCountryZh(p.countryCode || "");
+      const countryEn = p.countryEn || HOLIDAY_COUNTRY_META[p.countryCode || ""]?.nameEn || p.countryCode || "the market";
+      const holidayZh = p.holiday || getHolidayZh(p.holidayEn || holidayEvent.title);
+      const holidayEn = p.holidayEn || holidayEvent.title;
+      return {
+        title: (p.flag || "🌍") + " [" + countryZh + "] " + holidayZh,
+        date: holidayEvent.start,
+        culture_insight: "针对" + countryZh + "市场，" + holidayZh + "期间客户通常更重视家庭、社交或本地文化活动。建议您优先做关系维护和节日问候，先建立好情感连接，再推进商务沟通，成功率更高。",
+        taboos: "建议避免在节日期间频繁催单、强推价格、要求当日回复。措辞上尽量避免敏感社会议题，保持专业、尊重、克制的沟通语气。",
+        best_time: "建议在节前 2 天发送问候；节后第一个工作日再跟进报价、交期和订单细节。",
+        email_template: "Subject: Warm " + holidayEn + " Greetings to [Customer Name]\n\nDear [Customer Name],\n\nI hope you are doing well.\n\nOn behalf of our team, I would like to send our warm greetings for " + holidayEn + ". We truly value our partnership with your team in " + countryEn + ".\n\nWishing you and your colleagues peace, health, and continued success.\n\nBest regards,\n[Your Name]\n[Company Name]",
+        social_template: "Happy " + holidayEn + ", [Customer Name]! Wishing you and your team in " + countryEn + " peace, joy, and great success. 🤝✨",
+        country: countryZh,
+      };
+    }
+
+    function renderHolidayIntelPanel(holiday) {
+      holidayIntelPanelEl.classList.add("opacity-0", "translate-y-1");
+      if (!holiday) {
+        window.setTimeout(() => {
+          holidayIntelPanelEl.innerHTML = '<p class="text-sm text-slate-300">请点击左侧日历上的节日查看社交情报。</p>';
+          holidayIntelPanelEl.classList.remove("opacity-0", "translate-y-1");
+        }, 120);
+        return;
+      }
+
+      const p = holiday.extendedProps || {};
+      selectedHolidayCountry = p.country || "";
+      holidayIntelPanelEl.innerHTML = "";
+
+      const header = document.createElement("div");
+      header.className = "rounded-xl border border-slate-700 bg-slate-900/75 p-3";
+      header.innerHTML = '<p class="text-xs text-slate-400">节日日期</p><h4 class="mt-1 text-lg font-semibold text-white"></h4><p class="mt-1 text-xs text-slate-300"></p>';
+      header.querySelector("h4").textContent = holiday.title;
+      header.querySelector("p:last-child").textContent = new Date(holiday.start).toLocaleDateString("zh-CN");
+
+      const insight = document.createElement("div");
+      insight.className = "mt-3 rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-3";
+      insight.innerHTML = '<p class="text-xs font-semibold text-emerald-300">节日解析</p><p class="mt-1 text-sm text-emerald-100"></p>';
+      insight.querySelector("p:last-child").textContent = p.culture_insight || "-";
+
+      const taboo = document.createElement("div");
+      taboo.className = "mt-3 rounded-xl border border-rose-400/30 bg-rose-500/10 p-3";
+      taboo.innerHTML = '<p class="text-xs font-semibold text-rose-300">避坑指南</p><p class="mt-1 text-sm text-rose-100"></p>';
+      taboo.querySelector("p:last-child").textContent = p.taboos || "-";
+
+      const bestTime = document.createElement("div");
+      bestTime.className = "mt-3 rounded-xl border border-sky-400/30 bg-sky-500/10 p-3";
+      bestTime.innerHTML = '<p class="text-xs font-semibold text-sky-300">最佳触达时间</p><p class="mt-1 text-sm text-sky-100"></p>';
+      bestTime.querySelector("p:last-child").textContent = p.best_time || "-";
+
+      const emailBox = document.createElement("div");
+      emailBox.className = "mt-3 rounded-xl border border-indigo-400/30 bg-indigo-500/10 p-3";
+      emailBox.innerHTML = '<p class="text-xs font-semibold text-indigo-300">正式商务邮件模版</p><pre class="mt-2 whitespace-pre-wrap break-words text-xs text-indigo-100"></pre><button type="button" class="mt-2 rounded-lg border border-indigo-300/40 bg-indigo-400/20 px-3 py-1.5 text-xs font-medium text-indigo-100">一键复制</button>';
+      emailBox.querySelector("pre").textContent = p.email_template || "";
+      emailBox.querySelector("button").addEventListener("click", (event) => {
+        copyTextWithFeedback(p.email_template || "", event.currentTarget);
+      });
+
+      const socialBox = document.createElement("div");
+      socialBox.className = "mt-3 rounded-xl border border-cyan-400/30 bg-cyan-500/10 p-3";
+      socialBox.innerHTML = '<p class="text-xs font-semibold text-cyan-300">WhatsApp 社交短模版</p><pre class="mt-2 whitespace-pre-wrap break-words text-xs text-cyan-100"></pre><button type="button" class="mt-2 rounded-lg border border-cyan-300/40 bg-cyan-400/20 px-3 py-1.5 text-xs font-medium text-cyan-100">一键复制</button>';
+      socialBox.querySelector("pre").textContent = p.social_template || "";
+      socialBox.querySelector("button").addEventListener("click", (event) => {
+        copyTextWithFeedback(p.social_template || "", event.currentTarget);
+      });
+
+      const blessBtn = document.createElement("button");
+      blessBtn.type = "button";
+      blessBtn.className = "mt-3 w-full rounded-xl border border-sky-400/50 bg-sky-500/20 px-4 py-2 text-sm font-medium text-sky-200 transition hover:bg-sky-500/30 hover:text-white";
+      blessBtn.textContent = "给该国客户发祝福";
+      blessBtn.addEventListener("click", () => {
+        if (!selectedHolidayCountry) return;
+        switchView("dashboard");
+        setCustomerCountryFilter(selectedHolidayCountry);
+      });
+
+      window.setTimeout(() => {
+        holidayIntelPanelEl.appendChild(header);
+        holidayIntelPanelEl.appendChild(insight);
+        holidayIntelPanelEl.appendChild(taboo);
+        holidayIntelPanelEl.appendChild(bestTime);
+        holidayIntelPanelEl.appendChild(emailBox);
+        holidayIntelPanelEl.appendChild(socialBox);
+        holidayIntelPanelEl.appendChild(blessBtn);
+        holidayIntelPanelEl.classList.remove("opacity-0", "translate-y-1");
+      }, 120);
+    }
+
+    async function loadHolidayEventsForRange(start, end) {
+      if (!holidayCalendarInstance) return;
+      const startYear = start.getFullYear();
+      const endYear = new Date(end.getTime() - 1).getFullYear();
+      const years = [];
+      for (let year = startYear; year <= endYear; year += 1) {
+        years.push(year);
+      }
+      upcomingHolidaysListEl.innerHTML = '<div class="rounded-xl border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-400">正在拉取全球节日数据...</div>';
+      const yearEvents = await Promise.all(years.map(async (year) => {
+        if (holidayEventCache[year]) return holidayEventCache[year];
+        const events = await fetchGlobalHolidays(year);
+        holidayEventCache[year] = events;
+        return events;
+      }));
+      holidayEventsData = yearEvents.flat();
+      holidayCalendarInstance.removeAllEvents();
+      holidayCalendarInstance.addEventSource(holidayEventsData);
+      renderUpcomingHolidayCards();
+    }
+
+    function renderHolidayCalendar() {
+      if (holidayCalendarInstance || typeof FullCalendar === "undefined") return;
+      holidayCalendarInstance = new FullCalendar.Calendar(holidayCalendarEl, {
+        initialView: "dayGridMonth",
+        height: "auto",
+        contentHeight: "auto",
+        expandRows: true,
+        fixedWeekCount: false,
+        locale: "zh-cn",
+        headerToolbar: {
+          left: "prev,next today",
+          center: "title",
+          right: "dayGridMonth,timeGridWeek",
+        },
+        dayMaxEventRows: 5,
+        events: [],
+        eventClassNames: (arg) => {
+          const focusCodes = getHolidayFocusCountryCodes();
+          const focused = focusCodes.includes(arg.event.extendedProps.countryCode);
+          return focused ? ["holiday-event-focus"] : ["holiday-event-dim"];
+        },
+        eventContent: (arg) => {
+          const flag = arg.event.extendedProps.flag || "🌍";
+          const palette = arg.event.extendedProps.palette || "#60a5fa";
+          const wrap = document.createElement("div");
+          wrap.className = "holiday-event-tag w-full bg-slate-900/85 text-slate-100";
+          wrap.style.borderLeft = "4px solid " + palette;
+
+          const flagNode = document.createElement("span");
+          flagNode.textContent = flag;
+          flagNode.className = "text-xs";
+
+          const titleNode = document.createElement("span");
+          titleNode.textContent = arg.event.title;
+          titleNode.className = "text-[11px] font-medium truncate";
+
+          wrap.appendChild(flagNode);
+          wrap.appendChild(titleNode);
+          return { domNodes: [wrap] };
+        },
+        datesSet: async (info) => {
+          await loadHolidayEventsForRange(info.start, info.end);
+          renderUpcomingHolidayCards();
+        },
+        eventClick: (info) => {
+          info.jsEvent.preventDefault();
+          const token = Date.now();
+          holidayIntelRequestToken = token;
+          renderHolidayIntelLoading(info.event);
+          window.setTimeout(() => {
+            if (holidayIntelRequestToken !== token) return;
+            const intel = buildHolidayIntelFromEvent(info.event);
+            renderHolidayIntelPanel({
+              title: intel.title,
+              start: intel.date,
+              extendedProps: {
+                country: intel.country,
+                holiday: info.event.extendedProps.holiday || info.event.title,
+                culture_insight: intel.culture_insight,
+                taboos: intel.taboos,
+                best_time: intel.best_time,
+                email_template: intel.email_template,
+                social_template: intel.social_template,
+              },
+            });
+          }, 1500);
+        },
+      });
+      holidayCalendarInstance.render();
+      const today = new Date();
+      loadHolidayEventsForRange(new Date(today.getFullYear(), today.getMonth(), 1), new Date(today.getFullYear(), today.getMonth() + 1, 1));
+      renderHolidayIntelPanel(null);
+    }
+
+    function renderUpcomingHolidayCards() {
+      upcomingHolidaysListEl.innerHTML = "";
+      if (!holidayCalendarInstance) return;
+      const now = new Date();
+      const viewStart = holidayCalendarInstance.view.currentStart;
+      const viewEnd = holidayCalendarInstance.view.currentEnd;
+      const upcoming = holidayEventsData
+        .map((item) => ({ ...item, dateObj: new Date(item.start + "T00:00:00") }))
+        .filter((item) => item.dateObj >= new Date(now.getFullYear(), now.getMonth(), now.getDate()) && item.dateObj >= viewStart && item.dateObj < viewEnd)
+        .sort((a, b) => a.dateObj - b.dateObj);
+
+      if (!upcoming.length) {
+        upcomingHolidaysListEl.innerHTML = '<div class="rounded-xl border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-400">当前视窗内暂无即将到来的节日。</div>';
+        return;
+      }
+
+      upcoming.forEach((item) => {
+        const country = item.extendedProps.country;
+        const holiday = item.extendedProps.holiday;
+        const flag = item.extendedProps.flag || "🌍";
+        const palette = item.extendedProps.palette || "#60a5fa";
+
+        const card = document.createElement("div");
+        card.className = "rounded-xl border border-slate-700 bg-slate-900/70 p-3";
+        card.style.boxShadow = "inset 3px 0 0 " + palette;
+
+        const top = document.createElement("p");
+        top.className = "text-xs text-slate-400";
+        top.textContent = item.dateObj.toLocaleDateString("zh-CN");
+
+        const title = document.createElement("p");
+        title.className = "mt-1 text-sm font-medium text-slate-100";
+        title.textContent = flag + " " + country + " · " + holiday;
+
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "mt-2 rounded-lg border border-sky-400/40 bg-sky-500/15 px-3 py-1.5 text-xs font-medium text-sky-200 transition hover:bg-sky-500/30 hover:text-white";
+        btn.textContent = "一键生成祝福语";
+        btn.addEventListener("click", () => {
+          const message = buildHolidayIntelFromEvent(item).social_template;
+          window.alert("祝福语示例:\n\n" + message);
+        });
+
+        card.appendChild(top);
+        card.appendChild(title);
+        card.appendChild(btn);
+        upcomingHolidaysListEl.appendChild(card);
+      });
+    }
+
+    function formatCurrency(value) {
+      const number = Number(value);
+      if (!Number.isFinite(number)) return "$0.00";
+      return "$" + number.toFixed(2);
+    }
+
+    function updateQuotationDocumentMeta() {
+      const now = new Date();
+      quoteDocDateEl.textContent = "Date: " + now.toLocaleDateString("en-US");
+      quoteDocNoEl.textContent = "QT-" + now.getFullYear() + String(now.getMonth() + 1).padStart(2, "0") + String(now.getDate()).padStart(2, "0");
+    }
+
+    function getQuotationTotalAmount() {
+      return quotationItems.reduce((sum, item) => sum + Number(item.price) * Number(item.qty), 0);
+    }
+
+    function showSuccessCelebration(message) {
+      const toast = document.createElement("div");
+      toast.className = "fixed right-6 top-6 z-[80] rounded-xl border border-emerald-400/50 bg-emerald-500/20 px-4 py-3 text-sm font-medium text-emerald-100 shadow-glow backdrop-blur";
+      toast.textContent = message;
+      document.body.appendChild(toast);
+
+      const container = document.createElement("div");
+      container.className = "fixed inset-0 z-[70] pointer-events-none";
+      document.body.appendChild(container);
+      const colors = ["#22c55e", "#2dd4bf", "#f59e0b", "#60a5fa", "#e879f9"];
+
+      for (let i = 0; i < 22; i += 1) {
+        const p = document.createElement("span");
+        const size = 6 + Math.random() * 8;
+        const left = 20 + Math.random() * 60;
+        const duration = 800 + Math.random() * 700;
+        p.style.position = "absolute";
+        p.style.left = left + "%";
+        p.style.top = "18%";
+        p.style.width = size + "px";
+        p.style.height = size + "px";
+        p.style.borderRadius = "9999px";
+        p.style.background = colors[Math.floor(Math.random() * colors.length)];
+        p.style.opacity = "0.95";
+        p.style.transform = "translate(0,0)";
+        p.style.transition = "transform " + duration + "ms ease-out, opacity " + duration + "ms ease-out";
+        container.appendChild(p);
+
+        requestAnimationFrame(() => {
+          const dx = (Math.random() - 0.5) * 420;
+          const dy = 160 + Math.random() * 280;
+          p.style.transform = "translate(" + dx + "px," + dy + "px)";
+          p.style.opacity = "0";
+        });
+      }
+
+      window.setTimeout(() => {
+        toast.remove();
+        container.remove();
+      }, 1600);
+    }
+
+    function renderQuotationPreview() {
+      const customer = quotationCustomers.find((item) => String(item.id) === String(selectedQuotationCustomerId));
+      quotePreviewCustomerNameEl.textContent = customer ? (customer.company_name || "Unnamed customer") : "Please select a customer";
+      quotePreviewCustomerCountryEl.textContent = "Country: " + (customer ? (customer.country || "-") : "-");
+
+      quotePreviewItemsBody.innerHTML = "";
+      if (!quotationItems.length) {
+        quotePreviewItemsBody.innerHTML = '<tr><td colspan="5" class="px-4 py-6 text-center text-slate-400">No items selected</td></tr>';
+      } else {
+        quotationItems.forEach((item) => {
+          const lineTotal = Number(item.price) * Number(item.qty);
+          const row = document.createElement("tr");
+          row.innerHTML = '<td class="px-4 py-3"></td><td class="px-4 py-3"></td><td class="px-4 py-3 text-right"></td><td class="px-4 py-3 text-right"></td><td class="px-4 py-3 text-right font-medium"></td>';
+          row.children[0].textContent = item.name || "-";
+          row.children[1].textContent = item.sku || "-";
+          row.children[2].textContent = String(item.qty);
+          row.children[3].textContent = formatCurrency(item.price);
+          row.children[4].textContent = formatCurrency(lineTotal);
+          quotePreviewItemsBody.appendChild(row);
+        });
+      }
+
+      const subtotal = quotationItems.reduce((sum, item) => sum + Number(item.price) * Number(item.qty), 0);
+      quotePreviewSubtotalEl.textContent = formatCurrency(subtotal);
+      quotePreviewTotalEl.textContent = formatCurrency(subtotal);
+    }
+
+    function renderQuotationItemsBuilderTable() {
+      quoteItemsBody.innerHTML = "";
+      if (!quotationItems.length) {
+        quoteItemsBody.innerHTML = '<tr><td colspan="6" class="px-4 py-4 text-center text-slate-400">请先添加产品项目</td></tr>';
+        renderQuotationPreview();
+        return;
+      }
+
+      quotationItems.forEach((item) => {
+        const lineTotal = Number(item.price) * Number(item.qty);
+        const row = document.createElement("tr");
+        row.className = "hover:bg-slate-800/40 transition";
+        row.innerHTML = '<td class="px-4 py-3"></td><td class="px-4 py-3"></td><td class="px-4 py-3"></td><td class="px-4 py-3"></td><td class="px-4 py-3"></td><td class="px-4 py-3"></td>';
+
+        row.children[0].textContent = item.name || "-";
+        row.children[1].textContent = item.sku || "-";
+        row.children[2].textContent = formatCurrency(item.price);
+
+        const qtyInput = document.createElement("input");
+        qtyInput.type = "number";
+        qtyInput.min = "1";
+        qtyInput.value = String(item.qty);
+        qtyInput.className = "w-20 rounded-lg border border-slate-700 bg-slate-800/80 px-2 py-1 text-slate-100 outline-none transition focus:border-amber-400 focus:ring-2 focus:ring-amber-500/30";
+        qtyInput.addEventListener("change", () => {
+          const nextQty = Number.parseInt(qtyInput.value, 10);
+          item.qty = Number.isInteger(nextQty) && nextQty > 0 ? nextQty : 1;
+          renderQuotationItemsBuilderTable();
+        });
+        row.children[3].appendChild(qtyInput);
+
+        row.children[4].textContent = formatCurrency(lineTotal);
+
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "rounded-lg border border-rose-400/40 bg-rose-500/15 px-3 py-1.5 text-xs font-medium text-rose-200 transition hover:bg-rose-500/30 hover:text-white";
+        removeBtn.textContent = "删除";
+        removeBtn.addEventListener("click", () => {
+          quotationItems = quotationItems.filter((line) => line.lineId !== item.lineId);
+          renderQuotationItemsBuilderTable();
+        });
+        row.children[5].appendChild(removeBtn);
+
+        quoteItemsBody.appendChild(row);
+      });
+
+      renderQuotationPreview();
+    }
+
+    function populateQuotationSelectors() {
+      quoteCustomerSelect.innerHTML = '<option value="">请选择客户...</option>';
+      quotationCustomers.forEach((customer) => {
+        const option = document.createElement("option");
+        option.value = String(customer.id);
+        option.textContent = (customer.company_name || "Unnamed") + " (" + (customer.country || "-") + ")";
+        quoteCustomerSelect.appendChild(option);
+      });
+
+      quoteProductSelect.innerHTML = '<option value="">请选择产品...</option>';
+      quotationProducts.forEach((product) => {
+        const option = document.createElement("option");
+        option.value = String(product.id);
+        option.textContent = (product.name || "Unnamed") + " | " + (product.sku || "-") + " | " + formatCurrency(product.price);
+        quoteProductSelect.appendChild(option);
+      });
+    }
+
+    async function loadQuotationOptions() {
+      quoteBuilderStatusEl.textContent = "加载客户与产品中...";
+      const [
+        { data: customersData, error: customersError },
+        { data: productsData, error: productsError },
+      ] = await Promise.all([
+        supabaseClient
+          .from("customers")
+          .select("id, company_name, country")
+          .or("is_public.is.false,is_public.is.null")
+          .order("company_name", { ascending: true }),
+        supabaseClient.from("products").select("id, name, sku, price, image_url").order("name", { ascending: true }),
+      ]);
+
+      if (customersError || productsError) {
+        quoteBuilderStatusEl.textContent = "加载失败：" + (customersError?.message || productsError?.message || "未知错误");
+        return;
+      }
+
+      quotationCustomers = customersData || [];
+      quotationProducts = productsData || [];
+      populateQuotationSelectors();
+      quoteBuilderStatusEl.textContent = "已加载客户 " + quotationCustomers.length + " 位，产品 " + quotationProducts.length + " 个";
+      renderQuotationPreview();
+    }
+
+    function addQuotationItem() {
+      const productId = quoteProductSelect.value;
+      const qty = Number.parseInt(quoteProductQtyInput.value, 10);
+
+      if (!productId) {
+        quoteBuilderStatusEl.textContent = "请先选择一个产品。";
+        return;
+      }
+      if (!Number.isInteger(qty) || qty <= 0) {
+        quoteBuilderStatusEl.textContent = "Qty 必须是大于 0 的整数。";
+        return;
+      }
+
+      const product = quotationProducts.find((item) => String(item.id) === String(productId));
+      if (!product) {
+        quoteBuilderStatusEl.textContent = "产品不存在，请刷新后重试。";
+        return;
+      }
+
+      quotationItems.push({
+        lineId: Date.now() + Math.random(),
+        product_id: product.id,
+        name: product.name,
+        sku: product.sku,
+        price: Number(product.price) || 0,
+        qty: qty,
+      });
+
+      quoteBuilderStatusEl.textContent = "已添加产品项目。";
+      quoteProductQtyInput.value = "1";
+      renderQuotationItemsBuilderTable();
+    }
+
+    function exportQuotationPdf() {
+      if (typeof html2pdf === "undefined") {
+        window.alert("PDF 导出库加载失败，请刷新页面后重试。");
+        return;
+      }
+      const customer = quotationCustomers.find((item) => String(item.id) === String(selectedQuotationCustomerId));
+      const fileNameCustomer = (customer?.company_name || "quotation").replace(/[^\w\-]+/g, "_");
+      const options = {
+        margin: [0, 0, 0, 0],
+        filename: "Quotation_" + fileNameCustomer + ".pdf",
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: "px", format: [794, 1123], orientation: "portrait" },
+      };
+      html2pdf().set(options).from(quoteA4Preview).save();
+    }
+
+    async function handleConfirmOrder() {
+      const customerId = Number.parseInt(selectedQuotationCustomerId, 10);
+      const totalAmount = getQuotationTotalAmount();
+
+      if (!Number.isInteger(customerId) || customerId <= 0) {
+        window.alert("请先选择客户。");
+        return;
+      }
+      if (!quotationItems.length || totalAmount <= 0) {
+        window.alert("请先添加产品并确认总金额大于 0。");
+        return;
+      }
+
+      confirmOrderBtn.disabled = true;
+      const { error } = await supabaseClient.from("orders").insert([
+        {
+          customer_id: customerId,
+          total_amount: totalAmount,
+        },
+      ]);
+      confirmOrderBtn.disabled = false;
+
+      if (error) {
+        window.alert("成交保存失败：" + error.message);
+        return;
+      }
+
+      const { error: closedErr } = await supabaseClient.from("customers").update({ is_closed: true }).eq("id", customerId);
+      if (closedErr) {
+        window.alert("订单已保存，但更新客户成交状态失败：" + closedErr.message);
+      }
+
+      showSuccessCelebration("保存成功，订单已确认成交！");
+      await loadDashboardMetrics();
+      await Promise.all([loadCustomers(), loadClosedCustomers()]);
+    }
+
+    function openCustomerModal() {
+      editingCustomerId = null;
+      customerModalTitleEl.textContent = "新增客户";
+      customerModalDescEl.textContent = "填写客户基础信息后将自动写入 `customers` 表。";
+      submitCustomerBtn.textContent = "提交客户";
+      customerFormStatus.textContent = "";
+      modalOverlayEl.classList.remove("hidden");
+      modalEl.classList.remove("hidden");
+      modalEl.classList.add("flex");
+      companyNameInput.focus();
+    }
+
+    function editCustomer(customer) {
+      editingCustomerId = customer.id;
+      customerModalTitleEl.textContent = "编辑客户";
+      customerModalDescEl.textContent = "修改后将通过 update 同步到 `customers` 表。";
+      submitCustomerBtn.textContent = "保存修改";
+      customerFormStatus.textContent = "";
+
+      companyNameInput.value = customer.company_name || "";
+      contactNameInput.value = customer.contact_name || "";
+      customerEmailInput.value = customer.email || "";
+      customerPhoneInput.value = customer.phone || "";
+      customerCountryInput.value = customer.country || "";
+      customerAddressInput.value = customer.address || "";
+      ensureSelectHasValue(customerSourceInput, customer.source || "");
+      customerSourceInput.value = customer.source || "";
+      ensureSelectHasValue(customerSocialMediaInput, customer.social_media || "");
+      customerSocialMediaInput.value = customer.social_media || "";
+
+      modalOverlayEl.classList.remove("hidden");
+      modalEl.classList.remove("hidden");
+      modalEl.classList.add("flex");
+      companyNameInput.focus();
+    }
+
+    function closeCustomerModal() {
+      modalOverlayEl.classList.add("hidden");
+      modalEl.classList.add("hidden");
+      modalEl.classList.remove("flex");
+      customerForm.reset();
+      editingCustomerId = null;
+      customerModalTitleEl.textContent = "新增客户";
+      customerModalDescEl.textContent = "填写客户基础信息后将自动写入 `customers` 表。";
+      submitCustomerBtn.textContent = "提交客户";
+      customerFormStatus.textContent = "";
+      submitCustomerBtn.disabled = false;
+    }
+
+    function updateBulkEmailSelectionUI() {
+      const count = selectedCustomerEmails.length;
+      const label = String(count);
+      selectedCountEl.textContent = label;
+      if (publicSelectedCountEl) {
+        publicSelectedCountEl.textContent = label;
+      }
+      const show = count > 0;
+      openBulkEmailBtn.classList.toggle("hidden", !show);
+      if (openPublicBulkEmailBtn) {
+        openPublicBulkEmailBtn.classList.toggle("hidden", !show);
+      }
+    }
+
+    function handleDirectBulkEmail() {
+      if (!selectedCustomerEmails.length) {
+        window.alert("请先勾选至少一个客户邮箱。");
+        return;
+      }
+      window.location.href = "mailto:?bcc=" + selectedCustomerEmails.join(",");
+    }
+
+    function syncBulkEmailCheckboxesAcrossViews() {
+      document.querySelectorAll(".customer-checkbox").forEach((el) => {
+        const v = (el.value || "").trim();
+        el.checked = Boolean(v && selectedCustomerEmails.includes(v));
+      });
+      if (selectAllCustomersEl) {
+        const priv = Array.from(tableBodyEl.querySelectorAll(".customer-checkbox"));
+        const privChecked = priv.filter((box) => box.checked);
+        selectAllCustomersEl.checked = priv.length > 0 && privChecked.length === priv.length;
+      }
+      if (selectAllPublicCustomersEl && publicCustomersTableBodyEl) {
+        const pub = Array.from(publicCustomersTableBodyEl.querySelectorAll(".customer-checkbox"));
+        const pubChecked = pub.filter((box) => box.checked);
+        selectAllPublicCustomersEl.checked = pub.length > 0 && pubChecked.length === pub.length;
+      }
+    }
+
+    function renderRows(customers) {
+      tableBodyEl.innerHTML = "";
+      const normalizedQuery = (currentSearchQuery || "").trim().toLowerCase();
+      const visibleCustomers = (customers || []).filter((customer) => {
+        const matchCountry = customerCountryFilter ? countryMatches(customer.country, customerCountryFilter) : true;
+        const matchSearch = normalizedQuery
+          ? [customer.company_name, customer.email, customer.contact_name, customer.country]
+              .some((field) => (field || "").toLowerCase().includes(normalizedQuery))
+          : true;
+        return matchCountry && matchSearch;
+      });
+
+      if (!visibleCustomers.length) {
+        const emptyRow = document.createElement("tr");
+        emptyRow.innerHTML = '<td colspan="5" class="px-4 py-4 text-center text-slate-400">暂无客户数据</td>';
+        tableBodyEl.appendChild(emptyRow);
+        syncBulkEmailCheckboxesAcrossViews();
+        return;
+      }
+
+      visibleCustomers.forEach((customer) => {
+        const row = document.createElement("tr");
+        row.className = "hover:bg-slate-800/40 transition";
+
+        const checkboxCell = document.createElement("td");
+        checkboxCell.className = "px-4 py-3";
+        const selector = document.createElement("input");
+        selector.type = "checkbox";
+        selector.className = "customer-checkbox cursor-pointer rounded border-slate-700 bg-slate-800 accent-sky-500";
+        const customerEmail = (customer.email || "").trim();
+        selector.value = customerEmail;
+        selector.checked = selectedCustomerEmails.includes(customerEmail);
+        selector.addEventListener("change", () => {
+          if (selector.checked) {
+            if (customerEmail && !selectedCustomerEmails.includes(customerEmail)) {
+              selectedCustomerEmails.push(customerEmail);
+            }
+          } else {
+            selectedCustomerEmails = selectedCustomerEmails.filter((email) => email !== customerEmail);
+          }
+          updateBulkEmailSelectionUI();
+          syncBulkEmailCheckboxesAcrossViews();
+        });
+        checkboxCell.appendChild(selector);
+
+        const companyCell = document.createElement("td");
+        companyCell.className = "px-4 py-3";
+        const companyWrap = document.createElement("div");
+        companyWrap.className = "flex items-center gap-2";
+        const companyName = document.createElement("span");
+        companyName.textContent = customer.company_name || "-";
+        companyWrap.appendChild(companyName);
+        if (isOverdueNow(customer.next_followup_date)) {
+          const overdueIcon = document.createElement("span");
+          overdueIcon.className = "text-rose-400";
+          overdueIcon.title = "该客户跟进提醒已到期";
+          overdueIcon.textContent = "⏰";
+          companyWrap.appendChild(overdueIcon);
+        }
+        companyCell.appendChild(companyWrap);
+
+        const emailCell = document.createElement("td");
+        emailCell.className = "px-4 py-3";
+        if (customer.email) {
+          const emailLink = document.createElement("a");
+          emailLink.href = "mailto:" + customer.email;
+          emailLink.className = "text-sky-400 underline decoration-sky-500/40 underline-offset-2 transition hover:text-sky-300";
+          emailLink.textContent = customer.email;
+          emailCell.appendChild(emailLink);
+        } else {
+          emailCell.textContent = "-";
+        }
+
+        const countryCell = document.createElement("td");
+        countryCell.className = "px-4 py-3";
+        countryCell.textContent = customer.country || "-";
+
+        const actionCell = document.createElement("td");
+        actionCell.className = "px-4 py-3";
+        const actionWrap = document.createElement("div");
+        actionWrap.className = "flex items-center gap-2";
+
+        const detailBtn = document.createElement("button");
+        detailBtn.type = "button";
+        detailBtn.className = "rounded-lg border border-cyan-400/40 bg-cyan-500/15 px-3 py-1.5 text-xs font-medium text-cyan-200 transition hover:bg-cyan-500/30 hover:text-white";
+        detailBtn.textContent = "详情/跟进";
+        detailBtn.addEventListener("click", () => {
+          openFollowupDrawer(customer);
+        });
+        actionWrap.appendChild(detailBtn);
+
+        const editBtn = document.createElement("button");
+        editBtn.type = "button";
+        editBtn.className = "rounded-lg border border-violet-400/40 bg-violet-500/15 px-3 py-1.5 text-xs font-medium text-violet-200 transition hover:bg-violet-500/30 hover:text-white";
+        editBtn.textContent = "编辑";
+        editBtn.addEventListener("click", () => {
+          editCustomer(customer);
+        });
+        actionWrap.appendChild(editBtn);
+
+        const markClosedBtn = document.createElement("button");
+        markClosedBtn.type = "button";
+        markClosedBtn.className =
+          "rounded-lg border border-emerald-400/45 bg-emerald-500/15 px-3 py-1.5 text-xs font-medium text-emerald-200 transition hover:bg-emerald-500/30 hover:text-white";
+        markClosedBtn.textContent = "标记成交";
+        markClosedBtn.addEventListener("click", async () => {
+          await markCustomerClosed(customer.id);
+        });
+        actionWrap.appendChild(markClosedBtn);
+
+        const toPublicBtn = document.createElement("button");
+        toPublicBtn.type = "button";
+        toPublicBtn.className = "rounded-lg border border-amber-400/40 bg-amber-500/15 px-3 py-1.5 text-xs font-medium text-amber-200 transition hover:bg-amber-500/30 hover:text-white";
+        toPublicBtn.textContent = "退回公海";
+        toPublicBtn.addEventListener("click", async () => {
+          const ok = window.confirm("确认将该客户退回公海吗？");
+          if (!ok) return;
+          await setCustomerPublicState(customer.id, true);
+        });
+        actionWrap.appendChild(toPublicBtn);
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.type = "button";
+        deleteBtn.className = "rounded-lg border border-rose-400/40 bg-rose-500/15 px-3 py-1.5 text-xs font-medium text-rose-200 transition hover:bg-rose-500/30 hover:text-white";
+        deleteBtn.textContent = "删除";
+        deleteBtn.addEventListener("click", async () => {
+          await deleteCustomer(customer.id, customer.company_name || "未命名客户");
+        });
+        actionWrap.appendChild(deleteBtn);
+
+        actionCell.appendChild(actionWrap);
+
+        row.appendChild(checkboxCell);
+        row.appendChild(companyCell);
+        row.appendChild(emailCell);
+        row.appendChild(countryCell);
+        row.appendChild(actionCell);
+        tableBodyEl.appendChild(row);
+      });
+
+      syncBulkEmailCheckboxesAcrossViews();
+    }
+
+    function renderPublicCustomers(customers) {
+      publicCustomersTableBodyEl.innerHTML = "";
+      if (!customers.length) {
+        publicCustomersTableBodyEl.innerHTML =
+          '<tr><td colspan="5" class="px-4 py-4 text-center text-slate-400">暂无公海客户</td></tr>';
+        if (selectAllPublicCustomersEl) {
+          selectAllPublicCustomersEl.checked = false;
+        }
+        syncBulkEmailCheckboxesAcrossViews();
+        updateBulkEmailSelectionUI();
+        return;
+      }
+
+      customers.forEach((customer) => {
+        const row = document.createElement("tr");
+        row.className = "hover:bg-slate-800/40 transition";
+
+        const checkboxCell = document.createElement("td");
+        checkboxCell.className = "px-4 py-3";
+        const selector = document.createElement("input");
+        selector.type = "checkbox";
+        selector.className = "customer-checkbox cursor-pointer rounded border-slate-700 bg-slate-800 accent-sky-500";
+        const customerEmail = (customer.email || "").trim();
+        selector.value = customerEmail;
+        selector.checked = Boolean(customerEmail && selectedCustomerEmails.includes(customerEmail));
+        selector.addEventListener("change", () => {
+          if (selector.checked) {
+            if (customerEmail && !selectedCustomerEmails.includes(customerEmail)) {
+              selectedCustomerEmails.push(customerEmail);
+            }
+          } else {
+            selectedCustomerEmails = selectedCustomerEmails.filter((email) => email !== customerEmail);
+          }
+          updateBulkEmailSelectionUI();
+          syncBulkEmailCheckboxesAcrossViews();
+        });
+        checkboxCell.appendChild(selector);
+
+        const companyCell = document.createElement("td");
+        companyCell.className = "px-4 py-3";
+        companyCell.textContent = customer.company_name || "-";
+
+        const emailCell = document.createElement("td");
+        emailCell.className = "px-4 py-3";
+        if (customer.email) {
+          const emailLink = document.createElement("a");
+          emailLink.href = "mailto:" + customer.email;
+          emailLink.className = "text-sky-400 underline decoration-sky-500/40 underline-offset-2 transition hover:text-sky-300";
+          emailLink.textContent = customer.email;
+          emailCell.appendChild(emailLink);
+        } else {
+          emailCell.textContent = "-";
+        }
+
+        const countryCell = document.createElement("td");
+        countryCell.className = "px-4 py-3";
+        countryCell.textContent = customer.country || "-";
+
+        const actionCell = document.createElement("td");
+        actionCell.className = "px-4 py-3";
+        const claimBtn = document.createElement("button");
+        claimBtn.type = "button";
+        claimBtn.className =
+          "rounded-lg border border-emerald-400/40 bg-emerald-500/15 px-3 py-1.5 text-xs font-medium text-emerald-200 transition hover:bg-emerald-500/30 hover:text-white";
+        claimBtn.textContent = "认领";
+        claimBtn.addEventListener("click", async () => {
+          await setCustomerPublicState(customer.id, false);
+        });
+        actionCell.appendChild(claimBtn);
+
+        row.appendChild(checkboxCell);
+        row.appendChild(companyCell);
+        row.appendChild(emailCell);
+        row.appendChild(countryCell);
+        row.appendChild(actionCell);
+        publicCustomersTableBodyEl.appendChild(row);
+      });
+
+      syncBulkEmailCheckboxesAcrossViews();
+      updateBulkEmailSelectionUI();
+    }
+
+    async function markCustomerClosed(customerId) {
+      const ok = window.confirm("确认将该客户标记为成交老客户吗？标记后将移出私海列表。");
+      if (!ok) return;
+
+      const { error } = await supabaseClient.from("customers").update({ is_closed: true }).eq("id", customerId);
+
+      if (error) {
+        window.alert("标记失败：" + error.message);
+        return;
+      }
+
+      showSuccessCelebration("已标记为成交客户");
+      await Promise.all([loadCustomers(), loadClosedCustomers()]);
+    }
+
+    function renderClosedCustomers(customers) {
+      closedCustomersTableBodyEl.innerHTML = "";
+      if (!customers.length) {
+        closedCustomersTableBodyEl.innerHTML =
+          '<tr><td colspan="4" class="px-4 py-4 text-center text-slate-400">暂无成交老客户</td></tr>';
+        return;
+      }
+
+      customers.forEach((customer) => {
+        const row = document.createElement("tr");
+        row.className = "hover:bg-slate-800/40 transition";
+
+        const companyCell = document.createElement("td");
+        companyCell.className = "px-4 py-3";
+        const companyWrap = document.createElement("div");
+        companyWrap.className = "flex items-center gap-2";
+        const companyName = document.createElement("span");
+        companyName.textContent = customer.company_name || "-";
+        companyWrap.appendChild(companyName);
+        if (isOverdueNow(customer.next_followup_date)) {
+          const overdueIcon = document.createElement("span");
+          overdueIcon.className = "text-rose-400";
+          overdueIcon.title = "该客户跟进提醒已到期";
+          overdueIcon.textContent = "⏰";
+          companyWrap.appendChild(overdueIcon);
+        }
+        companyCell.appendChild(companyWrap);
+
+        const emailCell = document.createElement("td");
+        emailCell.className = "px-4 py-3";
+        if (customer.email) {
+          const emailLink = document.createElement("a");
+          emailLink.href = "mailto:" + customer.email;
+          emailLink.className =
+            "text-sky-400 underline decoration-sky-500/40 underline-offset-2 transition hover:text-sky-300";
+          emailLink.textContent = customer.email;
+          emailCell.appendChild(emailLink);
+        } else {
+          emailCell.textContent = "-";
+        }
+
+        const countryCell = document.createElement("td");
+        countryCell.className = "px-4 py-3";
+        countryCell.textContent = customer.country || "-";
+
+        const actionCell = document.createElement("td");
+        actionCell.className = "px-4 py-3";
+        const actionWrap = document.createElement("div");
+        actionWrap.className = "flex flex-wrap items-center gap-2";
+
+        const detailBtn = document.createElement("button");
+        detailBtn.type = "button";
+        detailBtn.className =
+          "rounded-lg border border-cyan-400/40 bg-cyan-500/15 px-3 py-1.5 text-xs font-medium text-cyan-200 transition hover:bg-cyan-500/30 hover:text-white";
+        detailBtn.textContent = "详情/跟进";
+        detailBtn.addEventListener("click", () => {
+          openFollowupDrawer(customer);
+        });
+        actionWrap.appendChild(detailBtn);
+
+        const mailBtn = document.createElement("button");
+        mailBtn.type = "button";
+        mailBtn.className =
+          "rounded-lg border border-sky-400/40 bg-sky-500/15 px-3 py-1.5 text-xs font-medium text-sky-200 transition hover:bg-sky-500/30 hover:text-white";
+        mailBtn.textContent = "发送邮件";
+        mailBtn.addEventListener("click", () => {
+          const email = (customer.email || "").trim();
+          if (!email) {
+            window.alert("该客户没有邮箱地址。");
+            return;
+          }
+          window.location.href = "mailto:" + email;
+        });
+        actionWrap.appendChild(mailBtn);
+
+        actionCell.appendChild(actionWrap);
+
+        row.appendChild(companyCell);
+        row.appendChild(emailCell);
+        row.appendChild(countryCell);
+        row.appendChild(actionCell);
+        closedCustomersTableBodyEl.appendChild(row);
+      });
+    }
+
+    function formatFollowupTime(value) {
+      if (!value) return "时间未知";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "时间未知";
+      return date.toLocaleString("zh-CN", { hour12: false });
+    }
+
+    function isDueForTodayOrOverdue(value) {
+      if (!value) return false;
+      const dueDate = new Date(value);
+      if (Number.isNaN(dueDate.getTime())) return false;
+      const now = new Date();
+      const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      return dueDate <= endOfToday;
+    }
+
+    function isOverdueNow(value) {
+      if (!value) return false;
+      const dueDate = new Date(value);
+      if (Number.isNaN(dueDate.getTime())) return false;
+      return dueDate <= new Date();
+    }
+
+    function renderTodayFollowups(customers) {
+      todayFollowupsListEl.innerHTML = "";
+      const dueCustomers = (customers || []).filter((customer) => isDueForTodayOrOverdue(customer.next_followup_date));
+
+      if (!dueCustomers.length) {
+        todayFollowupsListEl.innerHTML = '<li class="rounded-lg bg-slate-800/70 px-3 py-2 text-slate-400">今日暂无待办跟进。</li>';
+        return;
+      }
+
+      dueCustomers
+        .sort((a, b) => {
+          const dateA = a.next_followup_date ? new Date(a.next_followup_date).getTime() : Number.MAX_SAFE_INTEGER;
+          const dateB = b.next_followup_date ? new Date(b.next_followup_date).getTime() : Number.MAX_SAFE_INTEGER;
+          return dateA - dateB;
+        })
+        .forEach((customer) => {
+          const item = document.createElement("li");
+          item.className = "flex items-center justify-between gap-3 rounded-lg bg-slate-800/70 px-3 py-2";
+
+          const left = document.createElement("div");
+          left.className = "min-w-0";
+          const name = document.createElement("p");
+          name.className = "truncate text-slate-200";
+          name.textContent = customer.company_name || "未命名客户";
+          const due = document.createElement("p");
+          due.className = "mt-0.5 text-xs text-rose-300";
+          due.textContent = "提醒时间：" + formatFollowupTime(customer.next_followup_date);
+          left.appendChild(name);
+          left.appendChild(due);
+
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "shrink-0 rounded-lg border border-rose-400/40 bg-rose-500/15 px-3 py-1.5 text-xs font-medium text-rose-200 transition hover:bg-rose-500/30 hover:text-white";
+          btn.textContent = "立即跟进";
+          btn.addEventListener("click", () => {
+            switchView("dashboard");
+            openFollowupDrawer(customer);
+          });
+
+          item.appendChild(left);
+          item.appendChild(btn);
+          todayFollowupsListEl.appendChild(item);
+        });
+    }
+
+    function renderFollowups(records) {
+      followupListEl.innerHTML = "";
+      if (!records.length) {
+        followupListEl.innerHTML = '<p class="rounded-lg bg-slate-800/70 px-3 py-2 text-sm text-slate-400">暂无跟进记录，添加第一条吧。</p>';
+        return;
+      }
+
+      records.forEach((record) => {
+        const card = document.createElement("div");
+        card.className = "rounded-xl border border-slate-700 bg-slate-900/70 p-3";
+        card.innerHTML = '<div class="rounded-lg bg-cyan-500/10 px-3 py-2"><p class="text-xs text-slate-300"></p><p class="mt-1 text-sm font-medium text-cyan-200"></p></div><div class="mt-2 rounded-lg bg-slate-800/75 px-3 py-3 text-sm text-slate-100 whitespace-pre-wrap break-words"></div>';
+        const rawType = (record.type || "").toLowerCase();
+        const isAiType = rawType === "ai";
+        const typeLabel = isAiType ? "AI" : (rawType === "manual" ? "Manual" : (record.type || "跟进"));
+        const typeIcon = isAiType ? "🤖" : "💬";
+        card.querySelector("p:first-child").textContent = formatFollowupTime(record.created_at);
+        card.querySelector("p:nth-child(2)").textContent = typeIcon + " 联系方式：" + typeLabel;
+        card.querySelector("div:last-child").textContent = record.content || "(空记录)";
+        followupListEl.appendChild(card);
+      });
+    }
+
+    function openProductModal() {
+      productFormStatusEl.textContent = "";
+      productModalOverlayEl.classList.remove("hidden");
+      productModalEl.classList.remove("hidden");
+      productModalEl.classList.add("flex");
+      productNameInput.focus();
+    }
+
+    function closeProductModal() {
+      productModalOverlayEl.classList.add("hidden");
+      productModalEl.classList.add("hidden");
+      productModalEl.classList.remove("flex");
+      productForm.reset();
+      productFormStatusEl.textContent = "";
+      submitProductBtn.disabled = false;
+    }
+
+    function renderProducts(products) {
+      productsTableBodyEl.innerHTML = "";
+      if (!products.length) {
+        productsTableBodyEl.innerHTML = '<tr><td colspan="4" class="px-4 py-4 text-center text-slate-400">暂无产品数据</td></tr>';
+        return;
+      }
+
+      products.forEach((product) => {
+        const row = document.createElement("tr");
+        row.className = "hover:bg-slate-800/40 transition";
+        const displayPrice = Number(product.price);
+        const safePrice = Number.isFinite(displayPrice) ? "$" + displayPrice.toFixed(2) : "-";
+
+        row.innerHTML = '<td class="px-4 py-3"></td><td class="px-4 py-3"></td><td class="px-4 py-3"></td><td class="px-4 py-3"></td>';
+        row.children[0].textContent = product.name || "-";
+        row.children[1].textContent = product.sku || "-";
+        row.children[2].textContent = safePrice;
+        if (product.image_url) {
+          const link = document.createElement("a");
+          link.href = product.image_url;
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          link.className = "text-sky-400 underline decoration-sky-500/40 underline-offset-2 transition hover:text-sky-300";
+          link.textContent = product.image_url;
+          row.children[3].appendChild(link);
+        } else {
+          row.children[3].textContent = "-";
+        }
+        productsTableBodyEl.appendChild(row);
+      });
+    }
+
+    async function loadProducts() {
+      productsStatusEl.textContent = "加载中...";
+      const { data, error } = await supabaseClient
+        .from("products")
+        .select("id, name, sku, price, image_url")
+        .order("id", { ascending: false });
+
+      if (error) {
+        productsStatusEl.textContent = "加载失败";
+        productsTableBodyEl.innerHTML = '<tr><td colspan="4" class="px-4 py-4 text-center text-rose-300">读取 products 失败：' + error.message + "</td></tr>";
+        return;
+      }
+
+      productsStatusEl.textContent = "已加载";
+      renderProducts(data || []);
+    }
+
+    async function loadFollowups(customerId) {
+      followupStatusEl.textContent = "加载跟进记录中...";
+      followupListEl.innerHTML = '<p class="rounded-lg bg-slate-800/70 px-3 py-2 text-sm text-slate-400">正在获取跟进记录...</p>';
+
+      const { data, error } = await supabaseClient
+        .from(FOLLOWUPS_TABLE)
+        .select("id, customer_id, type, content, created_at")
+        .eq("customer_id", customerId)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        followupStatusEl.textContent = "加载失败";
+        followupListEl.innerHTML = '<p class="rounded-lg bg-rose-500/10 px-3 py-2 text-sm text-rose-300">读取跟进记录失败：' + error.message + "</p>";
+        return;
+      }
+
+      followupStatusEl.textContent = "共 " + (data || []).length + " 条记录";
+      renderFollowups(data || []);
+    }
+
+    function openFollowupDrawer(customer) {
+      selectedCustomer = customer;
+      followupCustomerNameEl.textContent = (customer.company_name || "未命名客户") + " · ID " + customer.id;
+      followupCustomerCompanyEl.textContent = customer.company_name || "-";
+      followupCustomerContactNameEl.textContent = customer.contact_name || "-";
+      followupCustomerEmailEl.textContent = customer.email || "-";
+      followupCustomerPhoneEl.textContent = customer.phone || "-";
+      followupCustomerCountryEl.textContent = customer.country || "-";
+      followupCustomerAddressEl.textContent = customer.address || "-";
+      followupCustomerSourceEl.textContent = customer.source || "-";
+      followupCustomerSocialEl.textContent = customer.social_media || "-";
+      nextFollowupDatetimeInput.value = "";
+      followupFormStatusEl.textContent = "";
+      followupDrawerOverlay.classList.remove("hidden");
+      followupDrawer.classList.remove("translate-x-[110%]");
+      loadFollowups(customer.id);
+      followupContentInput.focus();
+      startCustomerLocalTime(customer.country);
+    }
+
+    function closeFollowupDrawer() {
+      resetFollowupLocalTimeUI();
+      followupDrawer.classList.add("translate-x-[110%]");
+      followupDrawerOverlay.classList.add("hidden");
+      selectedCustomer = null;
+      followupForm.reset();
+      followupFormStatusEl.textContent = "";
+      followupCustomerCompanyEl.textContent = "-";
+      followupCustomerContactNameEl.textContent = "-";
+      followupCustomerEmailEl.textContent = "-";
+      followupCustomerPhoneEl.textContent = "-";
+      followupCustomerCountryEl.textContent = "-";
+      followupCustomerAddressEl.textContent = "-";
+      followupCustomerSourceEl.textContent = "-";
+      followupCustomerSocialEl.textContent = "-";
+      nextFollowupDatetimeInput.value = "";
+      saveFollowupBtn.disabled = false;
+    }
+
+    async function loadCustomers() {
+      statusEl.textContent = "加载中...";
+
+      const { data, error } = await supabaseClient
+        .from("customers")
+        .select("id, company_name, contact_name, email, phone, country, address, source, social_media, is_public, is_closed, next_followup_date")
+        .or("is_public.is.false,is_public.is.null")
+        .not("is_closed", "eq", true)
+        .order("company_name", { ascending: true });
+
+      if (error) {
+        statusEl.textContent = "加载失败";
+        tableBodyEl.innerHTML =
+          '<tr><td colspan="5" class="px-4 py-4 text-center text-rose-300">读取 customers 失败：' +
+          error.message +
+          "</td></tr>";
+        return;
+      }
+
+      statusEl.textContent = "已加载";
+      privateCustomersCache = data || [];
+      renderRows(privateCustomersCache);
+      renderTodayFollowups(privateCustomersCache);
+      updateBulkEmailSelectionUI();
+    }
+
+    async function loadPublicCustomers() {
+      publicCustomersStatusEl.textContent = "加载中...";
+      const { data, error } = await supabaseClient
+        .from("customers")
+        .select("id, company_name, contact_name, email, phone, country, address, source, social_media, is_public")
+        .eq("is_public", true)
+        .order("company_name", { ascending: true });
+
+      if (error) {
+        publicCustomersStatusEl.textContent = "加载失败";
+        publicCustomersTableBodyEl.innerHTML =
+          '<tr><td colspan="5" class="px-4 py-4 text-center text-rose-300">读取公海客户失败：' +
+          error.message +
+          "</td></tr>";
+        return;
+      }
+
+      publicCustomersStatusEl.textContent = "已加载";
+      renderPublicCustomers(data || []);
+    }
+
+    async function loadClosedCustomers() {
+      closedCustomersStatusEl.textContent = "加载中...";
+      const { data, error } = await supabaseClient
+        .from("customers")
+        .select("id, company_name, contact_name, email, phone, country, address, source, social_media, is_public, is_closed, next_followup_date")
+        .eq("is_closed", true)
+        .order("company_name", { ascending: true });
+
+      if (error) {
+        closedCustomersStatusEl.textContent = "加载失败";
+        closedCustomersTableBodyEl.innerHTML =
+          '<tr><td colspan="4" class="px-4 py-4 text-center text-rose-300">读取成交客户失败：' +
+          error.message +
+          "</td></tr>";
+        return;
+      }
+
+      closedCustomersStatusEl.textContent = "已加载";
+      closedCustomersCache = data || [];
+      renderClosedCustomers(closedCustomersCache);
+    }
+
+    function formatSalesReportDisplayDate(raw) {
+      if (raw === null || raw === undefined || raw === "") return "-";
+      const d = new Date(raw);
+      if (!Number.isNaN(d.getTime())) {
+        return d.toLocaleDateString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit" });
+      }
+      return String(raw);
+    }
+
+    function formatSalesQtyDisplay(raw) {
+      if (raw === null || raw === undefined || raw === "") return "-";
+      const n = Number(raw);
+      return Number.isFinite(n) ? String(n) : String(raw);
+    }
+
+    function formatSalesUsdDisplay(raw) {
+      if (raw === null || raw === undefined || raw === "") return "-";
+      const n = Number(raw);
+      if (!Number.isFinite(n)) return String(raw);
+      return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function escapeCsvCell(val) {
+      const s = val == null ? "" : String(val);
+      if (/[",\r\n]/.test(s)) {
+        return '"' + s.replace(/"/g, '""') + '"';
+      }
+      return s;
+    }
+
+    async function loadSalesReport(year) {
+      const y = Number.parseInt(String(year), 10);
+      const filterYear = Number.isFinite(y) ? y : 2026;
+      salesReportStatusEl.textContent = "加载中...";
+      const rangeStart = filterYear + "-01-01";
+      const rangeEnd = filterYear + "-12-31";
+
+      const { data, error } = await supabaseClient
+        .from("sales_records")
+        .select(
+          "id, order_no, date, customer_name, country, model, product_name, qty, unit_price, total_usd, shipping_usd, grand_total_usd, bank, notes",
+        )
+        .gte("date", rangeStart)
+        .lte("date", rangeEnd)
+        .order("date", { ascending: false });
+
+      if (error) {
+        salesReportStatusEl.textContent = "加载失败";
+        salesReportTableBody.innerHTML =
+          '<tr><td colspan="14" class="border border-slate-700 px-2 py-4 text-center text-rose-300">' +
+          "读取 sales_records 失败：" +
+          error.message +
+          "</td></tr>";
+        salesReportRecordsCache = [];
+        return;
+      }
+
+      salesReportRecordsCache = data || [];
+      salesReportStatusEl.textContent = salesReportRecordsCache.length
+        ? "已加载 " + salesReportRecordsCache.length + " 条（" + filterYear + " 年）"
+        : filterYear + " 年暂无数据";
+      renderSalesReport(salesReportRecordsCache);
+    }
+
+    function renderSalesReport(records) {
+      salesReportTableBody.innerHTML = "";
+      if (!records.length) {
+        salesReportTableBody.innerHTML =
+          '<tr><td colspan="14" class="border border-slate-600 px-2 py-8 text-center text-slate-500">暂无销售记录</td></tr>';
+        return;
+      }
+
+      records.forEach((rec) => {
+        const row = document.createElement("tr");
+        row.className = "border-b border-slate-800 hover:bg-slate-800/35";
+
+        const cells = [
+          { align: "text-left whitespace-nowrap", text: rec.order_no == null || rec.order_no === "" ? "-" : String(rec.order_no) },
+          { align: "text-left whitespace-nowrap", text: formatSalesReportDisplayDate(rec.date) },
+          { align: "text-left", text: rec.customer_name == null || rec.customer_name === "" ? "-" : String(rec.customer_name) },
+          { align: "text-left", text: rec.country == null || rec.country === "" ? "-" : String(rec.country) },
+          { align: "text-left", text: rec.model == null || rec.model === "" ? "-" : String(rec.model) },
+          { align: "text-left", text: rec.product_name == null || rec.product_name === "" ? "-" : String(rec.product_name) },
+          { align: "text-right tabular-nums", text: formatSalesQtyDisplay(rec.qty) },
+          { align: "text-right tabular-nums", text: formatSalesUsdDisplay(rec.unit_price) },
+          { align: "text-right tabular-nums", text: formatSalesUsdDisplay(rec.total_usd) },
+          { align: "text-right tabular-nums", text: formatSalesUsdDisplay(rec.shipping_usd) },
+          { align: "text-right tabular-nums", text: formatSalesUsdDisplay(rec.grand_total_usd) },
+          { align: "text-left", text: rec.bank == null || rec.bank === "" ? "-" : String(rec.bank) },
+          { align: "text-left", text: rec.notes == null || rec.notes === "" ? "-" : String(rec.notes) },
+        ];
+
+        cells.forEach((c) => {
+          const td = document.createElement("td");
+          td.className = "border border-slate-600 px-2 py-1 align-top text-[11px] text-slate-200 " + c.align;
+          td.textContent = c.text;
+          row.appendChild(td);
+        });
+
+        const actionTd = document.createElement("td");
+        actionTd.className =
+          "border border-slate-600 px-2 py-1 align-middle text-[11px] text-slate-200 whitespace-nowrap";
+        const actionWrap = document.createElement("div");
+        actionWrap.className = "flex flex-wrap items-center gap-1";
+
+        const editBtn = document.createElement("button");
+        editBtn.type = "button";
+        editBtn.className =
+          "rounded border border-sky-400/45 bg-sky-500/15 px-2 py-0.5 text-[11px] font-medium text-sky-200 transition hover:bg-sky-500/30 hover:text-white";
+        editBtn.textContent = "编辑";
+        editBtn.addEventListener("click", () => {
+          openSalesRecordModalForEdit(rec);
+        });
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.type = "button";
+        deleteBtn.className =
+          "rounded border border-rose-400/45 bg-rose-500/15 px-2 py-0.5 text-[11px] font-medium text-rose-200 transition hover:bg-rose-500/30 hover:text-white";
+        deleteBtn.textContent = "删除";
+        deleteBtn.addEventListener("click", () => {
+          deleteSalesRecord(rec.id, rec.order_no);
+        });
+
+        if (rec.id == null || rec.id === "") {
+          editBtn.disabled = true;
+          deleteBtn.disabled = true;
+          editBtn.classList.add("opacity-40");
+          deleteBtn.classList.add("opacity-40");
+        }
+
+        actionWrap.appendChild(editBtn);
+        actionWrap.appendChild(deleteBtn);
+        actionTd.appendChild(actionWrap);
+        row.appendChild(actionTd);
+
+        salesReportTableBody.appendChild(row);
+      });
+    }
+
+    function exportSalesReportToCSV() {
+      const year = Number.parseInt(salesReportYearSelect.value, 10) || 2026;
+      const headerRow = [
+        "单号(PI)",
+        "日期",
+        "客户",
+        "国家",
+        "型号",
+        "名称",
+        "数量",
+        "单价",
+        "总额(USD)",
+        "运费(USD)",
+        "合计(USD)",
+        "收款银行",
+        "备注",
+      ];
+
+      const lines = [headerRow.map(escapeCsvCell).join(",")];
+
+      if (salesReportRecordsCache.length) {
+        salesReportRecordsCache.forEach((rec) => {
+          const row = [
+            rec.order_no,
+            formatSalesReportDisplayDate(rec.date),
+            rec.customer_name,
+            rec.country,
+            rec.model,
+            rec.product_name,
+            rec.qty,
+            rec.unit_price,
+            rec.total_usd,
+            rec.shipping_usd,
+            rec.grand_total_usd,
+            rec.bank,
+            rec.notes,
+          ].map((v) => escapeCsvCell(v === null || v === undefined ? "" : v));
+          lines.push(row.join(","));
+        });
+      } else {
+        const domRows = Array.from(salesReportTableBody.querySelectorAll("tr")).filter((tr) => {
+          const first = tr.querySelector("td");
+          return first && !first.hasAttribute("colspan");
+        });
+        domRows.forEach((tr) => {
+          const cells = Array.from(tr.querySelectorAll("td")).map((td) => td.textContent.trim());
+          lines.push(cells.map(escapeCsvCell).join(","));
+        });
+      }
+
+      const BOM = "\ufeff";
+      const csvBody = lines.join("\r\n");
+      const blob = new Blob([BOM + csvBody], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "年度销售报表_" + year + ".csv";
+      link.style.display = "none";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+
+    function formatSalesDateInputValue(raw) {
+      if (raw === null || raw === undefined || raw === "") return "";
+      if (typeof raw === "string") {
+        return raw.length >= 10 ? raw.slice(0, 10) : raw;
+      }
+      const d = new Date(raw);
+      return Number.isNaN(d.getTime()) ? "" : d.toISOString().slice(0, 10);
+    }
+
+    function formatSalesPreviewUsd(n) {
+      return Number.isFinite(n)
+        ? n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+        : "—";
+    }
+
+    function updateSalesComputedPreview() {
+      const qtyEl = document.getElementById("sales-qty");
+      const unitEl = document.getElementById("sales-unit-price");
+      const shipEl = document.getElementById("sales-shipping-usd");
+      const totalOut = document.getElementById("sales-preview-total-usd");
+      const grandOut = document.getElementById("sales-preview-grand-total-usd");
+      if (!totalOut || !grandOut) return;
+
+      const qty = Number.parseFloat(qtyEl && qtyEl.value);
+      const unit = Number.parseFloat(unitEl && unitEl.value);
+      const shipRaw = shipEl && shipEl.value.trim();
+      const ship = shipRaw === "" ? 0 : Number.parseFloat(shipRaw);
+
+      const totalUsd = Number.isFinite(qty) && Number.isFinite(unit) ? qty * unit : NaN;
+      const grandUsd =
+        Number.isFinite(totalUsd) && Number.isFinite(ship) ? totalUsd + ship : NaN;
+
+      totalOut.textContent = formatSalesPreviewUsd(totalUsd);
+      grandOut.textContent = formatSalesPreviewUsd(grandUsd);
+    }
+
+    function fillSalesRecordForm(rec) {
+      document.getElementById("sales-order-no").value = rec.order_no != null ? String(rec.order_no) : "";
+      document.getElementById("sales-date").value = formatSalesDateInputValue(rec.date);
+      document.getElementById("sales-customer-name").value = rec.customer_name != null ? String(rec.customer_name) : "";
+      document.getElementById("sales-country").value = rec.country != null ? String(rec.country) : "";
+      document.getElementById("sales-model").value = rec.model != null ? String(rec.model) : "";
+      document.getElementById("sales-product-name").value = rec.product_name != null ? String(rec.product_name) : "";
+      document.getElementById("sales-qty").value =
+        rec.qty !== null && rec.qty !== undefined && rec.qty !== "" ? String(rec.qty) : "";
+      document.getElementById("sales-unit-price").value =
+        rec.unit_price !== null && rec.unit_price !== undefined && rec.unit_price !== "" ? String(rec.unit_price) : "";
+      const ship =
+        rec.shipping_usd !== null && rec.shipping_usd !== undefined && rec.shipping_usd !== ""
+          ? String(rec.shipping_usd)
+          : "";
+      document.getElementById("sales-shipping-usd").value = ship;
+      document.getElementById("sales-bank").value = rec.bank != null ? String(rec.bank) : "";
+      document.getElementById("sales-notes").value = rec.notes != null ? String(rec.notes) : "";
+      updateSalesComputedPreview();
+    }
+
+    function openSalesRecordModal() {
+      if (!salesRecordForm) return;
+      editingSalesRecordId = null;
+      if (salesRecordModalTitleEl) salesRecordModalTitleEl.textContent = "新增销售记录";
+      if (salesRecordModalDescEl)
+        salesRecordModalDescEl.textContent = "填写后写入 `sales_records` 表；总额与合计将在保存时自动计算。";
+      salesFormStatusEl.textContent = "";
+      salesFormStatusEl.className = "min-h-5 text-sm text-slate-400";
+      salesRecordForm.reset();
+      const today = new Date().toISOString().slice(0, 10);
+      const sd = document.getElementById("sales-date");
+      if (sd) sd.value = today;
+      salesRecordModalOverlayEl.classList.remove("hidden");
+      salesRecordModalEl.classList.remove("hidden");
+      salesRecordModalEl.classList.add("flex");
+      updateSalesComputedPreview();
+      document.getElementById("sales-order-no").focus();
+    }
+
+    function openSalesRecordModalForEdit(rec) {
+      if (!salesRecordForm || !rec) return;
+      editingSalesRecordId = rec.id != null ? rec.id : null;
+      if (salesRecordModalTitleEl) salesRecordModalTitleEl.textContent = "编辑销售记录";
+      if (salesRecordModalDescEl)
+        salesRecordModalDescEl.textContent = "修改后将更新该行记录；总额与合计保存时重新计算。";
+      salesFormStatusEl.textContent = "";
+      salesFormStatusEl.className = "min-h-5 text-sm text-slate-400";
+      salesRecordForm.reset();
+      fillSalesRecordForm(rec);
+      salesRecordModalOverlayEl.classList.remove("hidden");
+      salesRecordModalEl.classList.remove("hidden");
+      salesRecordModalEl.classList.add("flex");
+      document.getElementById("sales-order-no").focus();
+    }
+
+    function closeSalesRecordModal() {
+      editingSalesRecordId = null;
+      salesRecordModalOverlayEl.classList.add("hidden");
+      salesRecordModalEl.classList.add("hidden");
+      salesRecordModalEl.classList.remove("flex");
+      if (salesRecordForm) {
+        salesRecordForm.reset();
+      }
+      salesFormStatusEl.textContent = "";
+      salesFormStatusEl.className = "min-h-5 text-sm text-slate-400";
+      submitSalesRecordBtn.disabled = false;
+      if (salesRecordModalTitleEl) salesRecordModalTitleEl.textContent = "新增销售记录";
+      if (salesRecordModalDescEl)
+        salesRecordModalDescEl.textContent = "填写后写入 `sales_records` 表；总额与合计将在保存时自动计算。";
+    }
+
+    async function deleteSalesRecord(recordId, orderNo) {
+      if (recordId == null || recordId === "") {
+        window.alert("无法删除：缺少记录 ID。");
+        return;
+      }
+      const piLabel = orderNo != null && orderNo !== "" ? String(orderNo) : "-";
+      const ok = window.confirm(
+        "确定要删除这笔 PI 为 [" + piLabel + "] 的销售记录吗？此操作不可撤销。",
+      );
+      if (!ok) return;
+
+      const { error } = await supabaseClient.from("sales_records").delete().eq("id", recordId);
+
+      if (error) {
+        window.alert("删除失败：" + error.message);
+        return;
+      }
+
+      showSuccessCelebration("销售记录已删除。");
+
+      const y = Number.parseInt(salesReportYearSelect.value, 10);
+      await loadSalesReport(Number.isFinite(y) ? y : 2026);
+    }
+
+    async function handleSalesSubmit(event) {
+      event.preventDefault();
+      salesFormStatusEl.textContent = "";
+      salesFormStatusEl.className = "min-h-5 text-sm text-slate-400";
+      submitSalesRecordBtn.disabled = true;
+
+      const orderNo = document.getElementById("sales-order-no").value.trim();
+      const dateVal = document.getElementById("sales-date").value;
+      const customerName = document.getElementById("sales-customer-name").value.trim();
+      const qty = Number.parseFloat(document.getElementById("sales-qty").value);
+      const unitPrice = Number.parseFloat(document.getElementById("sales-unit-price").value);
+      const shippingRaw = document.getElementById("sales-shipping-usd").value.trim();
+      const shippingUsd = shippingRaw === "" ? 0 : Number.parseFloat(shippingRaw);
+
+      if (!orderNo || !dateVal || !customerName) {
+        salesFormStatusEl.textContent = "请填写单号、日期与客户名称。";
+        salesFormStatusEl.className = "min-h-5 text-sm text-rose-300";
+        submitSalesRecordBtn.disabled = false;
+        return;
+      }
+
+      if (!Number.isFinite(qty) || qty < 0) {
+        salesFormStatusEl.textContent = "请输入有效的数量。";
+        salesFormStatusEl.className = "min-h-5 text-sm text-rose-300";
+        submitSalesRecordBtn.disabled = false;
+        return;
+      }
+
+      if (!Number.isFinite(unitPrice) || unitPrice < 0) {
+        salesFormStatusEl.textContent = "请输入有效的单价。";
+        salesFormStatusEl.className = "min-h-5 text-sm text-rose-300";
+        submitSalesRecordBtn.disabled = false;
+        return;
+      }
+
+      if (!Number.isFinite(shippingUsd) || shippingUsd < 0) {
+        salesFormStatusEl.textContent = "请输入有效的运费。";
+        salesFormStatusEl.className = "min-h-5 text-sm text-rose-300";
+        submitSalesRecordBtn.disabled = false;
+        return;
+      }
+
+      const totalUsd = qty * unitPrice;
+      const grandTotalUsd = totalUsd + shippingUsd;
+
+      const payload = {
+        order_no: orderNo,
+        date: dateVal,
+        customer_name: customerName,
+        country: document.getElementById("sales-country").value.trim() || null,
+        model: document.getElementById("sales-model").value.trim() || null,
+        product_name: document.getElementById("sales-product-name").value.trim() || null,
+        qty,
+        unit_price: unitPrice,
+        total_usd: totalUsd,
+        shipping_usd: shippingUsd,
+        grand_total_usd: grandTotalUsd,
+        bank: document.getElementById("sales-bank").value.trim() || null,
+        notes: document.getElementById("sales-notes").value.trim() || null,
+      };
+
+      salesFormStatusEl.textContent = "保存中...";
+      salesFormStatusEl.className = "min-h-5 text-sm text-slate-400";
+
+      let error = null;
+      if (editingSalesRecordId != null && editingSalesRecordId !== "") {
+        const res = await supabaseClient.from("sales_records").update(payload).eq("id", editingSalesRecordId);
+        error = res.error;
+      } else {
+        const res = await supabaseClient.from("sales_records").insert([payload]);
+        error = res.error;
+      }
+
+      if (error) {
+        salesFormStatusEl.textContent = "保存失败：" + error.message;
+        salesFormStatusEl.className = "min-h-5 text-sm text-rose-300";
+        submitSalesRecordBtn.disabled = false;
+        return;
+      }
+
+      const wasEdit = editingSalesRecordId != null && editingSalesRecordId !== "";
+      closeSalesRecordModal();
+      showSuccessCelebration(wasEdit ? "销售记录已更新。" : "销售记录已保存。");
+
+      const recordYear = Number.parseInt(dateVal.slice(0, 4), 10);
+      if (Number.isFinite(recordYear) && salesReportYearSelect) {
+        salesReportYearSelect.value = String(recordYear);
+      }
+
+      const y = Number.parseInt(salesReportYearSelect.value, 10);
+      await loadSalesReport(Number.isFinite(y) ? y : recordYear);
+    }
+
+    function initSalesReportYearSelect() {
+      if (!salesReportYearSelect) return;
+      salesReportYearSelect.innerHTML = "";
+      for (let y = 2036; y >= 2018; y--) {
+        const opt = document.createElement("option");
+        opt.value = String(y);
+        opt.textContent = String(y);
+        if (y === 2026) opt.selected = true;
+        salesReportYearSelect.appendChild(opt);
+      }
+    }
+
+    async function setCustomerPublicState(customerId, isPublic) {
+      const { error } = await supabaseClient
+        .from("customers")
+        .update({ is_public: isPublic })
+        .eq("id", customerId);
+
+      if (error) {
+        window.alert((isPublic ? "退回公海失败：" : "认领失败：") + error.message);
+        return;
+      }
+
+      await Promise.all([loadCustomers(), loadPublicCustomers(), loadClosedCustomers()]);
+      window.alert(isPublic ? "已退回公海" : "认领成功，客户已回到私有列表");
+    }
+
+    async function deleteCustomer(customerId, companyName) {
+      const ok = window.confirm('确认删除客户 "' + companyName + '" 吗？此操作不可撤销。');
+      if (!ok) return;
+
+      const { error } = await supabaseClient
+        .from("customers")
+        .delete()
+        .eq("id", customerId);
+
+      if (error) {
+        window.alert("删除失败：" + error.message);
+        return;
+      }
+
+      showSuccessCelebration("删除成功，客户已移除。");
+      await Promise.all([loadCustomers(), loadClosedCustomers()]);
+    }
+
+    async function renderCharts() {
+      if (typeof Chart === "undefined") {
+        return;
+      }
+      const canvas = document.getElementById("revenue-chart");
+      if (!canvas) return;
+
+      const year = new Date().getFullYear();
+      const rangeStart = year + "-01-01T00:00:00.000Z";
+      const rangeEnd = year + "-12-31T23:59:59.999Z";
+
+      const { data, error } = await supabaseClient
+        .from("orders")
+        .select("total_amount, created_at")
+        .gte("created_at", rangeStart)
+        .lte("created_at", rangeEnd);
+
+      if (error) {
+        console.warn("renderCharts:", error.message);
+        return;
+      }
+
+      const monthTotals = Array.from({ length: 12 }, () => 0);
+      (data || []).forEach((order) => {
+        const raw = order.created_at;
+        if (!raw) return;
+        const d = new Date(raw);
+        if (Number.isNaN(d.getTime()) || d.getFullYear() !== year) return;
+        monthTotals[d.getMonth()] += Number(order.total_amount) || 0;
+      });
+
+      const labels = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"];
+
+      if (revenueChartInstance) {
+        revenueChartInstance.destroy();
+        revenueChartInstance = null;
+      }
+
+      revenueChartInstance = new Chart(canvas, {
+        type: "line",
+        data: {
+          labels,
+          datasets: [
+            {
+              label: "成交金额 ($)",
+              data: monthTotals,
+              borderColor: "rgb(129, 140, 248)",
+              backgroundColor: "rgba(79, 70, 229, 0.22)",
+              fill: true,
+              tension: 0.35,
+              pointRadius: 3,
+              pointHoverRadius: 5,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: {
+                color: "#cbd5e1",
+              },
+            },
+            tooltip: {
+              callbacks: {
+                label(ctx) {
+                  const v = ctx.parsed.y;
+                  return " " + (typeof v === "number" ? "$" + v.toFixed(2) : ctx.formattedValue);
+                },
+              },
+            },
+          },
+          scales: {
+            x: {
+              ticks: { color: "#94a3b8" },
+              grid: { color: "rgba(148, 163, 184, 0.12)" },
+            },
+            y: {
+              ticks: {
+                color: "#94a3b8",
+                callback(value) {
+                  return "$" + value;
+                },
+              },
+              grid: { color: "rgba(148, 163, 184, 0.12)" },
+            },
+          },
+        },
+      });
+    }
+
+    async function loadDashboardMetrics() {
+      const [
+        { count: customersTotal, error: customersCountError },
+        { count: emailFollowupsTotal, error: emailFollowupsCountError },
+        { data: salesRows, error: salesError },
+      ] = await Promise.all([
+        supabaseClient.from("customers").select("*", { count: "exact", head: true }),
+        supabaseClient.from(FOLLOWUPS_TABLE).select("*", { count: "exact", head: true }).eq("type", "邮件"),
+        supabaseClient.from("sales_records").select("grand_total_usd"),
+      ]);
+
+      if (customersCountError) {
+        kpiCustomersTotalEl.textContent = "--";
+      } else {
+        kpiCustomersTotalEl.textContent = String(customersTotal ?? 0);
+      }
+
+      if (emailFollowupsCountError) {
+        kpiEmailFollowupsTotalEl.textContent = "--";
+      } else {
+        kpiEmailFollowupsTotalEl.textContent = String(emailFollowupsTotal ?? 0);
+      }
+
+      if (salesError) {
+        kpiOrdersTotalAmountEl.textContent = "--";
+        if (kpiOrdersCountEl) kpiOrdersCountEl.textContent = "累计已签 -- 单";
+      } else {
+        const rows = salesRows || [];
+        const salesTotalAmount = rows.reduce((sum, row) => sum + (Number(row.grand_total_usd) || 0), 0);
+        kpiOrdersTotalAmountEl.textContent = formatCurrency(salesTotalAmount);
+        if (kpiOrdersCountEl) kpiOrdersCountEl.textContent = "累计已签 " + rows.length + " 单";
+      }
+
+      await renderCharts();
+    }
+
+    async function updateCustomer(customerId, payload) {
+      return supabaseClient.from("customers").update(payload).eq("id", customerId);
+    }
+
+    async function handleCustomerSubmit(event) {
+      event.preventDefault();
+      customerFormStatus.textContent = "";
+      submitCustomerBtn.disabled = true;
+
+      const payload = {
+        company_name: companyNameInput.value.trim(),
+        contact_name: contactNameInput.value.trim(),
+        email: customerEmailInput.value.trim(),
+        phone: customerPhoneInput.value.trim(),
+        country: customerCountryInput.value.trim(),
+        address: customerAddressInput.value.trim(),
+        source: customerSourceInput.value.trim(),
+        social_media: customerSocialMediaInput.value.trim(),
+        is_public: false,
+      };
+      if (!editingCustomerId) {
+        payload.is_closed = false;
+      }
+
+      if (!payload.company_name || !payload.email || !payload.country) {
+        customerFormStatus.textContent = "请完整填写公司名称、邮箱和国家。";
+        customerFormStatus.className = "min-h-5 text-sm text-amber-300";
+        submitCustomerBtn.disabled = false;
+        return;
+      }
+
+      customerFormStatus.textContent = "提交中...";
+      customerFormStatus.className = "min-h-5 text-sm text-slate-400";
+      const operationResult = editingCustomerId
+        ? await updateCustomer(editingCustomerId, payload)
+        : await supabaseClient.from("customers").insert([payload]);
+      const { error } = operationResult;
+
+      if (error) {
+        customerFormStatus.textContent = (editingCustomerId ? "保存失败：" : "新增失败：") + error.message;
+        customerFormStatus.className = "min-h-5 text-sm text-rose-300";
+        submitCustomerBtn.disabled = false;
+        return;
+      }
+
+      closeCustomerModal();
+      await Promise.all([loadCustomers(), loadClosedCustomers()]);
+    }
+
+    async function handleFollowupSubmit(event) {
+      event.preventDefault();
+      followupFormStatusEl.textContent = "";
+
+      if (!selectedCustomer || !selectedCustomer.id) {
+        followupFormStatusEl.textContent = "请先选择客户，再保存记录。";
+        followupFormStatusEl.className = "min-h-5 text-sm text-amber-300";
+        return;
+      }
+
+      const content = followupContentInput.value.trim();
+      const reminderTime = nextFollowupDatetimeInput.value;
+      if (!content) {
+        followupFormStatusEl.textContent = "请填写跟进内容。";
+        followupFormStatusEl.className = "min-h-5 text-sm text-amber-300";
+        return;
+      }
+
+      saveFollowupBtn.disabled = true;
+      followupFormStatusEl.textContent = "保存中...";
+      followupFormStatusEl.className = "min-h-5 text-sm text-slate-400";
+      const customerId = Number.parseInt(selectedCustomer.id, 10);
+      if (!Number.isInteger(customerId) || customerId <= 0) {
+        followupFormStatusEl.textContent = "客户 ID 格式无效，必须为整数。";
+        followupFormStatusEl.className = "min-h-5 text-sm text-rose-300";
+        saveFollowupBtn.disabled = false;
+        return;
+      }
+
+      const { error } = await supabaseClient.from(FOLLOWUPS_TABLE).insert([
+        {
+          customer_id: customerId,
+          type: "manual",
+          content: content,
+        },
+      ]);
+
+      if (error) {
+        followupFormStatusEl.textContent = "保存失败：" + error.message;
+        followupFormStatusEl.className = "min-h-5 text-sm text-rose-300";
+        saveFollowupBtn.disabled = false;
+        return;
+      }
+
+      if (reminderTime) {
+        const reminderIso = new Date(reminderTime).toISOString();
+        const { error: reminderError } = await supabaseClient
+          .from("customers")
+          .update({ next_followup_date: reminderIso })
+          .eq("id", customerId);
+        if (reminderError) {
+          followupFormStatusEl.textContent = "记录已保存，但提醒时间更新失败：" + reminderError.message;
+          followupFormStatusEl.className = "min-h-5 text-sm text-amber-300";
+          saveFollowupBtn.disabled = false;
+          await loadFollowups(customerId);
+          await Promise.all([loadCustomers(), loadClosedCustomers()]);
+          return;
+        }
+      }
+
+      followupForm.reset();
+      nextFollowupDatetimeInput.value = "";
+      followupFormStatusEl.textContent = "保存成功";
+      followupFormStatusEl.className = "min-h-5 text-sm text-emerald-300";
+      saveFollowupBtn.disabled = false;
+      window.alert("保存成功");
+      await loadFollowups(customerId);
+      await Promise.all([loadCustomers(), loadClosedCustomers()]);
+    }
+
+    async function insertAutoEmailFollowup() {
+      if (!selectedCustomer || !selectedCustomer.id) return;
+      const customerId = Number.parseInt(selectedCustomer.id, 10);
+      if (!Number.isInteger(customerId) || customerId <= 0) return;
+
+      const { error } = await supabaseClient.from(FOLLOWUPS_TABLE).insert([
+        {
+          customer_id: customerId,
+          type: "邮件",
+          content: "通过系统发起了邮件联系",
+        },
+      ]);
+
+      if (error) {
+        window.alert("自动写入跟进失败：" + error.message);
+        return;
+      }
+      await loadFollowups(customerId);
+    }
+
+    async function handleSendEmail() {
+      if (!selectedCustomer) {
+        window.alert("请先在客户列表中选择一个客户。");
+        return;
+      }
+
+      const email = (selectedCustomer.email || "").trim();
+      if (!email) {
+        window.alert("该客户没有邮箱地址，无法发起邮件。");
+        return;
+      }
+
+      window.location.href = "mailto:" + email;
+
+      const shouldAutoFollowup = window.confirm("是否自动生成一条‘已发邮件’的跟进记录？");
+      if (!shouldAutoFollowup) return;
+      await insertAutoEmailFollowup();
+    }
+
+    async function handleProductSubmit(event) {
+      event.preventDefault();
+      submitProductBtn.disabled = true;
+      productFormStatusEl.className = "min-h-5 text-sm text-slate-400";
+      productFormStatusEl.textContent = "保存中...";
+
+      const priceNumber = Number.parseFloat(productPriceInput.value);
+      if (!productNameInput.value.trim() || !productSkuInput.value.trim() || !productImageUrlInput.value.trim() || !Number.isFinite(priceNumber)) {
+        productFormStatusEl.className = "min-h-5 text-sm text-amber-300";
+        productFormStatusEl.textContent = "请完整填写产品信息，价格必须是有效数字。";
+        submitProductBtn.disabled = false;
+        return;
+      }
+
+      const payload = {
+        name: productNameInput.value.trim(),
+        sku: productSkuInput.value.trim(),
+        price: priceNumber,
+        image_url: productImageUrlInput.value.trim(),
+      };
+
+      const { error } = await supabaseClient.from("products").insert([payload]);
+      if (error) {
+        productFormStatusEl.className = "min-h-5 text-sm text-rose-300";
+        productFormStatusEl.textContent = "保存失败：" + error.message;
+        submitProductBtn.disabled = false;
+        return;
+      }
+
+      closeProductModal();
+      await loadProducts();
+    }
+
+    navDashboard.addEventListener("click", (event) => {
+      event.preventDefault();
+      switchView("dashboard");
+    });
+    navPublicPool.addEventListener("click", (event) => {
+      event.preventDefault();
+      switchView("publicPool");
+    });
+    navClosedCustomers.addEventListener("click", (event) => {
+      event.preventDefault();
+      switchView("closedCustomers");
+    });
+    navSalesReport.addEventListener("click", (event) => {
+      event.preventDefault();
+      switchView("salesReport");
+    });
+    navProducts.addEventListener("click", (event) => {
+      event.preventDefault();
+      switchView("products");
+    });
+    navQuotations.addEventListener("click", (event) => {
+      event.preventDefault();
+      switchView("quotations");
+    });
+    navHolidays.addEventListener("click", (event) => {
+      event.preventDefault();
+      switchView("holidays");
+    });
+    clearCustomerCountryFilterBtn.addEventListener("click", () => {
+      setCustomerCountryFilter("");
+    });
+    customerSearchInput.addEventListener("input", () => {
+      currentSearchQuery = customerSearchInput.value || "";
+      renderRows(privateCustomersCache);
+    });
+    selectAllCustomersEl.addEventListener("change", () => {
+      const allVisible = Array.from(tableBodyEl.querySelectorAll(".customer-checkbox"));
+      if (!allVisible.length) return;
+      if (selectAllCustomersEl.checked) {
+        const visibleEmails = allVisible.map((el) => (el.value || "").trim()).filter(Boolean);
+        selectedCustomerEmails = Array.from(new Set(selectedCustomerEmails.concat(visibleEmails)));
+        allVisible.forEach((el) => {
+          el.checked = true;
+        });
+      } else {
+        const visibleSet = new Set(allVisible.map((el) => (el.value || "").trim()).filter(Boolean));
+        selectedCustomerEmails = selectedCustomerEmails.filter((email) => !visibleSet.has(email));
+        allVisible.forEach((el) => {
+          el.checked = false;
+        });
+      }
+      syncBulkEmailCheckboxesAcrossViews();
+      updateBulkEmailSelectionUI();
+    });
+
+    selectAllPublicCustomersEl.addEventListener("change", () => {
+      const allVisible = Array.from(publicCustomersTableBodyEl.querySelectorAll(".customer-checkbox"));
+      if (!allVisible.length) return;
+      if (selectAllPublicCustomersEl.checked) {
+        const visibleEmails = allVisible.map((el) => (el.value || "").trim()).filter(Boolean);
+        selectedCustomerEmails = Array.from(new Set(selectedCustomerEmails.concat(visibleEmails)));
+        allVisible.forEach((el) => {
+          el.checked = true;
+        });
+      } else {
+        const visibleSet = new Set(allVisible.map((el) => (el.value || "").trim()).filter(Boolean));
+        selectedCustomerEmails = selectedCustomerEmails.filter((email) => !visibleSet.has(email));
+        allVisible.forEach((el) => {
+          el.checked = false;
+        });
+      }
+      syncBulkEmailCheckboxesAcrossViews();
+      updateBulkEmailSelectionUI();
+    });
+
+    copyCustomerEmailBtn.addEventListener("click", () => {
+      copyFieldTextWithFeedback(followupCustomerEmailEl.textContent, copyCustomerEmailBtn);
+    });
+    copyCustomerPhoneBtn.addEventListener("click", () => {
+      copyFieldTextWithFeedback(followupCustomerPhoneEl.textContent, copyCustomerPhoneBtn);
+    });
+    copyCustomerSocialBtn.addEventListener("click", () => {
+      copyFieldTextWithFeedback(followupCustomerSocialEl.textContent, copyCustomerSocialBtn);
+    });
+    openModalBtn.addEventListener("click", openCustomerModal);
+    openBulkEmailBtn.addEventListener("click", handleDirectBulkEmail);
+    openPublicBulkEmailBtn.addEventListener("click", handleDirectBulkEmail);
+    closeModalBtn.addEventListener("click", closeCustomerModal);
+    cancelBtn.addEventListener("click", closeCustomerModal);
+    modalOverlayEl.addEventListener("click", closeCustomerModal);
+    customerForm.addEventListener("submit", handleCustomerSubmit);
+    closeFollowupDrawerBtn.addEventListener("click", closeFollowupDrawer);
+    followupDrawerOverlay.addEventListener("click", closeFollowupDrawer);
+    followupForm.addEventListener("submit", handleFollowupSubmit);
+    sendEmailBtn.addEventListener("click", handleSendEmail);
+    openProductModalBtn.addEventListener("click", openProductModal);
+    closeProductModalBtn.addEventListener("click", closeProductModal);
+    cancelProductBtn.addEventListener("click", closeProductModal);
+    productModalOverlayEl.addEventListener("click", closeProductModal);
+    productForm.addEventListener("submit", handleProductSubmit);
+    quoteCustomerSelect.addEventListener("change", () => {
+      selectedQuotationCustomerId = quoteCustomerSelect.value;
+      renderQuotationPreview();
+    });
+    addQuoteItemBtn.addEventListener("click", addQuotationItem);
+    confirmOrderBtn.addEventListener("click", handleConfirmOrder);
+    exportPdfBtn.addEventListener("click", exportQuotationPdf);
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !modalEl.classList.contains("hidden")) {
+        closeCustomerModal();
+      }
+      if (event.key === "Escape" && !followupDrawer.classList.contains("translate-x-[110%]")) {
+        closeFollowupDrawer();
+      }
+      if (event.key === "Escape" && !productModalEl.classList.contains("hidden")) {
+        closeProductModal();
+      }
+      if (event.key === "Escape" && salesRecordModalEl && !salesRecordModalEl.classList.contains("hidden")) {
+        closeSalesRecordModal();
+      }
+    });
+
+    initSalesReportYearSelect();
+    salesReportYearSelect.addEventListener("change", () => {
+      const y = Number.parseInt(salesReportYearSelect.value, 10);
+      if (currentView === "salesReport") {
+        loadSalesReport(Number.isFinite(y) ? y : 2026);
+      }
+    });
+    exportSalesReportCsvBtn.addEventListener("click", exportSalesReportToCSV);
+    openSalesRecordModalBtn.addEventListener("click", openSalesRecordModal);
+    closeSalesRecordModalBtn.addEventListener("click", closeSalesRecordModal);
+    cancelSalesRecordBtn.addEventListener("click", closeSalesRecordModal);
+    salesRecordModalOverlayEl.addEventListener("click", closeSalesRecordModal);
+    salesRecordForm.addEventListener("submit", handleSalesSubmit);
+    ["sales-qty", "sales-unit-price", "sales-shipping-usd"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener("input", updateSalesComputedPreview);
+        el.addEventListener("change", updateSalesComputedPreview);
+      }
+    });
+
+    loadCustomers();
+    loadPublicCustomers();
+    loadClosedCustomers();
+    loadDashboardMetrics();
+    initCountryDatalist();
+    updateQuotationDocumentMeta();
+    renderQuotationItemsBuilderTable();
+    setNavActive("dashboard");
+  </script>
+</body>
+</html>
