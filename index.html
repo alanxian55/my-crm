@@ -849,8 +849,17 @@
           </div>
         </div>
 
-        <div class="mt-4">
+        <div class="mt-4 flex flex-wrap items-center gap-2">
           <button id="send-email-btn" type="button" class="rounded-xl border border-indigo-400/50 bg-indigo-500/20 px-4 py-3 text-sm font-medium text-indigo-200 shadow-glow transition hover:bg-indigo-500/30 hover:text-white sm:py-2">发送邮件</button>
+          <button
+            id="whatsapp-followup-btn"
+            type="button"
+            class="inline-flex items-center gap-1.5 rounded-xl border border-emerald-600/40 bg-emerald-500 px-4 py-3 text-sm font-medium text-white shadow-glow transition hover:bg-emerald-600 sm:py-2"
+            title="WhatsApp"
+          >
+            <span aria-hidden="true">💬</span>
+            <span>WhatsApp</span>
+          </button>
         </div>
 
       </section>
@@ -1006,6 +1015,7 @@
     const followupFormStatusEl = document.getElementById("followup-form-status");
     const saveFollowupBtn = document.getElementById("save-followup-btn");
     const sendEmailBtn = document.getElementById("send-email-btn");
+    const whatsappFollowupBtn = document.getElementById("whatsapp-followup-btn");
     const navDashboard = document.getElementById("nav-dashboard");
     const navPublicPool = document.getElementById("nav-public-pool");
     const navClosedCustomers = document.getElementById("nav-closed-customers");
@@ -1896,6 +1906,36 @@
       return await supabaseClient.from("customers").update({ last_follow_up: new Date().toISOString() }).eq("id", id);
     }
 
+    /** Strip +、空格等，仅保留数字，用于 wa.me 国际号码。 */
+    function normalizeWhatsAppPhoneDigits(phone) {
+      if (phone == null || phone === undefined) return "";
+      const s = String(phone).trim();
+      if (!s) return "";
+      return s.replace(/\D/g, "");
+    }
+
+    /**
+     * 打开 WhatsApp 对话；成功打开时返回 true。无有效号码时提示并返回 false。
+     */
+    function jumpToWhatsApp(phone) {
+      const digits = normalizeWhatsAppPhoneDigits(phone);
+      if (!digits) {
+        showToast("该客户未录入手机号", "error");
+        return false;
+      }
+      window.open("https://wa.me/" + encodeURIComponent(digits), "_blank", "noopener,noreferrer");
+      return true;
+    }
+
+    /** 发起 WhatsApp/邮件等轻量触达后刷新各列表并保持当前视图（如成交老客户）。 */
+    async function touchFollowUpAfterChannelClick(customer) {
+      const cid = Number.parseInt(String(customer.id), 10);
+      if (!Number.isInteger(cid) || cid <= 0) return;
+      await touchCustomerLastFollowUp(cid);
+      await Promise.all([loadCustomers(), loadPublicCustomers(), loadClosedCustomers()]);
+      pinClosedCustomersViewVisible();
+    }
+
     function renderHolidayIntelLoading(holidayEvent) {
       const p = holidayEvent.extendedProps || {};
       const country = p.country || p.countryCode || "该国";
@@ -2705,6 +2745,37 @@
         });
         actionWrap.appendChild(detailBtn);
 
+        const mailBtn = document.createElement("button");
+        mailBtn.type = "button";
+        mailBtn.className =
+          CRM_ROW_ACTION_BTN +
+          " border border-sky-400/40 bg-sky-500/15 text-sky-200 hover:bg-sky-500/30 hover:text-white";
+        mailBtn.textContent = "发送邮件";
+        mailBtn.addEventListener("click", async () => {
+          const email = (customer.email || "").trim();
+          if (!email) {
+            showToast("该客户没有邮箱地址。", "error");
+            return;
+          }
+          window.location.href = "mailto:" + email;
+          await touchFollowUpAfterChannelClick(customer);
+        });
+        actionWrap.appendChild(mailBtn);
+
+        const waBtn = document.createElement("button");
+        waBtn.type = "button";
+        waBtn.className =
+          CRM_ROW_ACTION_BTN +
+          " border border-emerald-600/40 bg-emerald-500 text-white hover:bg-emerald-600 shadow-sm";
+        waBtn.title = "WhatsApp";
+        waBtn.setAttribute("aria-label", "WhatsApp");
+        waBtn.innerHTML = '<span aria-hidden="true">💬</span>';
+        waBtn.addEventListener("click", async () => {
+          if (!jumpToWhatsApp(customer.phone)) return;
+          await touchFollowUpAfterChannelClick(customer);
+        });
+        actionWrap.appendChild(waBtn);
+
         const editBtn = document.createElement("button");
         editBtn.type = "button";
         editBtn.className =
@@ -2830,6 +2901,9 @@
 
         const actionCell = document.createElement("td");
         actionCell.className = "whitespace-nowrap px-2 py-2 sm:px-4 sm:py-3";
+        const actionWrap = document.createElement("div");
+        actionWrap.className = "flex flex-nowrap items-center gap-0.5";
+
         const claimBtn = document.createElement("button");
         claimBtn.type = "button";
         claimBtn.className =
@@ -2839,7 +2913,23 @@
         claimBtn.addEventListener("click", async () => {
           await setCustomerPublicState(customer.id, false);
         });
-        actionCell.appendChild(claimBtn);
+        actionWrap.appendChild(claimBtn);
+
+        const waBtn = document.createElement("button");
+        waBtn.type = "button";
+        waBtn.className =
+          CRM_ROW_ACTION_BTN +
+          " border border-emerald-600/40 bg-emerald-500 text-white hover:bg-emerald-600 shadow-sm";
+        waBtn.title = "WhatsApp";
+        waBtn.setAttribute("aria-label", "WhatsApp");
+        waBtn.innerHTML = '<span aria-hidden="true">💬</span>';
+        waBtn.addEventListener("click", async () => {
+          if (!jumpToWhatsApp(customer.phone)) return;
+          await touchFollowUpAfterChannelClick(customer);
+        });
+        actionWrap.appendChild(waBtn);
+
+        actionCell.appendChild(actionWrap);
 
         row.appendChild(checkboxCell);
         row.appendChild(companyCell);
@@ -2955,13 +3045,23 @@
             return;
           }
           window.location.href = "mailto:" + email;
-          const cid = Number.parseInt(customer.id, 10);
-          if (Number.isInteger(cid)) {
-            await touchCustomerLastFollowUp(cid);
-            await loadClosedCustomers();
-          }
+          await touchFollowUpAfterChannelClick(customer);
         });
         actionWrap.appendChild(mailBtn);
+
+        const waBtn = document.createElement("button");
+        waBtn.type = "button";
+        waBtn.className =
+          CRM_ROW_ACTION_BTN +
+          " border border-emerald-600/40 bg-emerald-500 text-white hover:bg-emerald-600 shadow-sm";
+        waBtn.title = "WhatsApp";
+        waBtn.setAttribute("aria-label", "WhatsApp");
+        waBtn.innerHTML = '<span aria-hidden="true">💬</span>';
+        waBtn.addEventListener("click", async () => {
+          if (!jumpToWhatsApp(customer.phone)) return;
+          await touchFollowUpAfterChannelClick(customer);
+        });
+        actionWrap.appendChild(waBtn);
 
         const editBtn = document.createElement("button");
         editBtn.type = "button";
@@ -4071,6 +4171,15 @@
       await Promise.all([loadCustomers(), loadClosedCustomers()]);
     }
 
+    async function handleWhatsAppFromDrawer() {
+      if (!selectedCustomer) {
+        showToast("请先在客户列表中选择一个客户。", "error");
+        return;
+      }
+      if (!jumpToWhatsApp(selectedCustomer.phone)) return;
+      await touchFollowUpAfterChannelClick(selectedCustomer);
+    }
+
     async function handleSendEmail() {
       if (!selectedCustomer) {
         showToast("请先在客户列表中选择一个客户。", "error");
@@ -4227,6 +4336,9 @@
     followupDrawerOverlay.addEventListener("click", closeFollowupDrawer);
     followupForm.addEventListener("submit", handleFollowupSubmit);
     sendEmailBtn.addEventListener("click", handleSendEmail);
+    if (whatsappFollowupBtn) {
+      whatsappFollowupBtn.addEventListener("click", handleWhatsAppFromDrawer);
+    }
     openProductModalBtn.addEventListener("click", openProductModal);
     closeProductModalBtn.addEventListener("click", closeProductModal);
     cancelProductBtn.addEventListener("click", closeProductModal);
