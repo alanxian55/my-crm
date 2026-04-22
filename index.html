@@ -1595,7 +1595,7 @@
       }
     }
 
-    /** 从老客户列表执行编辑/退回/删除后，保持停留在成交老客户视图（不切换回工作台）。 */
+    /** 从老客户列表执行编辑/移出等操作后，保持停留在成交老客户视图（不切换回工作台）。 */
     function pinClosedCustomersViewVisible() {
       if (currentView !== "closedCustomers") return;
       dashboardView.classList.add("hidden");
@@ -2979,22 +2979,11 @@
         toPublicBtn.className =
           CRM_ROW_ACTION_BTN +
           " border border-amber-400/40 bg-amber-500/15 text-amber-200 hover:bg-amber-500/30 hover:text-white";
-        toPublicBtn.textContent = "退回公海";
-        toPublicBtn.addEventListener("click", async () => {
-          await setCustomerPublicState(customer.id, true);
+        toPublicBtn.textContent = "移出";
+        toPublicBtn.addEventListener("click", () => {
+          releaseClosedCustomerToPublicSea(customer);
         });
         actionWrap.appendChild(toPublicBtn);
-
-        const deleteClosedBtn = document.createElement("button");
-        deleteClosedBtn.type = "button";
-        deleteClosedBtn.className =
-          CRM_ROW_ACTION_BTN +
-          " border border-rose-400/40 bg-rose-500/15 text-rose-200 hover:bg-rose-500/30 hover:text-white";
-        deleteClosedBtn.textContent = "删除";
-        deleteClosedBtn.addEventListener("click", async () => {
-          await deleteCustomer(customer.id, customer.company_name || "未命名客户");
-        });
-        actionWrap.appendChild(deleteClosedBtn);
 
         actionCell.appendChild(actionWrap);
 
@@ -3737,6 +3726,34 @@
         if (y === 2026) opt.selected = true;
         salesReportYearSelect.appendChild(opt);
       }
+    }
+
+    /** 成交老客户列表「移出」：确认后将客户移入公海，状态恢复为「新线索」，并取消成交标记以从老客户列表移除。 */
+    async function releaseClosedCustomerToPublicSea(customer) {
+      const name = customer.company_name || customer.contact_name || "该客户";
+      const confirmed = await showConfirm(
+        "移出至公海",
+        "确定将「" + name + "」移入公海吗？该客户的跟进状态将恢复为「新线索」，不再出现在成交老客户列表中。",
+      );
+      if (!confirmed) return;
+
+      const { error } = await supabaseClient
+        .from("customers")
+        .update({
+          status: "新线索",
+          is_public: true,
+          is_closed: false,
+        })
+        .eq("id", customer.id);
+
+      if (error) {
+        showToast("移出失败：" + error.message, "error");
+        return;
+      }
+
+      showToast("已移出至公海", "success");
+      await Promise.all([loadCustomers(), loadPublicCustomers(), loadClosedCustomers()]);
+      pinClosedCustomersViewVisible();
     }
 
     async function setCustomerPublicState(customerId, isPublic) {
