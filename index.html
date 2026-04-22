@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Supabase：请在 SQL 中执行（若尚未建列）——
+       alter table customers add column if not exists status text default '新线索';
+       alter table customers add column if not exists last_follow_up timestamptz; -->
   <title>外贸 CRM 工作台</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -173,27 +176,27 @@
           <span class="h-2.5 w-2.5 rounded-full bg-indigo-300"></span>
           <span class="font-medium">工作台</span>
         </a>
-        <a id="nav-public-pool" href="#" class="flex items-center gap-3 rounded-xl px-4 py-3 text-slate-300 hover:bg-slate-800/70 hover:text-white transition">
+        <a id="nav-public-pool" href="#" class="flex items-center gap-3 rounded-xl px-4 py-3 text-slate-100/90 hover:bg-slate-800/70 hover:text-white transition">
           <span class="h-2.5 w-2.5 rounded-full bg-cyan-300"></span>
           <span class="font-medium">客户公海</span>
         </a>
-        <a id="nav-closed-customers" href="#" class="flex items-center gap-3 rounded-xl px-4 py-3 text-slate-300 hover:bg-slate-800/70 hover:text-white transition">
+        <a id="nav-closed-customers" href="#" class="flex items-center gap-3 rounded-xl px-4 py-3 text-slate-100/90 hover:bg-slate-800/70 hover:text-white transition">
           <span class="h-2.5 w-2.5 rounded-full bg-rose-300"></span>
           <span class="font-medium">成交老客户</span>
         </a>
-        <a id="nav-sales-report" href="#" class="flex items-center gap-3 rounded-xl px-4 py-3 text-slate-300 hover:bg-slate-800/70 hover:text-white transition">
+        <a id="nav-sales-report" href="#" class="flex items-center gap-3 rounded-xl px-4 py-3 text-slate-100/90 hover:bg-slate-800/70 hover:text-white transition">
           <span class="h-2.5 w-2.5 rounded-full bg-pink-300"></span>
           <span class="font-medium">销售报表</span>
         </a>
-        <a id="nav-quotations" href="#" class="flex items-center gap-3 rounded-xl px-4 py-3 text-slate-300 hover:bg-slate-800/70 hover:text-white transition">
+        <a id="nav-quotations" href="#" class="flex items-center gap-3 rounded-xl px-4 py-3 text-slate-100/90 hover:bg-slate-800/70 hover:text-white transition">
           <span class="h-2.5 w-2.5 rounded-full bg-amber-300"></span>
           <span class="font-medium">报价单</span>
         </a>
-        <a id="nav-products" href="#" class="flex items-center gap-3 rounded-xl px-4 py-3 text-slate-300 hover:bg-slate-800/70 hover:text-white transition">
+        <a id="nav-products" href="#" class="flex items-center gap-3 rounded-xl px-4 py-3 text-slate-100/90 hover:bg-slate-800/70 hover:text-white transition">
           <span class="h-2.5 w-2.5 rounded-full bg-violet-300"></span>
           <span class="font-medium">产品管理</span>
         </a>
-        <a id="nav-holidays" href="#" class="flex items-center gap-3 rounded-xl px-4 py-3 text-slate-300 hover:bg-slate-800/70 hover:text-white transition">
+        <a id="nav-holidays" href="#" class="flex items-center gap-3 rounded-xl px-4 py-3 text-slate-100/90 hover:bg-slate-800/70 hover:text-white transition">
           <span class="h-2.5 w-2.5 rounded-full bg-sky-300"></span>
           <span class="font-medium">全球节日</span>
         </a>
@@ -209,7 +212,7 @@
         </button>
       </div>
 
-      <div class="mt-auto rounded-2xl border border-slate-800 bg-slate-800/40 p-4">
+      <div class="mt-auto rounded-2xl border border-slate-800 bg-slate-800/40 p-4 transition-all hover:border-blue-500/50">
         <p class="text-sm text-slate-300">今日线索跟进率</p>
         <div class="mt-3 h-2 rounded-full bg-slate-700 overflow-hidden">
           <div class="h-full w-3/4 rounded-full bg-gradient-to-r from-indigo-400 via-cyan-400 to-emerald-400"></div>
@@ -218,7 +221,7 @@
       </div>
     </aside>
 
-    <main class="flex-1 min-w-0 p-8 lg:p-10 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+    <main class="flex-1 min-w-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-4 sm:p-8 lg:p-10">
       <div id="dashboard-view">
       <header class="mb-8">
         <p class="text-sm text-slate-400">欢迎回来，销售总监</p>
@@ -228,21 +231,21 @@
       </header>
 
       <section class="grid gap-6 md:grid-cols-3">
-        <article class="relative overflow-hidden rounded-2xl border border-indigo-400/30 bg-slate-900/60 p-6 shadow-glow backdrop-blur">
+        <article class="relative overflow-hidden rounded-2xl border border-indigo-400/30 bg-slate-900/60 p-6 shadow-glow backdrop-blur transition-all hover:border-blue-500/50">
           <div class="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-indigo-500/20 blur-2xl"></div>
           <p class="text-sm text-slate-300">本月新增线索</p>
           <p id="kpi-customers-total" class="mt-4 text-4xl font-bold text-white">--</p>
           <p class="mt-3 text-sm text-emerald-300">+18.4% 较上月增长</p>
         </article>
 
-        <article class="relative overflow-hidden rounded-2xl border border-cyan-400/30 bg-slate-900/60 p-6 shadow-glow backdrop-blur">
+        <article class="relative overflow-hidden rounded-2xl border border-cyan-400/30 bg-slate-900/60 p-6 shadow-glow backdrop-blur transition-all hover:border-blue-500/50">
           <div class="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-cyan-500/20 blur-2xl"></div>
           <p class="text-sm text-slate-300">发件数量</p>
           <p id="kpi-email-followups-total" class="mt-4 text-4xl font-bold text-white">--</p>
           <p class="mt-3 text-sm text-cyan-300">平均回复率 27.6%</p>
         </article>
 
-        <article class="relative overflow-hidden rounded-2xl border border-emerald-400/30 bg-slate-900/60 p-6 shadow-glow backdrop-blur">
+        <article class="relative overflow-hidden rounded-2xl border border-emerald-400/30 bg-slate-900/60 p-6 shadow-glow backdrop-blur transition-all hover:border-blue-500/50">
           <div class="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-emerald-500/20 blur-2xl"></div>
           <p class="text-sm text-slate-300">成单金额</p>
           <p id="kpi-orders-total-amount" class="mt-4 text-4xl font-bold text-white">$0.00</p>
@@ -251,7 +254,7 @@
       </section>
 
       <section class="mt-8 grid gap-6 lg:grid-cols-5">
-        <div class="lg:col-span-3 rounded-2xl border border-slate-800 bg-slate-900/50 p-6">
+        <div class="lg:col-span-3 rounded-2xl border border-slate-800 bg-slate-900/50 p-6 transition-all hover:border-blue-500/50">
           <h3 class="text-lg font-semibold text-white">每月成交趋势</h3>
           <div class="mt-4 relative h-64 w-full">
             <canvas id="revenue-chart"></canvas>
@@ -259,7 +262,7 @@
         </div>
 
         <div class="lg:col-span-2 flex flex-col gap-6">
-          <div class="rounded-2xl border border-slate-800 bg-slate-900/50 p-6">
+          <div class="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 transition-all hover:border-blue-500/50">
             <h3 class="text-lg font-semibold text-white">今日待办跟进</h3>
             <ul id="today-followups-list" class="mt-4 space-y-3 text-sm">
               <li class="rounded-lg bg-slate-800/70 px-3 py-2 text-slate-400">正在加载待办...</li>
@@ -268,13 +271,13 @@
         </div>
       </section>
 
-      <section class="mt-8 rounded-2xl border border-slate-800 bg-slate-900/50 p-6">
-        <div class="flex items-center justify-between gap-4">
+      <section class="mt-8 rounded-2xl border border-slate-800 bg-slate-900/50 p-6 transition-all hover:border-blue-500/50">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <h3 class="text-lg font-semibold text-white">客户列表</h3>
-          <div class="flex items-center gap-3">
-            <div class="relative">
+          <div class="flex flex-wrap items-center gap-3">
+            <div class="relative min-w-0 flex-1 sm:max-w-xs">
               <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">🔍</span>
-              <input id="customer-search-input" type="text" class="w-64 rounded-xl border border-slate-700 bg-slate-800/80 py-2 pl-9 pr-3 text-sm text-slate-100 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/30" placeholder="搜索公司/邮箱/联系人/国家" />
+              <input id="customer-search-input" type="text" class="w-full rounded-xl border border-slate-700 bg-slate-800/80 py-2.5 pl-9 pr-3 text-sm text-slate-100 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/30 sm:py-2" placeholder="搜索公司/邮箱/联系人/国家/状态" />
             </div>
             <p id="customers-status" class="text-sm text-slate-400">加载中...</p>
             <p id="customer-country-filter-label" class="hidden rounded-lg border border-sky-400/40 bg-sky-500/15 px-2 py-1 text-xs text-sky-200"></p>
@@ -282,33 +285,37 @@
             <button
               id="open-bulk-email-btn"
               type="button"
-              class="hidden rounded-xl border border-sky-400/50 bg-sky-500/20 px-4 py-2 text-sm font-medium text-sky-200 shadow-glow transition hover:bg-sky-500/30 hover:text-white"
+              class="hidden rounded-xl border border-sky-400/50 bg-sky-500/20 px-4 py-3 text-sm font-medium text-sky-200 shadow-glow transition hover:bg-sky-500/30 hover:text-white sm:py-2"
             >
               群发邮件 (<span id="selected-count">0</span>)
             </button>
             <button
               id="open-customer-modal-btn"
               type="button"
-              class="rounded-xl border border-indigo-400/50 bg-indigo-500/20 px-4 py-2 text-sm font-medium text-indigo-200 shadow-glow transition hover:bg-indigo-500/30 hover:text-white"
+              class="rounded-xl border border-indigo-400/50 bg-indigo-500/20 px-4 py-3 text-sm font-medium text-indigo-200 shadow-glow transition hover:bg-indigo-500/30 hover:text-white sm:py-2"
             >
               + 新增客户
             </button>
           </div>
         </div>
-        <div class="mt-4 overflow-x-auto">
-          <table class="min-w-full text-sm">
+        <div class="mt-4 -mx-1 overflow-x-auto sm:mx-0">
+          <table class="min-w-[720px] w-full text-sm">
             <thead class="bg-slate-800/70 text-slate-200">
               <tr>
-                <th class="px-4 py-3 text-left font-medium"><input type="checkbox" id="select-all-customers" /></th>
-                <th class="px-4 py-3 text-left font-medium">客户名</th>
-                <th class="px-4 py-3 text-left font-medium">邮箱</th>
-                <th class="px-4 py-3 text-left font-medium">国家</th>
-                <th class="px-4 py-3 text-left font-medium">操作</th>
+                <th class="sticky left-0 z-10 bg-slate-800/95 px-3 py-3 text-left font-medium backdrop-blur sm:px-4">
+                  <input type="checkbox" id="select-all-customers" class="h-4 w-4" />
+                </th>
+                <th class="min-w-[7rem] px-3 py-3 text-left font-medium sm:px-4">客户名</th>
+                <th class="min-w-[6.5rem] px-3 py-3 text-left font-medium sm:px-4">状态</th>
+                <th class="hidden min-w-[7rem] px-3 py-3 text-left font-medium sm:table-cell sm:px-4">最后跟进</th>
+                <th class="hidden min-w-[10rem] px-3 py-3 text-left font-medium md:table-cell md:px-4">邮箱</th>
+                <th class="hidden min-w-[5rem] px-3 py-3 text-left font-medium lg:table-cell lg:px-4">国家</th>
+                <th class="min-w-[11rem] px-3 py-3 text-left font-medium sm:min-w-[13rem] sm:px-4">操作</th>
               </tr>
             </thead>
             <tbody id="customers-table-body" class="divide-y divide-slate-800 text-slate-300">
               <tr>
-                <td colspan="5" class="px-4 py-4 text-center text-slate-400">正在获取客户数据...</td>
+                <td colspan="7" class="px-4 py-4 text-center text-slate-400">正在获取客户数据...</td>
               </tr>
             </tbody>
           </table>
@@ -321,7 +328,7 @@
           <p class="text-sm text-slate-400">Public Leads Pool</p>
           <h2 class="mt-2 text-3xl lg:text-4xl font-bold tracking-tight">客户公海</h2>
         </header>
-        <section class="rounded-2xl border border-slate-800 bg-slate-900/50 p-6">
+        <section class="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 transition-all hover:border-blue-500/50">
           <div class="flex flex-wrap items-center justify-between gap-4">
             <h3 class="text-lg font-semibold text-white">公海客户列表</h3>
             <div class="flex items-center gap-3">
@@ -335,20 +342,21 @@
               </button>
             </div>
           </div>
-          <div class="mt-4 overflow-x-auto">
-            <table class="min-w-full text-sm">
+          <div class="mt-4 -mx-1 overflow-x-auto sm:mx-0">
+            <table class="min-w-[640px] w-full text-sm">
               <thead class="bg-slate-800/70 text-slate-200">
                 <tr>
-                  <th class="px-4 py-3 text-left font-medium"><input type="checkbox" id="select-all-public-customers" title="全选当前列表" /></th>
-                  <th class="px-4 py-3 text-left font-medium">客户名</th>
-                  <th class="px-4 py-3 text-left font-medium">邮箱</th>
-                  <th class="px-4 py-3 text-left font-medium">国家</th>
-                  <th class="px-4 py-3 text-left font-medium">操作</th>
+                  <th class="px-3 py-3 text-left font-medium sm:px-4"><input type="checkbox" id="select-all-public-customers" title="全选当前列表" class="h-4 w-4" /></th>
+                  <th class="min-w-[7rem] px-3 py-3 text-left font-medium sm:px-4">客户名</th>
+                  <th class="min-w-[6.5rem] px-3 py-3 text-left font-medium sm:px-4">状态</th>
+                  <th class="hidden min-w-[10rem] px-3 py-3 text-left font-medium md:table-cell md:px-4">邮箱</th>
+                  <th class="hidden min-w-[5rem] px-3 py-3 text-left font-medium lg:table-cell lg:px-4">国家</th>
+                  <th class="min-w-[6rem] px-3 py-3 text-left font-medium sm:px-4">操作</th>
                 </tr>
               </thead>
               <tbody id="public-customers-table-body" class="divide-y divide-slate-800 text-slate-300">
                 <tr>
-                  <td colspan="5" class="px-4 py-4 text-center text-slate-400">正在获取公海客户数据...</td>
+                  <td colspan="6" class="px-4 py-4 text-center text-slate-400">正在获取公海客户数据...</td>
                 </tr>
               </tbody>
             </table>
@@ -362,24 +370,26 @@
           <h2 class="mt-2 text-3xl lg:text-4xl font-bold tracking-tight text-white">成交老客户</h2>
           <p class="mt-2 max-w-2xl text-sm text-slate-400">已标记成交的客户集中维护：跟进记录、邮件联络与档案编辑。</p>
         </header>
-        <section class="rounded-2xl border border-rose-900/35 bg-slate-900/50 p-6 shadow-[0_0_0_1px_rgba(251,113,133,0.08)]">
+        <section class="rounded-2xl border border-rose-900/35 bg-slate-900/50 p-6 shadow-[0_0_0_1px_rgba(251,113,133,0.08)] transition-all hover:border-blue-500/50">
           <div class="flex items-center justify-between gap-4">
             <h3 class="text-lg font-semibold text-white">老客户列表</h3>
             <p id="closed-customers-status" class="text-sm text-slate-400">加载中...</p>
           </div>
-          <div class="mt-4 overflow-x-auto">
-            <table class="min-w-full text-sm">
+          <div class="mt-4 -mx-1 overflow-x-auto sm:mx-0">
+            <table class="min-w-[720px] w-full text-sm">
               <thead class="bg-slate-800/70 text-slate-200">
                 <tr>
-                  <th class="px-4 py-3 text-left font-medium">客户名</th>
-                  <th class="px-4 py-3 text-left font-medium">邮箱</th>
-                  <th class="px-4 py-3 text-left font-medium">国家</th>
-                  <th class="px-4 py-3 text-left font-medium">操作</th>
+                  <th class="min-w-[7rem] px-3 py-3 text-left font-medium sm:px-4">客户名</th>
+                  <th class="min-w-[6.5rem] px-3 py-3 text-left font-medium sm:px-4">状态</th>
+                  <th class="hidden min-w-[7rem] px-3 py-3 text-left font-medium sm:table-cell sm:px-4">最后跟进</th>
+                  <th class="hidden min-w-[10rem] px-3 py-3 text-left font-medium md:table-cell md:px-4">邮箱</th>
+                  <th class="hidden min-w-[5rem] px-3 py-3 text-left font-medium lg:table-cell lg:px-4">国家</th>
+                  <th class="min-w-[11rem] px-3 py-3 text-left font-medium sm:px-4">操作</th>
                 </tr>
               </thead>
               <tbody id="closed-customers-table-body" class="divide-y divide-slate-800 text-slate-300">
                 <tr>
-                  <td colspan="4" class="px-4 py-4 text-center text-slate-400">正在获取成交客户...</td>
+                  <td colspan="6" class="px-4 py-4 text-center text-slate-400">正在获取成交客户...</td>
                 </tr>
               </tbody>
             </table>
@@ -419,7 +429,7 @@
           </div>
         </header>
         <p id="sales-report-status" class="mb-3 min-h-5 text-sm text-slate-400"></p>
-        <div class="w-full overflow-x-auto rounded-xl border border-slate-700 bg-slate-900/50">
+        <div class="w-full overflow-x-auto rounded-xl border border-slate-700 bg-slate-900/50 transition-all hover:border-blue-500/50">
           <table class="w-full min-w-[1600px] border-collapse text-left text-sm leading-tight whitespace-nowrap">
             <thead class="sticky top-0 z-10 bg-slate-800 text-left text-slate-100 shadow-sm">
               <tr>
@@ -449,12 +459,12 @@
           <p class="text-sm text-slate-400">产品中心</p>
           <h2 class="mt-2 text-3xl lg:text-4xl font-bold tracking-tight">产品管理</h2>
         </header>
-        <section class="rounded-2xl border border-slate-800 bg-slate-900/50 p-6">
+        <section class="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 transition-all hover:border-blue-500/50">
           <div class="flex items-center justify-between gap-4">
             <h3 class="text-lg font-semibold text-white">产品列表</h3>
             <div class="flex items-center gap-3">
               <p id="products-status" class="text-sm text-slate-400">加载中...</p>
-              <button id="open-product-modal-btn" type="button" class="rounded-xl border border-violet-400/50 bg-violet-500/20 px-4 py-2 text-sm font-medium text-violet-200 shadow-glow transition hover:bg-violet-500/30 hover:text-white">
+              <button id="open-product-modal-btn" type="button" class="rounded-xl border border-violet-400/50 bg-violet-500/20 px-4 py-3 text-sm font-medium text-violet-200 shadow-glow transition hover:bg-violet-500/30 hover:text-white sm:py-2">
                 + 新增产品
               </button>
             </div>
@@ -495,7 +505,7 @@
           </div>
         </header>
 
-        <section class="rounded-2xl border border-slate-800 bg-slate-900/50 p-6">
+        <section class="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 transition-all hover:border-blue-500/50">
           <div class="grid gap-4 lg:grid-cols-2">
             <div>
               <label for="quote-customer-select" class="mb-1 block text-sm text-slate-300">下拉框 A：选择客户</label>
@@ -538,7 +548,7 @@
         </section>
 
         <section class="mt-8">
-          <div class="overflow-auto rounded-2xl border border-slate-800 bg-slate-900/50 p-6">
+          <div class="overflow-auto rounded-2xl border border-slate-800 bg-slate-900/50 p-6 transition-all hover:border-blue-500/50">
             <div id="quote-a4-preview" class="mx-auto w-[794px] min-h-[1123px] bg-white p-12 text-slate-800 shadow-2xl">
               <div class="border-b border-slate-300 pb-6">
                 <div class="flex items-start justify-between">
@@ -692,11 +702,21 @@
             <option value="其他">其他</option>
           </select>
         </div>
+        <div>
+          <label for="customer-status" class="mb-1 block text-sm text-slate-300">跟进状态</label>
+          <select id="customer-status" name="status" class="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-2 text-slate-100 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/30">
+            <option value="新线索">🆕 新线索</option>
+            <option value="谈判中">💬 谈判中</option>
+            <option value="已寄样">📦 已寄样</option>
+            <option value="已成单">✅ 已成单</option>
+            <option value="暂无意向">🛑 暂无意向</option>
+          </select>
+        </div>
 
         <p id="customer-form-status" class="min-h-5 text-sm text-slate-400"></p>
         <div class="flex justify-end gap-3 pt-1">
-          <button id="cancel-customer-btn" type="button" class="rounded-xl border border-slate-600 px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-800 hover:text-white">取消</button>
-          <button id="submit-customer-btn" type="submit" class="rounded-xl border border-emerald-400/50 bg-emerald-500/20 px-4 py-2 text-sm font-medium text-emerald-200 transition hover:bg-emerald-500/30 hover:text-white">提交客户</button>
+          <button id="cancel-customer-btn" type="button" class="rounded-xl border border-slate-600 px-4 py-3 text-sm text-slate-300 transition hover:bg-slate-800 hover:text-white sm:py-2">取消</button>
+          <button id="submit-customer-btn" type="submit" class="rounded-xl border border-emerald-400/50 bg-emerald-500/20 px-4 py-3 text-sm font-medium text-emerald-200 transition hover:bg-emerald-500/30 hover:text-white sm:py-2">提交客户</button>
         </div>
       </form>
     </div>
@@ -830,7 +850,7 @@
         </div>
 
         <div class="mt-4">
-          <button id="send-email-btn" type="button" class="rounded-xl border border-indigo-400/50 bg-indigo-500/20 px-4 py-2 text-sm font-medium text-indigo-200 shadow-glow transition hover:bg-indigo-500/30 hover:text-white">发送邮件</button>
+          <button id="send-email-btn" type="button" class="rounded-xl border border-indigo-400/50 bg-indigo-500/20 px-4 py-3 text-sm font-medium text-indigo-200 shadow-glow transition hover:bg-indigo-500/30 hover:text-white sm:py-2">发送邮件</button>
         </div>
 
       </section>
@@ -849,7 +869,7 @@
           </div>
           <div class="flex items-center justify-between gap-3">
             <p id="followup-form-status" class="min-h-5 text-sm text-slate-400"></p>
-            <button id="save-followup-btn" type="submit" class="rounded-xl border border-cyan-400/50 bg-cyan-500/20 px-4 py-2 text-sm font-medium text-cyan-200 transition hover:bg-cyan-500/30 hover:text-white">保存粘贴内容</button>
+            <button id="save-followup-btn" type="submit" class="rounded-xl border border-cyan-400/50 bg-cyan-500/20 px-4 py-3 text-sm font-medium text-cyan-200 transition hover:bg-cyan-500/30 hover:text-white sm:py-2">保存粘贴内容</button>
           </div>
         </form>
 
@@ -958,6 +978,7 @@
     const customerAddressInput = document.getElementById("customer-address");
     const customerSourceInput = document.getElementById("customer-source");
     const customerSocialMediaInput = document.getElementById("customer-social-media");
+    const customerStatusInput = document.getElementById("customer-status");
     const submitCustomerBtn = document.getElementById("submit-customer-btn");
     const customerFormStatus = document.getElementById("customer-form-status");
     const followupDrawerOverlay = document.getElementById("followup-drawer-overlay");
@@ -1800,6 +1821,68 @@
       }
     }
 
+    const CRM_ROW_ACTION_BTN =
+      "rounded-lg py-3 px-3 text-xs font-medium transition sm:py-1.5 sm:px-3";
+
+    function sortCustomersByLastFollowUp(rows) {
+      const list = Array.isArray(rows) ? [...rows] : [];
+      list.sort((a, b) => {
+        const ta = a.last_follow_up ? new Date(a.last_follow_up).getTime() : null;
+        const tb = b.last_follow_up ? new Date(b.last_follow_up).getTime() : null;
+        if (ta === null && tb === null) return 0;
+        if (ta === null) return 1;
+        if (tb === null) return -1;
+        return tb - ta;
+      });
+      return list;
+    }
+
+    function getStatusBadgeClass(status) {
+      const s = status || "新线索";
+      const map = {
+        新线索: "border-slate-500/45 bg-slate-500/20 text-slate-100",
+        谈判中: "border-sky-500/45 bg-sky-500/20 text-sky-100",
+        已寄样: "border-amber-500/45 bg-amber-500/20 text-amber-100",
+        已成单: "border-emerald-500/45 bg-emerald-500/25 text-emerald-100",
+        暂无意向: "border-rose-500/45 bg-rose-500/20 text-rose-100",
+      };
+      return map[s] || map["新线索"];
+    }
+
+    function getStatusBadgeLabel(status) {
+      const s = status || "新线索";
+      const labels = {
+        新线索: "🆕 新线索",
+        谈判中: "💬 谈判中",
+        已寄样: "📦 已寄样",
+        已成单: "✅ 已成单",
+        暂无意向: "🛑 暂无意向",
+      };
+      return labels[s] || s;
+    }
+
+    function createStatusBadge(status) {
+      const span = document.createElement("span");
+      span.className =
+        "inline-flex max-w-full items-center whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[11px] font-medium leading-tight " +
+        getStatusBadgeClass(status);
+      span.textContent = getStatusBadgeLabel(status);
+      return span;
+    }
+
+    function formatLastFollowUpShort(iso) {
+      if (!iso) return "—";
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return "—";
+      return d.toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+    }
+
+    async function touchCustomerLastFollowUp(customerId) {
+      const id = typeof customerId === "number" ? customerId : Number.parseInt(String(customerId), 10);
+      if (!Number.isInteger(id) || id <= 0) return { error: new Error("无效的客户 ID") };
+      return await supabaseClient.from("customers").update({ last_follow_up: new Date().toISOString() }).eq("id", id);
+    }
+
     function renderHolidayIntelLoading(holidayEvent) {
       const p = holidayEvent.extendedProps || {};
       const country = p.country || p.countryCode || "该国";
@@ -2020,7 +2103,8 @@
         const palette = item.extendedProps.palette || "#60a5fa";
 
         const card = document.createElement("div");
-        card.className = "rounded-xl border border-slate-700 bg-slate-900/70 p-3";
+        card.className =
+          "rounded-xl border border-slate-700 bg-slate-900/70 p-3 transition-all hover:border-blue-500/50";
         card.style.boxShadow = "inset 3px 0 0 " + palette;
 
         const top = document.createElement("p");
@@ -2416,6 +2500,7 @@
       customerModalDescEl.textContent = "填写客户基础信息后将自动写入 `customers` 表。";
       submitCustomerBtn.textContent = "提交客户";
       customerFormStatus.textContent = "";
+      if (customerStatusInput) customerStatusInput.value = "新线索";
       modalOverlayEl.classList.remove("hidden");
       modalEl.classList.remove("hidden");
       modalEl.classList.add("flex");
@@ -2439,6 +2524,10 @@
       customerSourceInput.value = customer.source || "";
       ensureSelectHasValue(customerSocialMediaInput, customer.social_media || "");
       customerSocialMediaInput.value = customer.social_media || "";
+      if (customerStatusInput) {
+        ensureSelectHasValue(customerStatusInput, customer.status || "新线索");
+        customerStatusInput.value = customer.status || "新线索";
+      }
 
       modalOverlayEl.classList.remove("hidden");
       modalEl.classList.remove("hidden");
@@ -2504,7 +2593,7 @@
       const visibleCustomers = (customers || []).filter((customer) => {
         const matchCountry = customerCountryFilter ? countryMatches(customer.country, customerCountryFilter) : true;
         const matchSearch = normalizedQuery
-          ? [customer.company_name, customer.email, customer.contact_name, customer.country]
+          ? [customer.company_name, customer.email, customer.contact_name, customer.country, customer.status]
               .some((field) => (field || "").toLowerCase().includes(normalizedQuery))
           : true;
         return matchCountry && matchSearch;
@@ -2512,7 +2601,7 @@
 
       if (!visibleCustomers.length) {
         const emptyRow = document.createElement("tr");
-        emptyRow.innerHTML = '<td colspan="5" class="px-4 py-4 text-center text-slate-400">暂无客户数据</td>';
+        emptyRow.innerHTML = '<td colspan="7" class="px-4 py-4 text-center text-slate-400">暂无客户数据</td>';
         tableBodyEl.appendChild(emptyRow);
         syncBulkEmailCheckboxesAcrossViews();
         return;
@@ -2523,10 +2612,12 @@
         row.className = "hover:bg-slate-800/40 transition";
 
         const checkboxCell = document.createElement("td");
-        checkboxCell.className = "px-4 py-3";
+        checkboxCell.className =
+          "sticky left-0 z-[1] bg-slate-950/95 px-3 py-3 align-middle backdrop-blur sm:px-4";
         const selector = document.createElement("input");
         selector.type = "checkbox";
-        selector.className = "customer-checkbox cursor-pointer rounded border-slate-700 bg-slate-800 accent-sky-500";
+        selector.className =
+          "customer-checkbox h-4 w-4 cursor-pointer rounded border-slate-700 bg-slate-800 accent-sky-500";
         const customerEmail = (customer.email || "").trim();
         selector.value = customerEmail;
         selector.checked = selectedCustomerEmails.includes(customerEmail);
@@ -2544,7 +2635,7 @@
         checkboxCell.appendChild(selector);
 
         const companyCell = document.createElement("td");
-        companyCell.className = "px-4 py-3";
+        companyCell.className = "px-3 py-3 sm:px-4";
         const companyWrap = document.createElement("div");
         companyWrap.className = "flex items-center gap-2";
         const companyName = document.createElement("span");
@@ -2559,12 +2650,22 @@
         }
         companyCell.appendChild(companyWrap);
 
+        const statusCell = document.createElement("td");
+        statusCell.className = "px-3 py-3 align-middle sm:px-4";
+        statusCell.appendChild(createStatusBadge(customer.status));
+
+        const lastFollowCell = document.createElement("td");
+        lastFollowCell.className =
+          "hidden whitespace-nowrap px-3 py-3 text-xs text-slate-400 align-middle tabular-nums sm:table-cell sm:px-4";
+        lastFollowCell.textContent = formatLastFollowUpShort(customer.last_follow_up);
+
         const emailCell = document.createElement("td");
-        emailCell.className = "px-4 py-3";
+        emailCell.className = "hidden px-3 py-3 align-middle md:table-cell md:px-4";
         if (customer.email) {
           const emailLink = document.createElement("a");
           emailLink.href = "mailto:" + customer.email;
-          emailLink.className = "text-sky-400 underline decoration-sky-500/40 underline-offset-2 transition hover:text-sky-300";
+          emailLink.className =
+            "text-sky-400 underline decoration-sky-500/40 underline-offset-2 transition hover:text-sky-300";
           emailLink.textContent = customer.email;
           emailCell.appendChild(emailLink);
         } else {
@@ -2572,17 +2673,19 @@
         }
 
         const countryCell = document.createElement("td");
-        countryCell.className = "px-4 py-3";
+        countryCell.className = "hidden px-3 py-3 align-middle lg:table-cell lg:px-4";
         countryCell.textContent = customer.country || "-";
 
         const actionCell = document.createElement("td");
-        actionCell.className = "px-4 py-3";
+        actionCell.className = "px-3 py-3 align-middle sm:px-4";
         const actionWrap = document.createElement("div");
-        actionWrap.className = "flex items-center gap-2";
+        actionWrap.className = "flex flex-wrap items-center gap-2";
 
         const detailBtn = document.createElement("button");
         detailBtn.type = "button";
-        detailBtn.className = "rounded-lg border border-cyan-400/40 bg-cyan-500/15 px-3 py-1.5 text-xs font-medium text-cyan-200 transition hover:bg-cyan-500/30 hover:text-white";
+        detailBtn.className =
+          CRM_ROW_ACTION_BTN +
+          " border border-cyan-400/40 bg-cyan-500/15 text-cyan-200 hover:bg-cyan-500/30 hover:text-white";
         detailBtn.textContent = "详情/跟进";
         detailBtn.addEventListener("click", () => {
           openFollowupDrawer(customer);
@@ -2591,7 +2694,9 @@
 
         const editBtn = document.createElement("button");
         editBtn.type = "button";
-        editBtn.className = "rounded-lg border border-violet-400/40 bg-violet-500/15 px-3 py-1.5 text-xs font-medium text-violet-200 transition hover:bg-violet-500/30 hover:text-white";
+        editBtn.className =
+          CRM_ROW_ACTION_BTN +
+          " border border-violet-400/40 bg-violet-500/15 text-violet-200 hover:bg-violet-500/30 hover:text-white";
         editBtn.textContent = "编辑";
         editBtn.addEventListener("click", () => {
           editCustomer(customer);
@@ -2601,7 +2706,8 @@
         const markClosedBtn = document.createElement("button");
         markClosedBtn.type = "button";
         markClosedBtn.className =
-          "rounded-lg border border-emerald-400/45 bg-emerald-500/15 px-3 py-1.5 text-xs font-medium text-emerald-200 transition hover:bg-emerald-500/30 hover:text-white";
+          CRM_ROW_ACTION_BTN +
+          " border border-emerald-400/45 bg-emerald-500/15 text-emerald-200 hover:bg-emerald-500/30 hover:text-white";
         markClosedBtn.textContent = "标记成交";
         markClosedBtn.addEventListener("click", async () => {
           await markCustomerClosed(customer.id);
@@ -2610,7 +2716,9 @@
 
         const toPublicBtn = document.createElement("button");
         toPublicBtn.type = "button";
-        toPublicBtn.className = "rounded-lg border border-amber-400/40 bg-amber-500/15 px-3 py-1.5 text-xs font-medium text-amber-200 transition hover:bg-amber-500/30 hover:text-white";
+        toPublicBtn.className =
+          CRM_ROW_ACTION_BTN +
+          " border border-amber-400/40 bg-amber-500/15 text-amber-200 hover:bg-amber-500/30 hover:text-white";
         toPublicBtn.textContent = "退回公海";
         toPublicBtn.addEventListener("click", async () => {
           await setCustomerPublicState(customer.id, true);
@@ -2619,7 +2727,9 @@
 
         const deleteBtn = document.createElement("button");
         deleteBtn.type = "button";
-        deleteBtn.className = "rounded-lg border border-rose-400/40 bg-rose-500/15 px-3 py-1.5 text-xs font-medium text-rose-200 transition hover:bg-rose-500/30 hover:text-white";
+        deleteBtn.className =
+          CRM_ROW_ACTION_BTN +
+          " border border-rose-400/40 bg-rose-500/15 text-rose-200 hover:bg-rose-500/30 hover:text-white";
         deleteBtn.textContent = "删除";
         deleteBtn.addEventListener("click", async () => {
           await deleteCustomer(customer.id, customer.company_name || "未命名客户");
@@ -2630,6 +2740,8 @@
 
         row.appendChild(checkboxCell);
         row.appendChild(companyCell);
+        row.appendChild(statusCell);
+        row.appendChild(lastFollowCell);
         row.appendChild(emailCell);
         row.appendChild(countryCell);
         row.appendChild(actionCell);
@@ -2643,7 +2755,7 @@
       publicCustomersTableBodyEl.innerHTML = "";
       if (!customers.length) {
         publicCustomersTableBodyEl.innerHTML =
-          '<tr><td colspan="5" class="px-4 py-4 text-center text-slate-400">暂无公海客户</td></tr>';
+          '<tr><td colspan="6" class="px-4 py-4 text-center text-slate-400">暂无公海客户</td></tr>';
         if (selectAllPublicCustomersEl) {
           selectAllPublicCustomersEl.checked = false;
         }
@@ -2657,10 +2769,11 @@
         row.className = "hover:bg-slate-800/40 transition";
 
         const checkboxCell = document.createElement("td");
-        checkboxCell.className = "px-4 py-3";
+        checkboxCell.className = "px-3 py-3 sm:px-4";
         const selector = document.createElement("input");
         selector.type = "checkbox";
-        selector.className = "customer-checkbox cursor-pointer rounded border-slate-700 bg-slate-800 accent-sky-500";
+        selector.className =
+          "customer-checkbox h-4 w-4 cursor-pointer rounded border-slate-700 bg-slate-800 accent-sky-500";
         const customerEmail = (customer.email || "").trim();
         selector.value = customerEmail;
         selector.checked = Boolean(customerEmail && selectedCustomerEmails.includes(customerEmail));
@@ -2678,15 +2791,20 @@
         checkboxCell.appendChild(selector);
 
         const companyCell = document.createElement("td");
-        companyCell.className = "px-4 py-3";
+        companyCell.className = "px-3 py-3 sm:px-4";
         companyCell.textContent = customer.company_name || "-";
 
+        const statusCell = document.createElement("td");
+        statusCell.className = "px-3 py-3 align-middle sm:px-4";
+        statusCell.appendChild(createStatusBadge(customer.status));
+
         const emailCell = document.createElement("td");
-        emailCell.className = "px-4 py-3";
+        emailCell.className = "hidden px-3 py-3 align-middle md:table-cell md:px-4";
         if (customer.email) {
           const emailLink = document.createElement("a");
           emailLink.href = "mailto:" + customer.email;
-          emailLink.className = "text-sky-400 underline decoration-sky-500/40 underline-offset-2 transition hover:text-sky-300";
+          emailLink.className =
+            "text-sky-400 underline decoration-sky-500/40 underline-offset-2 transition hover:text-sky-300";
           emailLink.textContent = customer.email;
           emailCell.appendChild(emailLink);
         } else {
@@ -2694,15 +2812,16 @@
         }
 
         const countryCell = document.createElement("td");
-        countryCell.className = "px-4 py-3";
+        countryCell.className = "hidden px-3 py-3 align-middle lg:table-cell lg:px-4";
         countryCell.textContent = customer.country || "-";
 
         const actionCell = document.createElement("td");
-        actionCell.className = "px-4 py-3";
+        actionCell.className = "px-3 py-3 sm:px-4";
         const claimBtn = document.createElement("button");
         claimBtn.type = "button";
         claimBtn.className =
-          "rounded-lg border border-emerald-400/40 bg-emerald-500/15 px-3 py-1.5 text-xs font-medium text-emerald-200 transition hover:bg-emerald-500/30 hover:text-white";
+          CRM_ROW_ACTION_BTN +
+          " border border-emerald-400/40 bg-emerald-500/15 text-emerald-200 hover:bg-emerald-500/30 hover:text-white";
         claimBtn.textContent = "认领";
         claimBtn.addEventListener("click", async () => {
           await setCustomerPublicState(customer.id, false);
@@ -2711,6 +2830,7 @@
 
         row.appendChild(checkboxCell);
         row.appendChild(companyCell);
+        row.appendChild(statusCell);
         row.appendChild(emailCell);
         row.appendChild(countryCell);
         row.appendChild(actionCell);
@@ -2743,7 +2863,7 @@
       closedCustomersTableBodyEl.innerHTML = "";
       if (!customers.length) {
         closedCustomersTableBodyEl.innerHTML =
-          '<tr><td colspan="4" class="px-4 py-4 text-center text-slate-400">暂无成交老客户</td></tr>';
+          '<tr><td colspan="6" class="px-4 py-4 text-center text-slate-400">暂无成交老客户</td></tr>';
         return;
       }
 
@@ -2752,7 +2872,7 @@
         row.className = "hover:bg-slate-800/40 transition";
 
         const companyCell = document.createElement("td");
-        companyCell.className = "px-4 py-3";
+        companyCell.className = "px-3 py-3 sm:px-4";
         const companyWrap = document.createElement("div");
         companyWrap.className = "flex items-center gap-2";
         const companyName = document.createElement("span");
@@ -2767,8 +2887,17 @@
         }
         companyCell.appendChild(companyWrap);
 
+        const statusCell = document.createElement("td");
+        statusCell.className = "px-3 py-3 align-middle sm:px-4";
+        statusCell.appendChild(createStatusBadge(customer.status));
+
+        const lastFollowCell = document.createElement("td");
+        lastFollowCell.className =
+          "hidden whitespace-nowrap px-3 py-3 text-xs text-slate-400 align-middle tabular-nums sm:table-cell sm:px-4";
+        lastFollowCell.textContent = formatLastFollowUpShort(customer.last_follow_up);
+
         const emailCell = document.createElement("td");
-        emailCell.className = "px-4 py-3";
+        emailCell.className = "hidden px-3 py-3 align-middle md:table-cell md:px-4";
         if (customer.email) {
           const emailLink = document.createElement("a");
           emailLink.href = "mailto:" + customer.email;
@@ -2781,18 +2910,19 @@
         }
 
         const countryCell = document.createElement("td");
-        countryCell.className = "px-4 py-3";
+        countryCell.className = "hidden px-3 py-3 align-middle lg:table-cell lg:px-4";
         countryCell.textContent = customer.country || "-";
 
         const actionCell = document.createElement("td");
-        actionCell.className = "px-4 py-3";
+        actionCell.className = "px-3 py-3 sm:px-4";
         const actionWrap = document.createElement("div");
         actionWrap.className = "flex flex-wrap items-center gap-2";
 
         const detailBtn = document.createElement("button");
         detailBtn.type = "button";
         detailBtn.className =
-          "rounded-lg border border-cyan-400/40 bg-cyan-500/15 px-3 py-1.5 text-xs font-medium text-cyan-200 transition hover:bg-cyan-500/30 hover:text-white";
+          CRM_ROW_ACTION_BTN +
+          " border border-cyan-400/40 bg-cyan-500/15 text-cyan-200 hover:bg-cyan-500/30 hover:text-white";
         detailBtn.textContent = "详情/跟进";
         detailBtn.addEventListener("click", () => {
           openFollowupDrawer(customer);
@@ -2802,21 +2932,29 @@
         const mailBtn = document.createElement("button");
         mailBtn.type = "button";
         mailBtn.className =
-          "rounded-lg border border-sky-400/40 bg-sky-500/15 px-3 py-1.5 text-xs font-medium text-sky-200 transition hover:bg-sky-500/30 hover:text-white";
+          CRM_ROW_ACTION_BTN +
+          " border border-sky-400/40 bg-sky-500/15 text-sky-200 hover:bg-sky-500/30 hover:text-white";
         mailBtn.textContent = "发送邮件";
-        mailBtn.addEventListener("click", () => {
+        mailBtn.addEventListener("click", async () => {
           const email = (customer.email || "").trim();
           if (!email) {
             showToast("该客户没有邮箱地址。", "error");
             return;
           }
           window.location.href = "mailto:" + email;
+          const cid = Number.parseInt(customer.id, 10);
+          if (Number.isInteger(cid)) {
+            await touchCustomerLastFollowUp(cid);
+            await loadClosedCustomers();
+          }
         });
         actionWrap.appendChild(mailBtn);
 
         actionCell.appendChild(actionWrap);
 
         row.appendChild(companyCell);
+        row.appendChild(statusCell);
+        row.appendChild(lastFollowCell);
         row.appendChild(emailCell);
         row.appendChild(countryCell);
         row.appendChild(actionCell);
@@ -2864,7 +3002,8 @@
         })
         .forEach((customer) => {
           const item = document.createElement("li");
-          item.className = "flex items-center justify-between gap-3 rounded-lg bg-slate-800/70 px-3 py-2";
+          item.className =
+            "flex items-center justify-between gap-3 rounded-lg border border-transparent bg-slate-800/70 px-3 py-2 transition-all hover:border-blue-500/50";
 
           const left = document.createElement("div");
           left.className = "min-w-0";
@@ -2879,7 +3018,8 @@
 
           const btn = document.createElement("button");
           btn.type = "button";
-          btn.className = "shrink-0 rounded-lg border border-rose-400/40 bg-rose-500/15 px-3 py-1.5 text-xs font-medium text-rose-200 transition hover:bg-rose-500/30 hover:text-white";
+          btn.className =
+            "shrink-0 rounded-lg border border-rose-400/40 bg-rose-500/15 px-3 py-3 text-xs font-medium text-rose-200 transition hover:bg-rose-500/30 hover:text-white sm:py-1.5";
           btn.textContent = "立即跟进";
           btn.addEventListener("click", () => {
             switchView("dashboard");
@@ -2901,7 +3041,8 @@
 
       records.forEach((record) => {
         const card = document.createElement("div");
-        card.className = "rounded-xl border border-slate-700 bg-slate-900/70 p-3";
+        card.className =
+          "rounded-xl border border-slate-700 bg-slate-900/70 p-3 transition-all hover:border-blue-500/50";
         card.innerHTML = '<div class="rounded-lg bg-cyan-500/10 px-3 py-2"><p class="text-xs text-slate-300"></p><p class="mt-1 text-sm font-medium text-cyan-200"></p></div><div class="mt-2 rounded-lg bg-slate-800/75 px-3 py-3 text-sm text-slate-100 whitespace-pre-wrap break-words"></div>';
         const rawType = (record.type || "").toLowerCase();
         const isAiType = rawType === "ai";
@@ -3044,22 +3185,23 @@
 
       const { data, error } = await supabaseClient
         .from("customers")
-        .select("id, company_name, contact_name, email, phone, country, address, source, social_media, is_public, is_closed, next_followup_date")
+        .select(
+          "id, company_name, contact_name, email, phone, country, address, source, social_media, is_public, is_closed, next_followup_date, status, last_follow_up",
+        )
         .or("is_public.is.false,is_public.is.null")
-        .not("is_closed", "eq", true)
-        .order("company_name", { ascending: true });
+        .not("is_closed", "eq", true);
 
       if (error) {
         statusEl.textContent = "加载失败";
         tableBodyEl.innerHTML =
-          '<tr><td colspan="5" class="px-4 py-4 text-center text-rose-300">读取 customers 失败：' +
+          '<tr><td colspan="7" class="px-4 py-4 text-center text-rose-300">读取 customers 失败：' +
           error.message +
           "</td></tr>";
         return;
       }
 
       statusEl.textContent = "已加载";
-      privateCustomersCache = data || [];
+      privateCustomersCache = sortCustomersByLastFollowUp(data || []);
       renderRows(privateCustomersCache);
       renderTodayFollowups(privateCustomersCache);
       updateBulkEmailSelectionUI();
@@ -3069,42 +3211,44 @@
       publicCustomersStatusEl.textContent = "加载中...";
       const { data, error } = await supabaseClient
         .from("customers")
-        .select("id, company_name, contact_name, email, phone, country, address, source, social_media, is_public")
-        .eq("is_public", true)
-        .order("company_name", { ascending: true });
+        .select(
+          "id, company_name, contact_name, email, phone, country, address, source, social_media, is_public, status, last_follow_up",
+        )
+        .eq("is_public", true);
 
       if (error) {
         publicCustomersStatusEl.textContent = "加载失败";
         publicCustomersTableBodyEl.innerHTML =
-          '<tr><td colspan="5" class="px-4 py-4 text-center text-rose-300">读取公海客户失败：' +
+          '<tr><td colspan="6" class="px-4 py-4 text-center text-rose-300">读取公海客户失败：' +
           error.message +
           "</td></tr>";
         return;
       }
 
       publicCustomersStatusEl.textContent = "已加载";
-      renderPublicCustomers(data || []);
+      renderPublicCustomers(sortCustomersByLastFollowUp(data || []));
     }
 
     async function loadClosedCustomers() {
       closedCustomersStatusEl.textContent = "加载中...";
       const { data, error } = await supabaseClient
         .from("customers")
-        .select("id, company_name, contact_name, email, phone, country, address, source, social_media, is_public, is_closed, next_followup_date")
-        .eq("is_closed", true)
-        .order("company_name", { ascending: true });
+        .select(
+          "id, company_name, contact_name, email, phone, country, address, source, social_media, is_public, is_closed, next_followup_date, status, last_follow_up",
+        )
+        .eq("is_closed", true);
 
       if (error) {
         closedCustomersStatusEl.textContent = "加载失败";
         closedCustomersTableBodyEl.innerHTML =
-          '<tr><td colspan="4" class="px-4 py-4 text-center text-rose-300">读取成交客户失败：' +
+          '<tr><td colspan="6" class="px-4 py-4 text-center text-rose-300">读取成交客户失败：' +
           error.message +
           "</td></tr>";
         return;
       }
 
       closedCustomersStatusEl.textContent = "已加载";
-      closedCustomersCache = data || [];
+      closedCustomersCache = sortCustomersByLastFollowUp(data || []);
       renderClosedCustomers(closedCustomersCache);
     }
 
@@ -3731,6 +3875,7 @@
         address: customerAddressInput.value.trim(),
         source: customerSourceInput.value.trim(),
         social_media: customerSocialMediaInput.value.trim(),
+        status: customerStatusInput ? customerStatusInput.value.trim() || "新线索" : "新线索",
         is_public: false,
       };
       if (!editingCustomerId) {
@@ -3762,6 +3907,7 @@
       await Promise.all([loadCustomers(), loadClosedCustomers()]);
     }
 
+    /** 保存跟进记录（对应「保存粘贴内容」）；成功后写入 last_follow_up。 */
     async function handleFollowupSubmit(event) {
       event.preventDefault();
       followupFormStatusEl.textContent = "";
@@ -3804,6 +3950,11 @@
         followupFormStatusEl.className = "min-h-5 text-sm text-rose-300";
         saveFollowupBtn.disabled = false;
         return;
+      }
+
+      const touchRes = await touchCustomerLastFollowUp(customerId);
+      if (touchRes && touchRes.error) {
+        showToast("跟进已保存，但更新最后跟进时间失败：" + touchRes.error.message, "error");
       }
 
       if (reminderTime) {
@@ -3849,7 +4000,9 @@
         showToast("自动写入跟进失败：" + error.message, "error");
         return;
       }
+      await touchCustomerLastFollowUp(customerId);
       await loadFollowups(customerId);
+      await Promise.all([loadCustomers(), loadClosedCustomers()]);
     }
 
     async function handleSendEmail() {
@@ -3865,6 +4018,12 @@
       }
 
       window.location.href = "mailto:" + email;
+
+      const mailCid = Number.parseInt(selectedCustomer.id, 10);
+      if (Number.isInteger(mailCid)) {
+        await touchCustomerLastFollowUp(mailCid);
+        await Promise.all([loadCustomers(), loadClosedCustomers()]);
+      }
 
       const shouldAutoFollowup = await showConfirm(
         "写入跟进记录",
