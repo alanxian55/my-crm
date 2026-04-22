@@ -306,11 +306,11 @@
                   <input type="checkbox" id="select-all-customers" class="h-4 w-4" />
                 </th>
                 <th class="min-w-[7rem] px-3 py-3 text-left font-medium sm:px-4">客户名</th>
-                <th class="min-w-[6.5rem] px-3 py-3 text-left font-medium sm:px-4">状态</th>
+                <th class="min-w-[5rem] px-2 py-3 text-left font-medium sm:px-4">状态</th>
                 <th class="hidden min-w-[7rem] px-3 py-3 text-left font-medium sm:table-cell sm:px-4">最后跟进</th>
                 <th class="hidden min-w-[10rem] px-3 py-3 text-left font-medium md:table-cell md:px-4">邮箱</th>
                 <th class="hidden min-w-[5rem] px-3 py-3 text-left font-medium lg:table-cell lg:px-4">国家</th>
-                <th class="min-w-[11rem] px-3 py-3 text-left font-medium sm:min-w-[13rem] sm:px-4">操作</th>
+                <th class="min-w-[9rem] whitespace-nowrap px-2 py-3 text-left font-medium sm:min-w-[11rem] sm:px-4">操作</th>
               </tr>
             </thead>
             <tbody id="customers-table-body" class="divide-y divide-slate-800 text-slate-300">
@@ -348,10 +348,10 @@
                 <tr>
                   <th class="px-3 py-3 text-left font-medium sm:px-4"><input type="checkbox" id="select-all-public-customers" title="全选当前列表" class="h-4 w-4" /></th>
                   <th class="min-w-[7rem] px-3 py-3 text-left font-medium sm:px-4">客户名</th>
-                  <th class="min-w-[6.5rem] px-3 py-3 text-left font-medium sm:px-4">状态</th>
+                  <th class="min-w-[5rem] px-2 py-3 text-left font-medium sm:px-4">状态</th>
                   <th class="hidden min-w-[10rem] px-3 py-3 text-left font-medium md:table-cell md:px-4">邮箱</th>
                   <th class="hidden min-w-[5rem] px-3 py-3 text-left font-medium lg:table-cell lg:px-4">国家</th>
-                  <th class="min-w-[6rem] px-3 py-3 text-left font-medium sm:px-4">操作</th>
+                  <th class="min-w-[5rem] whitespace-nowrap px-2 py-3 text-left font-medium sm:min-w-[6rem] sm:px-4">操作</th>
                 </tr>
               </thead>
               <tbody id="public-customers-table-body" class="divide-y divide-slate-800 text-slate-300">
@@ -380,11 +380,11 @@
               <thead class="bg-slate-800/70 text-slate-200">
                 <tr>
                   <th class="min-w-[7rem] px-3 py-3 text-left font-medium sm:px-4">客户名</th>
-                  <th class="min-w-[6.5rem] px-3 py-3 text-left font-medium sm:px-4">状态</th>
+                  <th class="min-w-[5rem] px-2 py-3 text-left font-medium sm:px-4">状态</th>
                   <th class="hidden min-w-[7rem] px-3 py-3 text-left font-medium sm:table-cell sm:px-4">最后跟进</th>
                   <th class="hidden min-w-[10rem] px-3 py-3 text-left font-medium md:table-cell md:px-4">邮箱</th>
                   <th class="hidden min-w-[5rem] px-3 py-3 text-left font-medium lg:table-cell lg:px-4">国家</th>
-                  <th class="min-w-[11rem] px-3 py-3 text-left font-medium sm:px-4">操作</th>
+                  <th class="min-w-[9rem] whitespace-nowrap px-2 py-3 text-left font-medium sm:min-w-[11rem] sm:px-4">操作</th>
                 </tr>
               </thead>
               <tbody id="closed-customers-table-body" class="divide-y divide-slate-800 text-slate-300">
@@ -1822,7 +1822,7 @@
     }
 
     const CRM_ROW_ACTION_BTN =
-      "rounded-lg py-3 px-3 text-xs font-medium transition sm:py-1.5 sm:px-3";
+      "rounded-md shrink-0 border px-1.5 py-0.5 text-[11px] font-medium leading-tight transition";
 
     function sortCustomersByLastFollowUp(rows) {
       const list = Array.isArray(rows) ? [...rows] : [];
@@ -1864,7 +1864,7 @@
     function createStatusBadge(status) {
       const span = document.createElement("span");
       span.className =
-        "inline-flex max-w-full items-center whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[11px] font-medium leading-tight " +
+        "inline-flex max-w-full items-center whitespace-nowrap rounded-full border px-1.5 py-px text-xs font-medium leading-tight " +
         getStatusBadgeClass(status);
       span.textContent = getStatusBadgeLabel(status);
       return span;
@@ -2651,16 +2651,16 @@
         companyCell.appendChild(companyWrap);
 
         const statusCell = document.createElement("td");
-        statusCell.className = "px-3 py-3 align-middle sm:px-4";
+        statusCell.className = "px-2 py-2 align-middle sm:px-4 sm:py-3";
         statusCell.appendChild(createStatusBadge(customer.status));
 
         const lastFollowCell = document.createElement("td");
         lastFollowCell.className =
-          "hidden whitespace-nowrap px-3 py-3 text-xs text-slate-400 align-middle tabular-nums sm:table-cell sm:px-4";
+          "hidden whitespace-nowrap px-2 py-2 text-xs text-slate-400 align-middle tabular-nums sm:table-cell sm:px-4 sm:py-3";
         lastFollowCell.textContent = formatLastFollowUpShort(customer.last_follow_up);
 
         const emailCell = document.createElement("td");
-        emailCell.className = "hidden px-3 py-3 align-middle md:table-cell md:px-4";
+        emailCell.className = "hidden px-2 py-2 align-middle md:table-cell md:px-4 md:py-3";
         if (customer.email) {
           const emailLink = document.createElement("a");
           emailLink.href = "mailto:" + customer.email;
@@ -2673,13 +2673,13 @@
         }
 
         const countryCell = document.createElement("td");
-        countryCell.className = "hidden px-3 py-3 align-middle lg:table-cell lg:px-4";
+        countryCell.className = "hidden px-2 py-2 align-middle lg:table-cell lg:px-4 lg:py-3";
         countryCell.textContent = customer.country || "-";
 
         const actionCell = document.createElement("td");
-        actionCell.className = "px-3 py-3 align-middle sm:px-4";
+        actionCell.className = "whitespace-nowrap px-2 py-2 align-middle sm:px-4 sm:py-3";
         const actionWrap = document.createElement("div");
-        actionWrap.className = "flex flex-wrap items-center gap-2";
+        actionWrap.className = "flex flex-nowrap items-center gap-0.5";
 
         const detailBtn = document.createElement("button");
         detailBtn.type = "button";
@@ -2795,11 +2795,11 @@
         companyCell.textContent = customer.company_name || "-";
 
         const statusCell = document.createElement("td");
-        statusCell.className = "px-3 py-3 align-middle sm:px-4";
+        statusCell.className = "px-2 py-2 align-middle sm:px-4 sm:py-3";
         statusCell.appendChild(createStatusBadge(customer.status));
 
         const emailCell = document.createElement("td");
-        emailCell.className = "hidden px-3 py-3 align-middle md:table-cell md:px-4";
+        emailCell.className = "hidden px-2 py-2 align-middle md:table-cell md:px-4 md:py-3";
         if (customer.email) {
           const emailLink = document.createElement("a");
           emailLink.href = "mailto:" + customer.email;
@@ -2812,11 +2812,11 @@
         }
 
         const countryCell = document.createElement("td");
-        countryCell.className = "hidden px-3 py-3 align-middle lg:table-cell lg:px-4";
+        countryCell.className = "hidden px-2 py-2 align-middle lg:table-cell lg:px-4 lg:py-3";
         countryCell.textContent = customer.country || "-";
 
         const actionCell = document.createElement("td");
-        actionCell.className = "px-3 py-3 sm:px-4";
+        actionCell.className = "whitespace-nowrap px-2 py-2 sm:px-4 sm:py-3";
         const claimBtn = document.createElement("button");
         claimBtn.type = "button";
         claimBtn.className =
@@ -2888,16 +2888,16 @@
         companyCell.appendChild(companyWrap);
 
         const statusCell = document.createElement("td");
-        statusCell.className = "px-3 py-3 align-middle sm:px-4";
+        statusCell.className = "px-2 py-2 align-middle sm:px-4 sm:py-3";
         statusCell.appendChild(createStatusBadge(customer.status));
 
         const lastFollowCell = document.createElement("td");
         lastFollowCell.className =
-          "hidden whitespace-nowrap px-3 py-3 text-xs text-slate-400 align-middle tabular-nums sm:table-cell sm:px-4";
+          "hidden whitespace-nowrap px-2 py-2 text-xs text-slate-400 align-middle tabular-nums sm:table-cell sm:px-4 sm:py-3";
         lastFollowCell.textContent = formatLastFollowUpShort(customer.last_follow_up);
 
         const emailCell = document.createElement("td");
-        emailCell.className = "hidden px-3 py-3 align-middle md:table-cell md:px-4";
+        emailCell.className = "hidden px-2 py-2 align-middle md:table-cell md:px-4 md:py-3";
         if (customer.email) {
           const emailLink = document.createElement("a");
           emailLink.href = "mailto:" + customer.email;
@@ -2910,13 +2910,13 @@
         }
 
         const countryCell = document.createElement("td");
-        countryCell.className = "hidden px-3 py-3 align-middle lg:table-cell lg:px-4";
+        countryCell.className = "hidden px-2 py-2 align-middle lg:table-cell lg:px-4 lg:py-3";
         countryCell.textContent = customer.country || "-";
 
         const actionCell = document.createElement("td");
-        actionCell.className = "px-3 py-3 sm:px-4";
+        actionCell.className = "whitespace-nowrap px-2 py-2 align-middle sm:px-4 sm:py-3";
         const actionWrap = document.createElement("div");
-        actionWrap.className = "flex flex-wrap items-center gap-2";
+        actionWrap.className = "flex flex-nowrap items-center gap-0.5";
 
         const detailBtn = document.createElement("button");
         detailBtn.type = "button";
