@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <!-- Supabase：请在 SQL 中执行（若尚未建列）——
        alter table customers add column if not exists status text default '新线索';
-       alter table customers add column if not exists last_follow_up timestamptz; -->
+       alter table customers add column if not exists last_follow_up timestamptz;
+       alter table customers add column if not exists next_followup_date timestamptz; -->
   <title>外贸 CRM 工作台</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -221,7 +222,81 @@
       </div>
     </aside>
 
-    <main class="flex-1 min-w-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-4 sm:p-8 lg:p-10">
+    <main class="flex flex-1 min-w-0 flex-col bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+      <header
+        id="top-app-bar"
+        class="sticky top-0 z-30 flex min-h-[3.25rem] shrink-0 flex-wrap items-center justify-end gap-2 border-b border-slate-800/70 bg-slate-950/92 px-3 py-2 backdrop-blur-md sm:flex-nowrap sm:px-6 lg:px-10"
+      >
+        <div id="fx-widget-mobile" class="flex min-w-0 flex-1 basis-full items-center justify-end sm:hidden">
+          <div
+            class="flex max-w-full items-center gap-x-2 gap-y-1 overflow-x-auto rounded-xl border border-slate-600/35 bg-slate-800/50 px-3 py-2 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] [scrollbar-width:thin]"
+          >
+            <span class="shrink-0 text-xs font-medium tracking-wide text-slate-500">USD→CNY</span>
+            <label class="flex shrink-0 items-center gap-1.5 whitespace-nowrap">
+              <span class="text-xs text-slate-500/90">Rate:</span>
+              <input
+                id="fx-rate-input-mobile"
+                type="number"
+                step="0.01"
+                min="0"
+                value="7.2"
+                class="h-9 w-[4.25rem] shrink-0 rounded-lg border border-slate-600 bg-slate-900/85 px-2 py-2 text-center font-mono text-sm text-slate-100 outline-none transition focus:border-sky-500/55 focus:ring-2 focus:ring-sky-500/25"
+              />
+            </label>
+            <label class="flex shrink-0 items-center gap-1.5 whitespace-nowrap">
+              <span class="text-xs text-slate-500/90">USD:</span>
+              <input
+                id="fx-usd-input-mobile"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="0"
+                class="h-9 w-[5.25rem] shrink-0 rounded-lg border border-slate-600 bg-slate-900/85 px-2 py-2 font-mono text-sm text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-sky-500/55 focus:ring-2 focus:ring-sky-500/25"
+              />
+            </label>
+            <span
+              id="fx-cny-output-mobile"
+              class="shrink-0 whitespace-nowrap pl-1 text-base font-bold tabular-nums tracking-tight text-emerald-300"
+              >¥0.00</span>
+          </div>
+        </div>
+
+        <div id="fx-widget-desktop" class="hidden w-full min-w-0 justify-end sm:flex sm:w-auto">
+          <div
+            class="flex w-full flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-slate-600/35 bg-slate-800/50 px-4 py-2.5 text-base text-slate-200 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] sm:w-auto sm:flex-nowrap"
+          >
+            <span class="shrink-0 font-medium tracking-wide text-slate-400">USD→CNY</span>
+            <label class="flex min-w-0 items-center gap-2 whitespace-nowrap">
+              <span class="shrink-0 text-sm text-slate-500/90">Rate:</span>
+              <input
+                id="fx-rate-input"
+                type="number"
+                step="0.01"
+                min="0"
+                value="7.2"
+                class="h-10 w-[5.25rem] shrink-0 rounded-lg border border-slate-600 bg-slate-900/85 px-3 py-2 text-right font-mono text-base text-slate-100 outline-none transition focus:border-sky-500/55 focus:ring-2 focus:ring-sky-500/25"
+              />
+            </label>
+            <label class="flex min-w-0 items-center gap-2 whitespace-nowrap">
+              <span class="shrink-0 text-sm text-slate-500/90">USD:</span>
+              <input
+                id="fx-usd-input"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="0"
+                class="h-10 w-[6.5rem] shrink-0 rounded-lg border border-slate-600 bg-slate-900/85 px-3 py-2 font-mono text-base text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-sky-500/55 focus:ring-2 focus:ring-sky-500/25"
+              />
+            </label>
+            <span
+              id="fx-cny-output"
+              class="min-w-[5.5rem] shrink-0 whitespace-nowrap text-lg font-bold tabular-nums tracking-tight text-emerald-300"
+              >¥0.00</span>
+          </div>
+        </div>
+      </header>
+
+      <div class="flex-1 overflow-x-hidden p-4 sm:p-8 lg:p-10">
       <div id="dashboard-view">
       <header class="mb-8">
         <p class="text-sm text-slate-400">欢迎回来，销售总监</p>
@@ -263,7 +338,15 @@
 
         <div class="lg:col-span-2 flex flex-col gap-6">
           <div class="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 transition-all hover:border-blue-500/50">
-            <h3 class="text-lg font-semibold text-white">今日待办跟进</h3>
+            <div class="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <h3 class="flex flex-wrap items-center gap-2 text-lg font-semibold text-white">
+                  <span>今日待办跟进</span>
+                  <span id="today-followups-badge" class="rounded-full bg-rose-500/25 px-2 py-0.5 text-xs font-semibold tabular-nums text-rose-300">—</span>
+                </h3>
+                <p id="today-followups-sub" class="mt-1 text-xs text-slate-500">已从数据库加载（私有客户 · next_followup_date ≤ 今日）</p>
+              </div>
+            </div>
             <ul id="today-followups-list" class="mt-4 space-y-3 text-sm">
               <li class="rounded-lg bg-slate-800/70 px-3 py-2 text-slate-400">正在加载待办...</li>
             </ul>
@@ -299,7 +382,7 @@
           </div>
         </div>
         <div class="mt-4 -mx-1 overflow-x-auto sm:mx-0">
-          <table class="min-w-[720px] w-full text-sm">
+          <table class="min-w-[860px] w-full text-sm">
             <thead class="bg-slate-800/70 text-slate-200">
               <tr>
                 <th class="sticky left-0 z-10 bg-slate-800/95 px-3 py-3 text-left font-medium backdrop-blur sm:px-4">
@@ -307,6 +390,7 @@
                 </th>
                 <th class="min-w-[7rem] px-3 py-3 text-left font-medium sm:px-4">客户名</th>
                 <th class="min-w-[5rem] px-2 py-3 text-left font-medium sm:px-4">状态</th>
+                <th class="hidden min-w-[6rem] whitespace-nowrap px-2 py-3 text-left font-medium sm:table-cell sm:px-4">下次跟进</th>
                 <th class="hidden min-w-[7rem] px-3 py-3 text-left font-medium sm:table-cell sm:px-4">最后跟进</th>
                 <th class="hidden min-w-[10rem] px-3 py-3 text-left font-medium md:table-cell md:px-4">邮箱</th>
                 <th class="hidden min-w-[5rem] px-3 py-3 text-left font-medium lg:table-cell lg:px-4">国家</th>
@@ -315,7 +399,7 @@
             </thead>
             <tbody id="customers-table-body" class="divide-y divide-slate-800 text-slate-300">
               <tr>
-                <td colspan="7" class="px-4 py-4 text-center text-slate-400">正在获取客户数据...</td>
+                <td colspan="8" class="px-4 py-4 text-center text-slate-400">正在获取客户数据...</td>
               </tr>
             </tbody>
           </table>
@@ -641,6 +725,7 @@
           </div>
         </section>
       </div>
+      </div>
     </main>
   </div>
 
@@ -711,6 +796,16 @@
             <option value="已成单">✅ 已成单</option>
             <option value="暂无意向">🛑 暂无意向</option>
           </select>
+        </div>
+        <div>
+          <label for="customer-next-followup-date" class="mb-1 block text-sm text-slate-300">下次跟进日期</label>
+          <input
+            id="customer-next-followup-date"
+            name="next_followup_date"
+            type="date"
+            class="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-2 text-slate-100 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/30"
+          />
+          <p class="mt-1 text-xs text-slate-500">到期待跟进时将出现在工作台「今日待办跟进」（数据库字段 next_followup_date）</p>
         </div>
 
         <p id="customer-form-status" class="min-h-5 text-sm text-slate-400"></p>
@@ -992,6 +1087,7 @@
     const customerSourceInput = document.getElementById("customer-source");
     const customerSocialMediaInput = document.getElementById("customer-social-media");
     const customerStatusInput = document.getElementById("customer-status");
+    const customerNextFollowupDateInput = document.getElementById("customer-next-followup-date");
     const submitCustomerBtn = document.getElementById("submit-customer-btn");
     const customerFormStatus = document.getElementById("customer-form-status");
     const followupDrawerOverlay = document.getElementById("followup-drawer-overlay");
@@ -1083,6 +1179,13 @@
     const quotePreviewSubtotalEl = document.getElementById("quote-preview-subtotal");
     const quotePreviewTotalEl = document.getElementById("quote-preview-total");
     const todayFollowupsListEl = document.getElementById("today-followups-list");
+    const todayFollowupsBadgeEl = document.getElementById("today-followups-badge");
+    const fxRateInputEl = document.getElementById("fx-rate-input");
+    const fxUsdInputEl = document.getElementById("fx-usd-input");
+    const fxCnyOutputEl = document.getElementById("fx-cny-output");
+    const fxRateInputMobileEl = document.getElementById("fx-rate-input-mobile");
+    const fxUsdInputMobileEl = document.getElementById("fx-usd-input-mobile");
+    const fxCnyOutputMobileEl = document.getElementById("fx-cny-output-mobile");
     const customerCountryFilterLabelEl = document.getElementById("customer-country-filter-label");
     const clearCustomerCountryFilterBtn = document.getElementById("clear-customer-country-filter-btn");
     const customerSearchInput = document.getElementById("customer-search-input");
@@ -1912,6 +2015,108 @@
       return d.toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
     }
 
+    function nextFollowupIsoToDateInputValue(iso) {
+      if (!iso) return "";
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return "";
+      const pad = (n) => String(n).padStart(2, "0");
+      return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+    }
+
+    function localDateInputToNextFollowupIso(dateStr) {
+      if (!dateStr || !String(dateStr).trim()) return null;
+      const parts = String(dateStr).trim().split("-");
+      if (parts.length < 3) return null;
+      const y = Number.parseInt(parts[0], 10);
+      const m = Number.parseInt(parts[1], 10);
+      const day = Number.parseInt(parts[2], 10);
+      if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(day)) return null;
+      const dt = new Date(y, m - 1, day, 9, 0, 0, 0);
+      return dt.toISOString();
+    }
+
+    function formatNextFollowupColumnDate(iso) {
+      if (!iso) return "—";
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return "—";
+      return d.toLocaleDateString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit" });
+    }
+
+    /** 下次跟进日期（日历日）为今天或更早 → 列表红字提醒 */
+    function isNextFollowupAlarmDate(iso) {
+      if (!iso) return false;
+      const due = new Date(iso);
+      if (Number.isNaN(due.getTime())) return false;
+      const now = new Date();
+      const dueDayStart = new Date(due.getFullYear(), due.getMonth(), due.getDate());
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      return dueDayStart <= todayStart;
+    }
+
+    const FX_RATE_STORAGE_KEY = "crm_usd_cny_rate";
+
+    function initFxToolbar() {
+      const saved = window.localStorage.getItem(FX_RATE_STORAGE_KEY);
+      const initialRate = saved != null && saved !== "" ? Number.parseFloat(saved) : 7.2;
+      const rateVal = Number.isFinite(initialRate) && initialRate > 0 ? initialRate : 7.2;
+      if (fxRateInputEl) fxRateInputEl.value = String(rateVal);
+      if (fxRateInputMobileEl) fxRateInputMobileEl.value = String(rateVal);
+
+      function persistRate(v) {
+        window.localStorage.setItem(FX_RATE_STORAGE_KEY, String(v));
+      }
+
+      function computeAndRender() {
+        const rDesktop = fxRateInputEl ? Number.parseFloat(fxRateInputEl.value) : NaN;
+        const rMobile = fxRateInputMobileEl ? Number.parseFloat(fxRateInputMobileEl.value) : NaN;
+        const rate = Number.isFinite(rDesktop) && rDesktop > 0 ? rDesktop : Number.isFinite(rMobile) && rMobile > 0 ? rMobile : 7.2;
+        const usdRaw = fxUsdInputEl ? fxUsdInputEl.value : "";
+        const usdMobRaw = fxUsdInputMobileEl ? fxUsdInputMobileEl.value : "";
+        const usdStr = usdRaw !== "" ? usdRaw : usdMobRaw;
+        const usd = Number.parseFloat(usdStr);
+        const amount = Number.isFinite(usd) && usd >= 0 ? usd : 0;
+        const cny = amount * rate;
+        const formatted = "¥" + cny.toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        if (fxCnyOutputEl) fxCnyOutputEl.textContent = formatted;
+        if (fxCnyOutputMobileEl) fxCnyOutputMobileEl.textContent = formatted;
+      }
+
+      function syncRatePair(fromDesktop) {
+        if (fromDesktop) {
+          if (fxRateInputMobileEl && fxRateInputEl) fxRateInputMobileEl.value = fxRateInputEl.value;
+        } else {
+          if (fxRateInputEl && fxRateInputMobileEl) fxRateInputEl.value = fxRateInputMobileEl.value;
+        }
+        const r = fxRateInputEl ? Number.parseFloat(fxRateInputEl.value) : 7.2;
+        if (Number.isFinite(r) && r > 0) persistRate(r);
+        computeAndRender();
+      }
+
+      function syncUsdPair(fromDesktop) {
+        if (fromDesktop) {
+          if (fxUsdInputMobileEl && fxUsdInputEl) fxUsdInputMobileEl.value = fxUsdInputEl.value;
+        } else {
+          if (fxUsdInputEl && fxUsdInputMobileEl) fxUsdInputEl.value = fxUsdInputMobileEl.value;
+        }
+        computeAndRender();
+      }
+
+      if (fxRateInputEl) {
+        fxRateInputEl.addEventListener("input", () => syncRatePair(true));
+      }
+      if (fxRateInputMobileEl) {
+        fxRateInputMobileEl.addEventListener("input", () => syncRatePair(false));
+      }
+      if (fxUsdInputEl) {
+        fxUsdInputEl.addEventListener("input", () => syncUsdPair(true));
+      }
+      if (fxUsdInputMobileEl) {
+        fxUsdInputMobileEl.addEventListener("input", () => syncUsdPair(false));
+      }
+
+      computeAndRender();
+    }
+
     async function updateLastFollowUp(customerId) {
       const id = typeof customerId === "number" ? customerId : Number.parseInt(String(customerId), 10);
       if (!Number.isInteger(id) || id <= 0) return { error: new Error("无效的客户 ID") };
@@ -1945,7 +2150,7 @@
       const cid = Number.parseInt(String(customer.id), 10);
       if (!Number.isInteger(cid) || cid <= 0) return;
       await updateLastFollowUp(cid);
-      await Promise.all([loadCustomers(), loadPublicCustomers(), loadClosedCustomers()]);
+      await Promise.all([loadCustomers(), loadPublicCustomers(), loadClosedCustomers(), loadTodayTodoFollowupsFromDb()]);
       pinClosedCustomersViewVisible();
     }
 
@@ -2557,7 +2762,7 @@
 
       showSuccessCelebration("保存成功，订单已确认成交！");
       await loadDashboardMetrics();
-      await Promise.all([loadCustomers(), loadClosedCustomers()]);
+      await Promise.all([loadCustomers(), loadClosedCustomers(), loadTodayTodoFollowupsFromDb()]);
     }
 
     function openCustomerModal() {
@@ -2567,6 +2772,7 @@
       submitCustomerBtn.textContent = "提交客户";
       customerFormStatus.textContent = "";
       if (customerStatusInput) customerStatusInput.value = "新线索";
+      if (customerNextFollowupDateInput) customerNextFollowupDateInput.value = "";
       modalOverlayEl.classList.remove("hidden");
       modalEl.classList.remove("hidden");
       modalEl.classList.add("flex");
@@ -2593,6 +2799,9 @@
       if (customerStatusInput) {
         ensureSelectHasValue(customerStatusInput, customer.status || "新线索");
         customerStatusInput.value = customer.status || "新线索";
+      }
+      if (customerNextFollowupDateInput) {
+        customerNextFollowupDateInput.value = nextFollowupIsoToDateInputValue(customer.next_followup_date);
       }
 
       modalOverlayEl.classList.remove("hidden");
@@ -2667,7 +2876,7 @@
 
       if (!visibleCustomers.length) {
         const emptyRow = document.createElement("tr");
-        emptyRow.innerHTML = '<td colspan="7" class="px-4 py-4 text-center text-slate-400">暂无客户数据</td>';
+        emptyRow.innerHTML = '<td colspan="8" class="px-4 py-4 text-center text-slate-400">暂无客户数据</td>';
         tableBodyEl.appendChild(emptyRow);
         syncBulkEmailCheckboxesAcrossViews();
         return;
@@ -2719,6 +2928,14 @@
         const statusCell = document.createElement("td");
         statusCell.className = "px-2 py-2 align-middle sm:px-4 sm:py-3";
         statusCell.appendChild(createStatusBadge(customer.status));
+
+        const nextFollowCell = document.createElement("td");
+        nextFollowCell.className =
+          "hidden whitespace-nowrap px-2 py-2 text-xs align-middle tabular-nums sm:table-cell sm:px-4 sm:py-3 " +
+          (customer.next_followup_date && isNextFollowupAlarmDate(customer.next_followup_date)
+            ? "font-bold text-rose-400"
+            : "text-slate-400");
+        nextFollowCell.textContent = formatNextFollowupColumnDate(customer.next_followup_date);
 
         const lastFollowCell = document.createElement("td");
         lastFollowCell.className =
@@ -2836,6 +3053,7 @@
         row.appendChild(checkboxCell);
         row.appendChild(companyCell);
         row.appendChild(statusCell);
+        row.appendChild(nextFollowCell);
         row.appendChild(lastFollowCell);
         row.appendChild(emailCell);
         row.appendChild(countryCell);
@@ -2968,7 +3186,7 @@
       }
 
       showSuccessCelebration("已标记为成交客户");
-      await Promise.all([loadCustomers(), loadClosedCustomers()]);
+      await Promise.all([loadCustomers(), loadClosedCustomers(), loadTodayTodoFollowupsFromDb()]);
     }
 
     function renderClosedCustomers(customers) {
@@ -3127,12 +3345,15 @@
       return dueDate <= new Date();
     }
 
-    function renderTodayFollowups(customers) {
+    function renderTodayFollowupsPanel(dueCustomers) {
       todayFollowupsListEl.innerHTML = "";
-      const dueCustomers = (customers || []).filter((customer) => isDueForTodayOrOverdue(customer.next_followup_date));
+      if (todayFollowupsBadgeEl) {
+        todayFollowupsBadgeEl.textContent = String(dueCustomers?.length ?? 0);
+      }
 
-      if (!dueCustomers.length) {
-        todayFollowupsListEl.innerHTML = '<li class="rounded-lg bg-slate-800/70 px-3 py-2 text-slate-400">今日暂无待办跟进。</li>';
+      if (!dueCustomers || !dueCustomers.length) {
+        todayFollowupsListEl.innerHTML =
+          '<li class="rounded-lg bg-slate-800/70 px-3 py-2 text-slate-400">今日暂无待办跟进。</li>';
         return;
       }
 
@@ -3154,7 +3375,7 @@
           name.textContent = customer.company_name || "未命名客户";
           const due = document.createElement("p");
           due.className = "mt-0.5 text-xs text-rose-300";
-          due.textContent = "提醒时间：" + formatFollowupTime(customer.next_followup_date);
+          due.textContent = "下次跟进：" + formatFollowupTime(customer.next_followup_date);
           left.appendChild(name);
           left.appendChild(due);
 
@@ -3172,6 +3393,36 @@
           item.appendChild(btn);
           todayFollowupsListEl.appendChild(item);
         });
+    }
+
+    /** 从数据库拉取私有客户中 next_followup_date 已在今日结束前到期的待办（含历史逾期）。 */
+    async function loadTodayTodoFollowupsFromDb() {
+      todayFollowupsListEl.innerHTML =
+        '<li class="rounded-lg bg-slate-800/70 px-3 py-2 text-slate-400">加载待办...</li>';
+      if (todayFollowupsBadgeEl) todayFollowupsBadgeEl.textContent = "…";
+
+      const now = new Date();
+      const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+      const { data, error } = await supabaseClient
+        .from("customers")
+        .select(
+          "id, company_name, contact_name, email, phone, country, address, source, social_media, is_public, is_closed, next_followup_date, status, last_follow_up",
+        )
+        .or("is_public.is.false,is_public.is.null")
+        .not("is_closed", "eq", true)
+        .not("next_followup_date", "is", null)
+        .lte("next_followup_date", endOfToday.toISOString());
+
+      if (error) {
+        todayFollowupsListEl.innerHTML =
+          '<li class="rounded-lg bg-rose-500/10 px-3 py-2 text-rose-300">读取待办失败：' + error.message + "</li>";
+        if (todayFollowupsBadgeEl) todayFollowupsBadgeEl.textContent = "!";
+        return;
+      }
+
+      const filtered = (data || []).filter((c) => isDueForTodayOrOverdue(c.next_followup_date));
+      renderTodayFollowupsPanel(filtered);
     }
 
     function renderFollowups(records) {
@@ -3336,7 +3587,7 @@
       if (error) {
         statusEl.textContent = "加载失败";
         tableBodyEl.innerHTML =
-          '<tr><td colspan="7" class="px-4 py-4 text-center text-rose-300">读取 customers 失败：' +
+          '<tr><td colspan="8" class="px-4 py-4 text-center text-rose-300">读取 customers 失败：' +
           error.message +
           "</td></tr>";
         return;
@@ -3345,7 +3596,6 @@
       statusEl.textContent = "已加载";
       privateCustomersCache = sortCustomersByLastFollowUp(data || []);
       renderRows(privateCustomersCache);
-      renderTodayFollowups(privateCustomersCache);
       updateBulkEmailSelectionUI();
     }
 
@@ -3859,7 +4109,7 @@
       }
 
       showToast("已移出至公海", "success");
-      await Promise.all([loadCustomers(), loadPublicCustomers(), loadClosedCustomers()]);
+      await Promise.all([loadCustomers(), loadPublicCustomers(), loadClosedCustomers(), loadTodayTodoFollowupsFromDb()]);
       pinClosedCustomersViewVisible();
     }
 
@@ -3874,7 +4124,7 @@
         return;
       }
 
-      await Promise.all([loadCustomers(), loadPublicCustomers(), loadClosedCustomers()]);
+      await Promise.all([loadCustomers(), loadPublicCustomers(), loadClosedCustomers(), loadTodayTodoFollowupsFromDb()]);
       showToast(isPublic ? "已退回公海" : "认领成功，客户已回到私有列表", "success");
       pinClosedCustomersViewVisible();
     }
@@ -3897,7 +4147,7 @@
       }
 
       showSuccessCelebration("删除成功，客户已移除。");
-      await Promise.all([loadCustomers(), loadClosedCustomers()]);
+      await Promise.all([loadCustomers(), loadClosedCustomers(), loadTodayTodoFollowupsFromDb()]);
       pinClosedCustomersViewVisible();
     }
 
@@ -4050,6 +4300,8 @@
         status: customerStatusInput ? customerStatusInput.value.trim() || "新线索" : "新线索",
         is_public: false,
       };
+      const nextFollowDateVal = customerNextFollowupDateInput ? customerNextFollowupDateInput.value.trim() : "";
+      payload.next_followup_date = nextFollowDateVal ? localDateInputToNextFollowupIso(nextFollowDateVal) : null;
       if (!editingCustomerId) {
         payload.is_closed = false;
       }
@@ -4076,7 +4328,7 @@
       }
 
       closeCustomerModal();
-      await Promise.all([loadCustomers(), loadClosedCustomers()]);
+      await Promise.all([loadCustomers(), loadClosedCustomers(), loadTodayTodoFollowupsFromDb()]);
       pinClosedCustomersViewVisible();
     }
 
@@ -4141,7 +4393,7 @@
           followupFormStatusEl.className = "min-h-5 text-sm text-amber-300";
           saveFollowupBtn.disabled = false;
           await loadFollowups(customerId);
-          await Promise.all([loadCustomers(), loadClosedCustomers()]);
+          await Promise.all([loadCustomers(), loadClosedCustomers(), loadTodayTodoFollowupsFromDb()]);
           return;
         }
       }
@@ -4153,7 +4405,7 @@
       saveFollowupBtn.disabled = false;
       showToast("保存成功", "success");
       await loadFollowups(customerId);
-      await Promise.all([loadCustomers(), loadClosedCustomers()]);
+      await Promise.all([loadCustomers(), loadClosedCustomers(), loadTodayTodoFollowupsFromDb()]);
     }
 
     async function insertAutoEmailFollowup() {
@@ -4175,7 +4427,7 @@
       }
       await updateLastFollowUp(customerId);
       await loadFollowups(customerId);
-      await Promise.all([loadCustomers(), loadClosedCustomers()]);
+      await Promise.all([loadCustomers(), loadClosedCustomers(), loadTodayTodoFollowupsFromDb()]);
     }
 
     async function handleWhatsAppFromDrawer() {
@@ -4204,7 +4456,7 @@
       const mailCid = Number.parseInt(selectedCustomer.id, 10);
       if (Number.isInteger(mailCid)) {
         await updateLastFollowUp(mailCid);
-        await Promise.all([loadCustomers(), loadClosedCustomers()]);
+        await Promise.all([loadCustomers(), loadClosedCustomers(), loadTodayTodoFollowupsFromDb()]);
       }
 
       const shouldAutoFollowup = await showConfirm(
@@ -4399,9 +4651,11 @@
     function bootstrapCrmApp() {
       if (crmAppBootstrapped) return;
       crmAppBootstrapped = true;
+      initFxToolbar();
       loadCustomers();
       loadPublicCustomers();
       loadClosedCustomers();
+      loadTodayTodoFollowupsFromDb();
       loadDashboardMetrics();
       initCountryDatalist();
       updateQuotationDocumentMeta();
