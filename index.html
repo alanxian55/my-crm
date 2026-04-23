@@ -260,18 +260,18 @@
             <label class="flex shrink-0 items-center gap-1.5 whitespace-nowrap">
               <span class="text-xs text-slate-500/90">Rate:</span>
               <input
-                id="fx-rate-input-mobile"
+                id="rate-input-mobile"
                 type="number"
                 step="0.01"
                 min="0"
-                value="7.2"
+                value="7.15"
                 class="h-9 w-[4.25rem] shrink-0 rounded-lg border border-slate-600 bg-slate-900/85 px-2 py-2 text-center font-mono text-sm text-slate-100 outline-none transition focus:border-sky-500/55 focus:ring-2 focus:ring-sky-500/25"
               />
             </label>
             <label class="flex shrink-0 items-center gap-1.5 whitespace-nowrap">
               <span class="text-xs text-slate-500/90">USD:</span>
               <input
-                id="fx-usd-input-mobile"
+                id="usd-input-mobile"
                 type="number"
                 step="0.01"
                 min="0"
@@ -280,7 +280,7 @@
               />
             </label>
             <span
-              id="fx-cny-output-mobile"
+              id="cny-result-mobile"
               class="shrink-0 whitespace-nowrap pl-1 text-base font-bold tabular-nums tracking-tight text-emerald-300"
               >¥0.00</span>
           </div>
@@ -294,18 +294,18 @@
             <label class="flex min-w-0 items-center gap-2 whitespace-nowrap">
               <span class="shrink-0 text-sm text-slate-500/90">Rate:</span>
               <input
-                id="fx-rate-input"
+                id="rate-input"
                 type="number"
                 step="0.01"
                 min="0"
-                value="7.2"
+                value="7.15"
                 class="h-10 w-[5.25rem] shrink-0 rounded-lg border border-slate-600 bg-slate-900/85 px-3 py-2 text-right font-mono text-base text-slate-100 outline-none transition focus:border-sky-500/55 focus:ring-2 focus:ring-sky-500/25"
               />
             </label>
             <label class="flex min-w-0 items-center gap-2 whitespace-nowrap">
               <span class="shrink-0 text-sm text-slate-500/90">USD:</span>
               <input
-                id="fx-usd-input"
+                id="usd-input"
                 type="number"
                 step="0.01"
                 min="0"
@@ -314,7 +314,7 @@
               />
             </label>
             <span
-              id="fx-cny-output"
+              id="cny-result"
               class="min-w-[5.5rem] shrink-0 whitespace-nowrap text-lg font-bold tabular-nums tracking-tight text-emerald-300"
               >¥0.00</span>
           </div>
@@ -1364,12 +1364,6 @@
     const quotePreviewTotalEl = document.getElementById("quote-preview-total");
     const todayFollowupsListEl = document.getElementById("today-followups-list");
     const todayFollowupsBadgeEl = document.getElementById("today-followups-badge");
-    const fxRateInputEl = document.getElementById("fx-rate-input");
-    const fxUsdInputEl = document.getElementById("fx-usd-input");
-    const fxCnyOutputEl = document.getElementById("fx-cny-output");
-    const fxRateInputMobileEl = document.getElementById("fx-rate-input-mobile");
-    const fxUsdInputMobileEl = document.getElementById("fx-usd-input-mobile");
-    const fxCnyOutputMobileEl = document.getElementById("fx-cny-output-mobile");
     const customerCountryFilterLabelEl = document.getElementById("customer-country-filter-label");
     const clearCustomerCountryFilterBtn = document.getElementById("clear-customer-country-filter-btn");
     const customerSearchInput = document.getElementById("customer-search-input");
@@ -2275,67 +2269,187 @@
     }
 
     const FX_RATE_STORAGE_KEY = "crm_usd_cny_rate";
+    const FX_FALLBACK_RATE = 7.15;
+    const FX_API_ENDPOINTS = [
+      "https://api.exchangerate-api.com/v4/latest/USD",
+      "https://open.er-api.com/v6/latest/USD",
+    ];
+    const FX_API_TIMEOUT_MS = 8000;
+
+    function formatCnyDisplay(cnyNumber) {
+      const n = Number.isFinite(cnyNumber) && cnyNumber >= 0 ? cnyNumber : 0;
+      return "¥" + n.toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    async function fetchUsdToCnyRateFromApi() {
+      let lastErr = null;
+      for (let i = 0; i < FX_API_ENDPOINTS.length; i++) {
+        const controller = new AbortController();
+        const timerId = window.setTimeout(() => controller.abort(), FX_API_TIMEOUT_MS);
+        try {
+          const res = await fetch(FX_API_ENDPOINTS[i], {
+            signal: controller.signal,
+            cache: "no-store",
+          });
+          if (!res.ok) {
+            lastErr = new Error("HTTP " + res.status);
+            continue;
+          }
+          const data = await res.json();
+          const raw =
+            data && data.rates && (data.rates.CNY != null ? data.rates.CNY : data.rates.cny);
+          const n = Number.parseFloat(raw);
+          if (Number.isFinite(n) && n > 0) {
+            return n;
+          }
+          lastErr = new Error("invalid CNY in response");
+        } catch (e) {
+          lastErr = e;
+        } finally {
+          window.clearTimeout(timerId);
+        }
+      }
+      throw lastErr || new Error("fx fetch failed");
+    }
+
+    function persistFxToolbarRate(v) {
+      try {
+        window.localStorage.setItem(FX_RATE_STORAGE_KEY, String(v));
+      } catch (e) {
+        /* ignore quota / private mode */
+      }
+    }
+
+    /** 根据当前焦点在桌面/移动哪一侧，同步另一套 Rate / USD 输入框。 */
+    function syncFxDesktopMobileInputsFromFocus() {
+      const rateInput = document.getElementById("rate-input");
+      const rateInputMobile = document.getElementById("rate-input-mobile");
+      const usdInput = document.getElementById("usd-input");
+      const usdInputMobile = document.getElementById("usd-input-mobile");
+      const ae = document.activeElement;
+      if (ae === rateInput && rateInputMobile) {
+        rateInputMobile.value = rateInput.value;
+      } else if (ae === rateInputMobile && rateInput) {
+        rateInput.value = rateInputMobile.value;
+      } else if (ae === usdInput && usdInputMobile) {
+        usdInputMobile.value = usdInput.value;
+      } else if (ae === usdInputMobile && usdInput) {
+        usdInput.value = usdInputMobile.value;
+      }
+    }
+
+    /**
+     * 汇率 × 美金 → 人民币；用 parseFloat 取值，NaN / 非法即显示 ¥0.00 并 return。
+     * 结果写入 #cny-result 与 #cny-result-mobile。
+     */
+    function calculateCNY() {
+      syncFxDesktopMobileInputsFromFocus();
+
+      const rateInput = document.getElementById("rate-input");
+      const usdInput = document.getElementById("usd-input");
+      const cnyResult = document.getElementById("cny-result");
+      const cnyResultMobile = document.getElementById("cny-result-mobile");
+
+      const rateNum = rateInput ? parseFloat(String(rateInput.value).replace(/,/g, "")) : NaN;
+      const usdNum = usdInput ? parseFloat(String(usdInput.value).replace(/,/g, "")) : NaN;
+
+      const zeroDisplay = "¥0.00";
+      if (isNaN(rateNum) || isNaN(usdNum) || rateNum <= 0 || usdNum < 0) {
+        if (cnyResult) cnyResult.textContent = zeroDisplay;
+        if (cnyResultMobile) cnyResultMobile.textContent = zeroDisplay;
+        return;
+      }
+
+      const ae = document.activeElement;
+      if (
+        !isNaN(rateNum) &&
+        rateNum > 0 &&
+        (ae === rateInput || ae === document.getElementById("rate-input-mobile"))
+      ) {
+        persistFxToolbarRate(rateNum);
+      }
+
+      const formatted = formatCnyDisplay(rateNum * usdNum);
+      if (cnyResult) cnyResult.textContent = formatted;
+      if (cnyResultMobile) cnyResultMobile.textContent = formatted;
+    }
+
+    let fxCalculatorInputListenersBound = false;
+
+    /** 在 DOM 就绪后为汇率/美金输入绑定 input 监听（脚本在 body 末尾时也会立即执行）。 */
+    function setupFxCalculatorInputListeners() {
+      if (fxCalculatorInputListenersBound) return;
+      const rateInput = document.getElementById("rate-input");
+      const usdInput = document.getElementById("usd-input");
+      const rateInputMobile = document.getElementById("rate-input-mobile");
+      const usdInputMobile = document.getElementById("usd-input-mobile");
+      let bound = false;
+      if (rateInput) {
+        rateInput.addEventListener("input", calculateCNY);
+        bound = true;
+      }
+      if (usdInput) {
+        usdInput.addEventListener("input", calculateCNY);
+        bound = true;
+      }
+      if (rateInputMobile) {
+        rateInputMobile.addEventListener("input", calculateCNY);
+        bound = true;
+      }
+      if (usdInputMobile) {
+        usdInputMobile.addEventListener("input", calculateCNY);
+        bound = true;
+      }
+      if (bound) {
+        fxCalculatorInputListenersBound = true;
+      }
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", setupFxCalculatorInputListeners);
+    } else {
+      setupFxCalculatorInputListeners();
+    }
 
     function initFxToolbar() {
       const saved = window.localStorage.getItem(FX_RATE_STORAGE_KEY);
-      const initialRate = saved != null && saved !== "" ? Number.parseFloat(saved) : 7.2;
-      const rateVal = Number.isFinite(initialRate) && initialRate > 0 ? initialRate : 7.2;
-      if (fxRateInputEl) fxRateInputEl.value = String(rateVal);
-      if (fxRateInputMobileEl) fxRateInputMobileEl.value = String(rateVal);
+      const parsedSaved = saved != null && saved !== "" ? Number.parseFloat(saved) : NaN;
+      const initialRate = Number.isFinite(parsedSaved) && parsedSaved > 0 ? parsedSaved : FX_FALLBACK_RATE;
+      const rateVal = Number.isFinite(initialRate) && initialRate > 0 ? initialRate : FX_FALLBACK_RATE;
+      const rateStr = Number(rateVal).toFixed(2);
+      const rateD = document.getElementById("rate-input");
+      const rateM = document.getElementById("rate-input-mobile");
+      if (rateD) rateD.value = rateStr;
+      if (rateM) rateM.value = rateStr;
 
-      function persistRate(v) {
-        window.localStorage.setItem(FX_RATE_STORAGE_KEY, String(v));
-      }
+      calculateCNY();
 
-      function computeAndRender() {
-        const rDesktop = fxRateInputEl ? Number.parseFloat(fxRateInputEl.value) : NaN;
-        const rMobile = fxRateInputMobileEl ? Number.parseFloat(fxRateInputMobileEl.value) : NaN;
-        const rate = Number.isFinite(rDesktop) && rDesktop > 0 ? rDesktop : Number.isFinite(rMobile) && rMobile > 0 ? rMobile : 7.2;
-        const usdRaw = fxUsdInputEl ? fxUsdInputEl.value : "";
-        const usdMobRaw = fxUsdInputMobileEl ? fxUsdInputMobileEl.value : "";
-        const usdStr = usdRaw !== "" ? usdRaw : usdMobRaw;
-        const usd = Number.parseFloat(usdStr);
-        const amount = Number.isFinite(usd) && usd >= 0 ? usd : 0;
-        const cny = amount * rate;
-        const formatted = "¥" + cny.toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        if (fxCnyOutputEl) fxCnyOutputEl.textContent = formatted;
-        if (fxCnyOutputMobileEl) fxCnyOutputMobileEl.textContent = formatted;
-      }
-
-      function syncRatePair(fromDesktop) {
-        if (fromDesktop) {
-          if (fxRateInputMobileEl && fxRateInputEl) fxRateInputMobileEl.value = fxRateInputEl.value;
-        } else {
-          if (fxRateInputEl && fxRateInputMobileEl) fxRateInputEl.value = fxRateInputMobileEl.value;
+      void (async () => {
+        try {
+          const live = await fetchUsdToCnyRateFromApi();
+          const rounded = Number(live.toFixed(2));
+          if (Number.isFinite(rounded) && rounded > 0) {
+            const rd = document.getElementById("rate-input");
+            const rm = document.getElementById("rate-input-mobile");
+            if (rd) rd.value = String(rounded);
+            if (rm) rm.value = String(rounded);
+            persistFxToolbarRate(rounded);
+            calculateCNY();
+          }
+        } catch (e) {
+          const rd = document.getElementById("rate-input");
+          const cur = rd ? Number.parseFloat(String(rd.value).replace(/,/g, "")) : NaN;
+          if (!Number.isFinite(cur) || cur <= 0) {
+            const fb = FX_FALLBACK_RATE.toFixed(2);
+            const rd2 = document.getElementById("rate-input");
+            const rm2 = document.getElementById("rate-input-mobile");
+            if (rd2) rd2.value = fb;
+            if (rm2) rm2.value = fb;
+            persistFxToolbarRate(FX_FALLBACK_RATE);
+            calculateCNY();
+          }
         }
-        const r = fxRateInputEl ? Number.parseFloat(fxRateInputEl.value) : 7.2;
-        if (Number.isFinite(r) && r > 0) persistRate(r);
-        computeAndRender();
-      }
-
-      function syncUsdPair(fromDesktop) {
-        if (fromDesktop) {
-          if (fxUsdInputMobileEl && fxUsdInputEl) fxUsdInputMobileEl.value = fxUsdInputEl.value;
-        } else {
-          if (fxUsdInputEl && fxUsdInputMobileEl) fxUsdInputEl.value = fxUsdInputMobileEl.value;
-        }
-        computeAndRender();
-      }
-
-      if (fxRateInputEl) {
-        fxRateInputEl.addEventListener("input", () => syncRatePair(true));
-      }
-      if (fxRateInputMobileEl) {
-        fxRateInputMobileEl.addEventListener("input", () => syncRatePair(false));
-      }
-      if (fxUsdInputEl) {
-        fxUsdInputEl.addEventListener("input", () => syncUsdPair(true));
-      }
-      if (fxUsdInputMobileEl) {
-        fxUsdInputMobileEl.addEventListener("input", () => syncUsdPair(false));
-      }
-
-      computeAndRender();
+      })();
     }
 
     async function updateLastFollowUp(customerId) {
