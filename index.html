@@ -118,7 +118,7 @@
     }
   </style>
 </head>
-<body class="min-h-screen bg-slate-950 text-slate-100">
+<body class="min-h-screen max-w-[100vw] overflow-x-hidden bg-slate-950 text-slate-100">
   <div
     id="login-view"
     class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950 px-4"
@@ -167,64 +167,96 @@
     </div>
   </div>
 
-  <div id="app-container" class="hidden flex min-h-screen">
-    <aside class="w-72 bg-slate-900/95 border-r border-slate-800 p-6 flex flex-col">
-      <div class="mb-10">
-        <p class="text-xs uppercase tracking-[0.28em] text-indigo-400/80">MyCRM</p>
-        <h1 class="mt-2 text-2xl font-semibold text-white">HI，Alan</h1>
+  <div
+    id="app-container"
+    class="hidden flex min-h-screen w-full max-w-[100vw] flex-col overflow-x-hidden bg-slate-950 md:flex-row"
+  >
+    <header
+      id="mobile-app-top-bar"
+      class="sticky top-0 z-[70] flex h-11 shrink-0 items-center justify-between border-b border-slate-800/80 bg-slate-950/95 px-3 py-1.5 text-sm backdrop-blur-md md:hidden"
+    >
+      <div class="flex min-w-0 items-center gap-2">
+        <span class="shrink-0 text-[0.65rem] font-bold uppercase tracking-[0.22em] text-indigo-400">MyCRM</span>
+        <span class="truncate text-xs font-medium text-slate-400">外贸 CRM</span>
+      </div>
+      <button
+        id="mobile-sidebar-open-btn"
+        type="button"
+        class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-600/80 bg-slate-800/80 text-base leading-none text-slate-100 outline-none transition hover:border-cyan-500/50 hover:bg-slate-800 focus-visible:ring-2 focus-visible:ring-cyan-500/40"
+        aria-controls="app-sidebar"
+        aria-expanded="false"
+        aria-label="打开导航菜单"
+      >
+        <span aria-hidden="true">☰</span>
+      </button>
+    </header>
+
+    <div
+      id="mobile-sidebar-overlay"
+      class="fixed inset-0 z-[50] hidden bg-black/60 backdrop-blur-[1px] md:hidden"
+      aria-hidden="true"
+    ></div>
+
+    <aside
+      id="app-sidebar"
+      class="fixed inset-y-0 left-0 z-[60] flex h-full w-[min(18rem,88vw)] -translate-x-full flex-col overflow-y-auto overscroll-contain border-r border-slate-800 bg-slate-900/[0.98] p-4 shadow-2xl transition-transform duration-300 ease-out md:relative md:inset-auto md:z-auto md:h-auto md:min-h-screen md:w-72 md:max-w-none md:bg-slate-900/95 md:p-6 md:shadow-none md:!translate-x-0"
+    >
+      <div class="mb-6 md:mb-10">
+        <p class="text-[0.65rem] uppercase tracking-[0.28em] text-indigo-400/80 md:text-xs">MyCRM</p>
+        <h1 class="mt-1.5 text-xl font-semibold text-white md:mt-2 md:text-2xl">HI，Alan</h1>
       </div>
 
-      <nav class="space-y-2">
-        <a id="nav-dashboard" href="#" class="flex items-center gap-3 rounded-xl bg-indigo-500/20 px-4 py-3 text-indigo-200 border border-indigo-400/30 shadow-glow">
+      <nav class="space-y-1.5 md:space-y-2">
+        <a id="nav-dashboard" href="#" class="flex items-center gap-2.5 rounded-xl border border-indigo-400/30 bg-indigo-500/20 px-3 py-2.5 text-sm text-indigo-200 shadow-glow md:gap-3 md:px-4 md:py-3 md:text-base">
           <span class="h-2.5 w-2.5 rounded-full bg-indigo-300"></span>
           <span class="font-medium">工作台</span>
         </a>
         <button
           id="nav-insights-btn"
           type="button"
-          class="flex w-full items-center gap-3 rounded-xl border border-slate-700/80 bg-slate-800/40 px-4 py-3 text-left text-slate-200 transition hover:border-cyan-500/40 hover:bg-slate-800/80 hover:text-white"
+          class="flex w-full items-center gap-2.5 rounded-xl border border-slate-700/80 bg-slate-800/40 px-3 py-2.5 text-left text-sm text-slate-200 transition hover:border-cyan-500/40 hover:bg-slate-800/80 hover:text-white md:gap-3 md:px-4 md:py-3 md:text-base"
         >
           <span class="h-2.5 w-2.5 rounded-full bg-cyan-400/90"></span>
           <span class="font-medium">数据洞察</span>
         </button>
-        <a id="nav-public-pool" href="#" class="flex items-center gap-3 rounded-xl px-4 py-3 text-slate-100/90 hover:bg-slate-800/70 hover:text-white transition">
+        <a id="nav-public-pool" href="#" class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm text-slate-100/90 transition hover:bg-slate-800/70 hover:text-white md:gap-3 md:px-4 md:py-3 md:text-base">
           <span class="h-2.5 w-2.5 rounded-full bg-cyan-300"></span>
           <span class="font-medium">客户公海</span>
         </a>
-        <a id="nav-closed-customers" href="#" class="flex items-center gap-3 rounded-xl px-4 py-3 text-slate-100/90 hover:bg-slate-800/70 hover:text-white transition">
+        <a id="nav-closed-customers" href="#" class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm text-slate-100/90 transition hover:bg-slate-800/70 hover:text-white md:gap-3 md:px-4 md:py-3 md:text-base">
           <span class="h-2.5 w-2.5 rounded-full bg-rose-300"></span>
           <span class="font-medium">成交老客户</span>
         </a>
-        <a id="nav-sales-report" href="#" class="flex items-center gap-3 rounded-xl px-4 py-3 text-slate-100/90 hover:bg-slate-800/70 hover:text-white transition">
+        <a id="nav-sales-report" href="#" class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm text-slate-100/90 transition hover:bg-slate-800/70 hover:text-white md:gap-3 md:px-4 md:py-3 md:text-base">
           <span class="h-2.5 w-2.5 rounded-full bg-pink-300"></span>
           <span class="font-medium">销售报表</span>
         </a>
-        <a id="nav-quotations" href="#" class="flex items-center gap-3 rounded-xl px-4 py-3 text-slate-100/90 hover:bg-slate-800/70 hover:text-white transition">
+        <a id="nav-quotations" href="#" class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm text-slate-100/90 transition hover:bg-slate-800/70 hover:text-white md:gap-3 md:px-4 md:py-3 md:text-base">
           <span class="h-2.5 w-2.5 rounded-full bg-amber-300"></span>
           <span class="font-medium">报价单</span>
         </a>
-        <a id="nav-products" href="#" class="flex items-center gap-3 rounded-xl px-4 py-3 text-slate-100/90 hover:bg-slate-800/70 hover:text-white transition">
+        <a id="nav-products" href="#" class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm text-slate-100/90 transition hover:bg-slate-800/70 hover:text-white md:gap-3 md:px-4 md:py-3 md:text-base">
           <span class="h-2.5 w-2.5 rounded-full bg-violet-300"></span>
           <span class="font-medium">产品管理</span>
         </a>
-        <a id="nav-holidays" href="#" class="flex items-center gap-3 rounded-xl px-4 py-3 text-slate-100/90 hover:bg-slate-800/70 hover:text-white transition">
+        <a id="nav-holidays" href="#" class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm text-slate-100/90 transition hover:bg-slate-800/70 hover:text-white md:gap-3 md:px-4 md:py-3 md:text-base">
           <span class="h-2.5 w-2.5 rounded-full bg-sky-300"></span>
           <span class="font-medium">全球节日</span>
         </a>
       </nav>
 
-      <div class="mt-6 border-t border-slate-800 pt-5">
+      <div class="mt-4 border-t border-slate-800 pt-4 md:mt-6 md:pt-5">
         <button
           id="logout-btn"
           type="button"
-          class="w-full rounded-xl border border-rose-500/45 bg-rose-500/15 px-4 py-3 text-center text-sm font-medium text-rose-200 transition hover:bg-rose-500/25 hover:text-white"
+          class="w-full rounded-xl border border-rose-500/45 bg-rose-500/15 px-3 py-2.5 text-center text-xs font-medium text-rose-200 transition hover:bg-rose-500/25 hover:text-white md:px-4 md:py-3 md:text-sm"
         >
           退出登录 (Logout)
         </button>
       </div>
 
-      <div class="mt-auto rounded-2xl border border-slate-800 bg-slate-800/40 p-4 transition-all hover:border-blue-500/50">
-        <p class="text-sm text-slate-300">今日线索跟进率</p>
+      <div class="mt-auto rounded-xl border border-slate-800 bg-slate-800/40 p-3 transition-all hover:border-blue-500/50 md:rounded-2xl md:p-4">
+        <p class="text-xs text-slate-300 md:text-sm">今日线索跟进率</p>
         <div class="mt-3 h-2 rounded-full bg-slate-700 overflow-hidden">
           <div class="h-full w-3/4 rounded-full bg-gradient-to-r from-indigo-400 via-cyan-400 to-emerald-400"></div>
         </div>
@@ -232,10 +264,12 @@
       </div>
     </aside>
 
-    <main class="flex flex-1 min-w-0 flex-col bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+    <main
+      class="flex w-full min-w-0 flex-1 flex-col overflow-x-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 md:min-h-0"
+    >
       <header
         id="top-app-bar"
-        class="sticky top-0 z-30 flex min-h-[3.25rem] shrink-0 flex-col gap-2 border-b border-slate-800/70 bg-slate-950/92 px-3 py-2.5 backdrop-blur-md sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-3 sm:px-6 lg:px-10"
+        class="sticky top-0 z-30 flex min-h-[3rem] shrink-0 flex-col gap-2 border-b border-slate-800/70 bg-slate-950/92 px-3 py-2 text-sm backdrop-blur-md sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-3 sm:px-6 sm:text-base sm:py-2.5 lg:px-10"
       >
         <div class="relative w-full min-w-0 sm:max-w-xl sm:flex-1 lg:max-w-3xl">
           <span class="pointer-events-none absolute inset-y-0 left-4 flex items-center text-slate-400" aria-hidden="true">
@@ -248,7 +282,7 @@
             type="search"
             enterkeyhint="search"
             autocomplete="off"
-            class="w-full rounded-2xl border border-slate-600/80 bg-slate-800/90 py-3 pl-12 pr-4 text-base text-slate-100 shadow-inner outline-none transition placeholder:text-slate-500 focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/25"
+            class="w-full rounded-2xl border border-slate-600/80 bg-slate-800/90 py-2.5 pl-11 pr-3 text-sm text-slate-100 shadow-inner outline-none transition placeholder:text-slate-500 focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/25 sm:py-3 sm:pl-12 sm:pr-4 sm:text-base"
             placeholder="全局搜索：公司 / 联系人 / 邮箱 / 手机"
           />
         </div>
@@ -321,48 +355,48 @@
         </div>
       </header>
 
-      <div class="flex-1 overflow-x-hidden p-4 sm:p-8 lg:p-10">
+      <div class="flex-1 overflow-x-hidden p-3 sm:p-6 md:p-8 lg:p-10">
       <div id="dashboard-view">
-      <header class="mb-8">
-        <p class="text-sm text-slate-400">欢迎回来，销售总监</p>
-        <h2 class="mt-2 text-3xl lg:text-4xl font-bold tracking-tight">
+      <header class="mb-5 md:mb-8">
+        <p class="text-xs text-slate-400 sm:text-sm">欢迎回来，销售总监</p>
+        <h2 class="mt-1.5 text-2xl font-bold tracking-tight sm:mt-2 sm:text-3xl lg:text-4xl">
           业务数据看板
         </h2>
       </header>
 
-      <section class="grid gap-6 md:grid-cols-3">
-        <article class="relative overflow-hidden rounded-2xl border border-indigo-400/30 bg-slate-900/60 p-6 shadow-glow backdrop-blur transition-all hover:border-blue-500/50">
+      <section class="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-3">
+        <article class="relative overflow-hidden rounded-2xl border border-indigo-400/30 bg-slate-900/60 p-4 shadow-glow backdrop-blur transition-all hover:border-blue-500/50 md:p-6">
           <div class="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-indigo-500/20 blur-2xl"></div>
-          <p class="text-sm text-slate-300">本月新增线索</p>
-          <p id="kpi-customers-total" class="mt-4 text-4xl font-bold text-white">--</p>
+          <p class="text-xs text-slate-300 sm:text-sm">本月新增线索</p>
+          <p id="kpi-customers-total" class="mt-3 text-3xl font-bold text-white sm:mt-4 sm:text-4xl">--</p>
           <p class="mt-3 text-sm text-emerald-300">+18.4% 较上月增长</p>
         </article>
 
-        <article class="relative overflow-hidden rounded-2xl border border-cyan-400/30 bg-slate-900/60 p-6 shadow-glow backdrop-blur transition-all hover:border-blue-500/50">
+        <article class="relative overflow-hidden rounded-2xl border border-cyan-400/30 bg-slate-900/60 p-4 shadow-glow backdrop-blur transition-all hover:border-blue-500/50 md:p-6">
           <div class="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-cyan-500/20 blur-2xl"></div>
-          <p class="text-sm text-slate-300">发件数量</p>
-          <p id="kpi-email-followups-total" class="mt-4 text-4xl font-bold text-white">--</p>
+          <p class="text-xs text-slate-300 sm:text-sm">发件数量</p>
+          <p id="kpi-email-followups-total" class="mt-3 text-3xl font-bold text-white sm:mt-4 sm:text-4xl">--</p>
           <p class="mt-3 text-sm text-cyan-300">平均回复率 27.6%</p>
         </article>
 
-        <article class="relative overflow-hidden rounded-2xl border border-emerald-400/30 bg-slate-900/60 p-6 shadow-glow backdrop-blur transition-all hover:border-blue-500/50">
+        <article class="relative overflow-hidden rounded-2xl border border-emerald-400/30 bg-slate-900/60 p-4 shadow-glow backdrop-blur transition-all hover:border-blue-500/50 md:p-6">
           <div class="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-emerald-500/20 blur-2xl"></div>
-          <p class="text-sm text-slate-300">成单金额</p>
-          <p id="kpi-orders-total-amount" class="mt-4 text-4xl font-bold text-white">$0.00</p>
+          <p class="text-xs text-slate-300 sm:text-sm">成单金额</p>
+          <p id="kpi-orders-total-amount" class="mt-3 text-3xl font-bold text-white sm:mt-4 sm:text-4xl">$0.00</p>
           <p id="kpi-orders-count" class="mt-3 text-sm text-emerald-300">已签 0 单</p>
         </article>
       </section>
 
-      <section class="mt-8 grid gap-6 lg:grid-cols-5">
-        <div class="lg:col-span-3 rounded-2xl border border-slate-800 bg-slate-900/50 p-6 transition-all hover:border-blue-500/50">
-          <h3 class="text-lg font-semibold text-white">每月成交趋势</h3>
-          <div class="mt-4 relative h-64 w-full">
+      <section class="mt-6 grid grid-cols-1 gap-4 sm:mt-8 sm:gap-6 lg:grid-cols-5">
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/50 p-4 transition-all hover:border-blue-500/50 sm:p-6 lg:col-span-3">
+          <h3 class="text-base font-semibold text-white sm:text-lg">每月成交趋势</h3>
+          <div class="mt-3 relative h-52 w-full sm:mt-4 sm:h-64">
             <canvas id="revenue-chart"></canvas>
           </div>
         </div>
 
-        <div class="lg:col-span-2 flex flex-col gap-6">
-          <div class="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 transition-all hover:border-blue-500/50">
+        <div class="flex flex-col gap-4 sm:gap-6 lg:col-span-2">
+          <div class="rounded-2xl border border-slate-800 bg-slate-900/50 p-4 transition-all hover:border-blue-500/50 sm:p-6">
             <div class="flex flex-wrap items-start justify-between gap-2">
               <div>
                 <h3 class="flex flex-wrap items-center gap-2 text-lg font-semibold text-white">
@@ -379,7 +413,7 @@
         </div>
       </section>
 
-      <section class="mt-8 rounded-2xl border border-slate-800 bg-slate-900/50 p-6 transition-all hover:border-blue-500/50">
+      <section class="mt-6 rounded-2xl border border-slate-800 bg-slate-900/50 p-4 transition-all hover:border-blue-500/50 sm:mt-8 sm:p-6">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div class="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
             <h3 class="text-lg font-semibold text-white">客户列表</h3>
@@ -2409,6 +2443,78 @@
       document.addEventListener("DOMContentLoaded", setupFxCalculatorInputListeners);
     } else {
       setupFxCalculatorInputListeners();
+    }
+
+    /** 移动端：抽屉侧栏 + 遮罩；md 及以上保持内联侧栏。 */
+    function initMobileSidebarDrawer() {
+      const openBtn = document.getElementById("mobile-sidebar-open-btn");
+      const overlay = document.getElementById("mobile-sidebar-overlay");
+      const sidebar = document.getElementById("app-sidebar");
+      if (!openBtn || !overlay || !sidebar) return;
+
+      const mqMd = window.matchMedia("(min-width: 768px)");
+
+      function isMdUp() {
+        return mqMd.matches;
+      }
+
+      function closeDrawer() {
+        overlay.classList.add("hidden");
+        overlay.setAttribute("aria-hidden", "true");
+        openBtn.setAttribute("aria-expanded", "false");
+        sidebar.classList.add("-translate-x-full");
+        sidebar.classList.remove("translate-x-0");
+        document.body.classList.remove("overflow-hidden");
+      }
+
+      function openDrawer() {
+        if (isMdUp()) return;
+        sidebar.classList.remove("-translate-x-full");
+        sidebar.classList.add("translate-x-0");
+        overlay.classList.remove("hidden");
+        overlay.setAttribute("aria-hidden", "false");
+        openBtn.setAttribute("aria-expanded", "true");
+        document.body.classList.add("overflow-hidden");
+      }
+
+      openBtn.addEventListener("click", () => {
+        if (isMdUp()) return;
+        if (openBtn.getAttribute("aria-expanded") === "true") {
+          closeDrawer();
+        } else {
+          openDrawer();
+        }
+      });
+
+      overlay.addEventListener("click", closeDrawer);
+
+      sidebar.addEventListener("click", (e) => {
+        const el = e.target instanceof Element ? e.target.closest("a, button") : null;
+        if (!el || !sidebar.contains(el)) return;
+        closeDrawer();
+      });
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key !== "Escape") return;
+        if (overlay.classList.contains("hidden")) return;
+        closeDrawer();
+      });
+
+      if (typeof mqMd.addEventListener === "function") {
+        mqMd.addEventListener("change", () => {
+          closeDrawer();
+        });
+      } else if (typeof mqMd.addListener === "function") {
+        mqMd.addListener(() => {
+          closeDrawer();
+        });
+      }
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initMobileSidebarDrawer);
+    } else {
+      initMobileSidebarDrawer();
     }
 
     function initFxToolbar() {
