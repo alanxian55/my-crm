@@ -5,8 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <!-- Supabase：请在 SQL 中执行（若尚未建列）——
        alter table customers add column if not exists status text default '新线索';
+       看板列 status 可与：新线索、已报价、谈判中、准备打款 对齐（亦支持已寄样、已成单、暂无意向等）
        alter table customers add column if not exists last_follow_up timestamptz;
-       alter table customers add column if not exists next_followup_date timestamptz; -->
+       alter table customers add column if not exists next_followup_date timestamptz;
+       alter table customer_followups add column if not exists screenshot_url text;
+       alter table customers add column if not exists tags text default '[]';
+       （应用内以 JSON 数组文本存储，例如 [] 或 ["高意向","展会客户"]；兼容旧版逗号分隔。）
+       另请在 Storage 创建公开桶 followup-screenshots，并配置允许已登录用户上传/读取（与 anon 策略一致）。 -->
   <title>外贸 CRM 工作台</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -21,6 +26,7 @@
     };
   </script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet" />
@@ -110,10 +116,6 @@
     #followup-list::-webkit-scrollbar-thumb:hover {
       background: rgba(148, 163, 184, 0.6);
     }
-    .followup-card {
-      overflow-wrap: break-word;
-      word-break: break-all;
-    }
   </style>
 </head>
 <body class="min-h-screen bg-slate-950 text-slate-100">
@@ -177,6 +179,14 @@
           <span class="h-2.5 w-2.5 rounded-full bg-indigo-300"></span>
           <span class="font-medium">工作台</span>
         </a>
+        <button
+          id="nav-insights-btn"
+          type="button"
+          class="flex w-full items-center gap-3 rounded-xl border border-slate-700/80 bg-slate-800/40 px-4 py-3 text-left text-slate-200 transition hover:border-cyan-500/40 hover:bg-slate-800/80 hover:text-white"
+        >
+          <span class="h-2.5 w-2.5 rounded-full bg-cyan-400/90"></span>
+          <span class="font-medium">数据洞察</span>
+        </button>
         <a id="nav-public-pool" href="#" class="flex items-center gap-3 rounded-xl px-4 py-3 text-slate-100/90 hover:bg-slate-800/70 hover:text-white transition">
           <span class="h-2.5 w-2.5 rounded-full bg-cyan-300"></span>
           <span class="font-medium">客户公海</span>
@@ -225,9 +235,24 @@
     <main class="flex flex-1 min-w-0 flex-col bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
       <header
         id="top-app-bar"
-        class="sticky top-0 z-30 flex min-h-[3.25rem] shrink-0 flex-wrap items-center justify-end gap-2 border-b border-slate-800/70 bg-slate-950/92 px-3 py-2 backdrop-blur-md sm:flex-nowrap sm:px-6 lg:px-10"
+        class="sticky top-0 z-30 flex min-h-[3.25rem] shrink-0 flex-col gap-2 border-b border-slate-800/70 bg-slate-950/92 px-3 py-2.5 backdrop-blur-md sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-3 sm:px-6 lg:px-10"
       >
-        <div id="fx-widget-mobile" class="flex min-w-0 flex-1 basis-full items-center justify-end sm:hidden">
+        <div class="relative w-full min-w-0 sm:max-w-xl sm:flex-1 lg:max-w-3xl">
+          <span class="pointer-events-none absolute inset-y-0 left-4 flex items-center text-slate-400" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z" />
+            </svg>
+          </span>
+          <input
+            id="global-customer-search"
+            type="search"
+            enterkeyhint="search"
+            autocomplete="off"
+            class="w-full rounded-2xl border border-slate-600/80 bg-slate-800/90 py-3 pl-12 pr-4 text-base text-slate-100 shadow-inner outline-none transition placeholder:text-slate-500 focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/25"
+            placeholder="全局搜索：公司 / 联系人 / 邮箱 / 手机"
+          />
+        </div>
+        <div id="fx-widget-mobile" class="flex min-w-0 w-full items-center justify-end sm:hidden sm:w-auto">
           <div
             class="flex max-w-full items-center gap-x-2 gap-y-1 overflow-x-auto rounded-xl border border-slate-600/35 bg-slate-800/50 px-3 py-2 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] [scrollbar-width:thin]"
           >
@@ -261,7 +286,7 @@
           </div>
         </div>
 
-        <div id="fx-widget-desktop" class="hidden w-full min-w-0 justify-end sm:flex sm:w-auto">
+        <div id="fx-widget-desktop" class="hidden w-full min-w-0 shrink-0 justify-end sm:flex sm:w-auto">
           <div
             class="flex w-full flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-slate-600/35 bg-slate-800/50 px-4 py-2.5 text-base text-slate-200 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] sm:w-auto sm:flex-nowrap"
           >
@@ -355,12 +380,35 @@
       </section>
 
       <section class="mt-8 rounded-2xl border border-slate-800 bg-slate-900/50 p-6 transition-all hover:border-blue-500/50">
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <h3 class="text-lg font-semibold text-white">客户列表</h3>
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div class="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+            <h3 class="text-lg font-semibold text-white">客户列表</h3>
+            <div
+              id="customer-dashboard-view-toggle"
+              class="inline-flex shrink-0 rounded-xl border border-slate-600/60 bg-slate-800/60 p-1 shadow-inner"
+              role="group"
+              aria-label="客户列表视图切换"
+            >
+              <button
+                id="btn-dashboard-view-list"
+                type="button"
+                class="rounded-lg px-3 py-1.5 text-xs font-medium text-cyan-100 transition sm:text-sm"
+              >
+                ≡ 列表视图
+              </button>
+              <button
+                id="btn-dashboard-view-kanban"
+                type="button"
+                class="rounded-lg px-3 py-1.5 text-xs font-medium text-slate-400 transition hover:text-white sm:text-sm"
+              >
+                ◫ 看板视图
+              </button>
+            </div>
+          </div>
           <div class="flex flex-wrap items-center gap-3">
             <div class="relative min-w-0 flex-1 sm:max-w-xs">
               <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">🔍</span>
-              <input id="customer-search-input" type="text" class="w-full rounded-xl border border-slate-700 bg-slate-800/80 py-2.5 pl-9 pr-3 text-sm text-slate-100 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/30 sm:py-2" placeholder="搜索公司/邮箱/联系人/国家/状态" />
+              <input id="customer-search-input" type="text" class="w-full rounded-xl border border-slate-700 bg-slate-800/80 py-2.5 pl-9 pr-3 text-sm text-slate-100 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/30 sm:py-2" placeholder="筛选（与顶部搜索同步）" />
             </div>
             <p id="customers-status" class="text-sm text-slate-400">加载中...</p>
             <p id="customer-country-filter-label" class="hidden rounded-lg border border-sky-400/40 bg-sky-500/15 px-2 py-1 text-xs text-sky-200"></p>
@@ -381,7 +429,26 @@
             </button>
           </div>
         </div>
-        <div class="mt-4 -mx-1 overflow-x-auto sm:mx-0">
+        <div
+          id="customer-tag-filter-bar"
+          class="mt-3 hidden flex flex-col gap-2 rounded-xl border border-slate-800/80 bg-slate-900/40 px-3 py-2.5 sm:flex-row sm:flex-wrap sm:items-center"
+        >
+          <div class="flex shrink-0 flex-wrap items-center gap-2">
+            <span class="text-xs font-medium uppercase tracking-wide text-slate-500">标签筛选</span>
+            <button
+              id="customer-tag-filter-clear"
+              type="button"
+              class="rounded-lg border border-slate-600 px-2 py-1 text-xs text-slate-300 transition hover:bg-slate-800 hover:text-white"
+            >
+              全部
+            </button>
+          </div>
+          <div id="customer-tag-filter-chips" class="flex min-h-0 flex-wrap gap-1.5"></div>
+        </div>
+        <div id="customer-kanban-shell" class="mt-4 hidden min-h-[min(52vh,560px)] w-full">
+          <div id="customer-kanban-board" class="flex min-h-0 gap-4 overflow-x-auto pb-2 pt-1 [scrollbar-width:thin]"></div>
+        </div>
+        <div id="customer-table-shell" class="mt-4 -mx-1 overflow-x-auto sm:mx-0">
           <table class="min-w-[860px] w-full text-sm">
             <thead class="bg-slate-800/70 text-slate-200">
               <tr>
@@ -788,10 +855,23 @@
           </select>
         </div>
         <div>
+          <label for="customer-tags" class="mb-1 block text-sm text-slate-300">客户标签</label>
+          <textarea
+            id="customer-tags"
+            name="tags"
+            rows="2"
+            class="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/30"
+            placeholder="多个标签用逗号或回车分隔，例如：高意向、展会客户"
+          ></textarea>
+          <p class="mt-1 text-xs text-slate-500">保存为 JSON 数组（如 [] 或 [&quot;高意向&quot;]），列表与筛选会自动解析。</p>
+        </div>
+        <div>
           <label for="customer-status" class="mb-1 block text-sm text-slate-300">跟进状态</label>
           <select id="customer-status" name="status" class="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-2 text-slate-100 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/30">
             <option value="新线索">🆕 新线索</option>
+            <option value="已报价">📋 已报价</option>
             <option value="谈判中">💬 谈判中</option>
+            <option value="准备打款">💰 准备打款</option>
             <option value="已寄样">📦 已寄样</option>
             <option value="已成单">✅ 已成单</option>
             <option value="暂无意向">🛑 暂无意向</option>
@@ -814,6 +894,62 @@
           <button id="submit-customer-btn" type="submit" class="rounded-xl border border-emerald-400/50 bg-emerald-500/20 px-4 py-3 text-sm font-medium text-emerald-200 transition hover:bg-emerald-500/30 hover:text-white sm:py-2">提交客户</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <div
+    id="insights-modal"
+    class="fixed inset-0 z-[120] hidden min-h-0 flex-col bg-gradient-to-b from-slate-950 via-slate-950 to-slate-900 text-slate-100"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="insights-modal-title"
+  >
+    <header
+      class="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-cyan-500/15 bg-slate-950/90 px-4 py-3 backdrop-blur sm:px-6"
+    >
+      <div>
+        <h2 id="insights-modal-title" class="text-lg font-semibold tracking-tight text-white">数据洞察</h2>
+        <p class="mt-0.5 text-xs text-slate-500">实时统计 · 私有未成交客户与跟进记录</p>
+      </div>
+      <button
+        id="close-insights-modal-btn"
+        type="button"
+        class="rounded-xl border border-slate-600 px-4 py-2 text-sm text-slate-200 transition hover:border-cyan-400/50 hover:bg-slate-800 hover:text-white"
+      >
+        关闭
+      </button>
+    </header>
+    <div class="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
+      <p id="insights-modal-status" class="mb-4 min-h-[1.25rem] text-sm text-slate-400"></p>
+      <div class="grid gap-4 lg:grid-cols-2">
+        <article
+          class="rounded-2xl border border-cyan-500/20 bg-slate-900/85 p-4 shadow-[0_0_40px_-12px_rgba(34,211,238,0.35)] sm:p-5"
+        >
+          <h3 class="text-sm font-semibold text-cyan-100/95">客户分布（国家）</h3>
+          <p class="mt-0.5 text-xs text-slate-500">按国家字段统计当前列表同源客户</p>
+          <div class="relative mt-3 h-56 w-full sm:h-64">
+            <canvas id="insight-country-chart" aria-label="客户国家分布饼图"></canvas>
+          </div>
+        </article>
+        <article
+          class="rounded-2xl border border-violet-500/20 bg-slate-900/85 p-4 shadow-[0_0_40px_-12px_rgba(167,139,250,0.3)] sm:p-5"
+        >
+          <h3 class="text-sm font-semibold text-violet-100/95">跟进漏斗</h3>
+          <p class="mt-0.5 text-xs text-slate-500">各阶段客户数量（新线索 · 已报价 · 谈判中 · 准备打款）</p>
+          <div class="relative mt-3 h-56 w-full sm:h-64">
+            <canvas id="insight-funnel-chart" aria-label="跟进漏斗图"></canvas>
+          </div>
+        </article>
+        <article
+          class="rounded-2xl border border-emerald-500/20 bg-slate-900/85 p-4 shadow-[0_0_40px_-12px_rgba(52,211,153,0.28)] sm:p-5 lg:col-span-2"
+        >
+          <h3 class="text-sm font-semibold text-emerald-100/95">近 7 天跟进趋势</h3>
+          <p class="mt-0.5 text-xs text-slate-500">按 customer_followups.created_at 按日汇总</p>
+          <div class="relative mt-3 h-52 w-full sm:h-56">
+            <canvas id="insight-weekly-followups-chart" aria-label="周跟进趋势图"></canvas>
+          </div>
+        </article>
+      </div>
     </div>
   </div>
 
@@ -898,7 +1034,7 @@
   </div>
 
   <div id="followup-drawer-overlay" class="fixed inset-0 z-40 hidden bg-slate-950/60 backdrop-blur-sm"></div>
-  <aside id="followup-drawer" class="fixed right-3 top-3 z-50 h-[calc(100vh-1.5rem)] w-full max-w-[980px] translate-x-[110%] rounded-2xl border border-slate-700 bg-slate-900/95 p-4 shadow-2xl transition-transform duration-300 overflow-hidden">
+  <aside id="followup-drawer" class="fixed right-3 top-3 z-50 h-[calc(100vh-1.5rem)] w-full max-w-[min(100vw-1.5rem,1280px)] translate-x-[110%] rounded-2xl border border-slate-700 bg-slate-900/95 p-4 shadow-2xl transition-transform duration-300 overflow-hidden xl:p-5">
     <div class="flex items-center justify-between">
       <div>
         <h3 class="text-lg font-semibold text-white">客户跟进详情</h3>
@@ -907,10 +1043,21 @@
       <button id="close-followup-drawer-btn" type="button" class="rounded-lg px-2 py-1 text-slate-400 transition hover:bg-slate-800 hover:text-white">✕</button>
     </div>
 
-    <div class="mt-3 grid h-[calc(100%-48px)] grid-cols-1 gap-3 lg:grid-cols-2">
-      <section class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 overflow-y-auto">
+    <div
+      class="mt-3 grid h-[calc(100%-52px)] min-h-0 grid-cols-1 gap-4 lg:grid-cols-[minmax(260px,30%)_minmax(0,1fr)] lg:gap-5 xl:grid-cols-[minmax(280px,26%)_minmax(0,1fr)]"
+    >
+      <section
+        class="max-h-[38vh] min-h-0 overflow-y-auto rounded-2xl border border-slate-800 bg-slate-900/60 p-4 lg:max-h-[min(100%,calc(100vh-9rem))] lg:overflow-y-auto xl:self-start"
+      >
         <h4 class="text-sm font-semibold text-white">客户基础信息</h4>
         <div class="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+          <div
+            id="followup-customer-tags-block"
+            class="hidden rounded-lg border border-slate-700/60 bg-slate-800/50 px-3 py-2 sm:col-span-2"
+          >
+            <span class="text-xs text-slate-400">🏷️ 标签</span>
+            <div id="followup-customer-tags" class="mt-1.5 flex min-h-0 flex-wrap gap-1.5"></div>
+          </div>
           <div class="rounded-lg bg-slate-800/70 px-3 py-2 text-slate-200"><span class="text-slate-400">🏢 公司名称</span><p id="followup-customer-company" class="mt-1 break-words">-</p></div>
           <div class="rounded-lg bg-slate-800/70 px-3 py-2 text-slate-200"><span class="text-slate-400">👤 联系人</span><p id="followup-customer-contact-name" class="mt-1 break-words">-</p></div>
           <div class="rounded-lg bg-slate-800/70 px-3 py-2 text-slate-200">
@@ -963,26 +1110,60 @@
 
       </section>
 
-      <section class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
-        <div class="border-b border-slate-800 pb-3">
+      <section class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/60 p-4 xl:p-5">
+        <div class="shrink-0 border-b border-slate-800 pb-2">
           <h4 class="text-sm font-semibold text-white">跟进动态流</h4>
-          <p id="followup-status" class="mt-1 text-sm text-slate-400">加载中...</p>
+          <p id="followup-status" class="mt-0.5 text-sm text-slate-400">加载中...</p>
         </div>
 
-        <form id="followup-form" class="mt-4 space-y-3">
-          <textarea id="followup-content" rows="6" required class="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-3 text-sm text-slate-100 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/30 whitespace-pre-wrap" placeholder="在此粘贴客户聊天记录或邮件内容..."></textarea>
-          <div>
-            <label for="next-followup-datetime" class="mb-1 block text-xs text-slate-400">设置下次跟进提醒</label>
-            <input id="next-followup-datetime" type="datetime-local" class="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/30" />
+        <form id="followup-form" class="mt-2 shrink-0 space-y-2">
+          <textarea
+            id="followup-content"
+            rows="3"
+            class="min-h-[80px] w-full resize-none rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-2 text-base leading-loose text-slate-100 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/30 whitespace-pre-wrap break-words"
+            placeholder="在此粘贴客户聊天记录或邮件内容…（可在框内 Ctrl+V 粘贴截图）"
+          ></textarea>
+          <div id="followup-paste-preview-panel" class="hidden rounded-lg border border-slate-700/70 bg-slate-800/50 p-2">
+            <div class="mb-1 flex items-center justify-between gap-2">
+              <span class="text-xs text-slate-400">待保存截图</span>
+              <button
+                id="followup-paste-preview-remove"
+                type="button"
+                class="rounded-lg border border-slate-600 px-2 py-0.5 text-xs text-slate-400 transition hover:border-rose-500/50 hover:bg-rose-950/40 hover:text-rose-300"
+                aria-label="移除截图"
+                title="移除"
+              >
+                ✕
+              </button>
+            </div>
+            <div class="relative inline-block max-w-sm">
+              <img
+                id="followup-paste-preview-img"
+                alt="待保存截图预览"
+                class="max-h-36 max-w-sm rounded-md border border-slate-600 object-contain"
+              />
+            </div>
           </div>
-          <div class="flex items-center justify-between gap-3">
+          <div>
+            <label for="next-followup-datetime" class="mb-0.5 block text-xs text-slate-400">设置下次跟进提醒</label>
+            <input
+              id="next-followup-datetime"
+              type="datetime-local"
+              class="w-full cursor-pointer rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-1.5 text-sm text-slate-100 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/30 [&::-webkit-calendar-picker-indicator]:hidden"
+              onclick="typeof this.showPicker === 'function' && this.showPicker()"
+            />
+          </div>
+          <div class="flex items-center justify-between gap-2 pt-0.5">
             <p id="followup-form-status" class="min-h-5 text-sm text-slate-400"></p>
-            <button id="save-followup-btn" type="submit" class="rounded-xl border border-cyan-400/50 bg-cyan-500/20 px-4 py-3 text-sm font-medium text-cyan-200 transition hover:bg-cyan-500/30 hover:text-white sm:py-2">保存粘贴内容</button>
+            <button id="save-followup-btn" type="submit" class="rounded-xl border border-cyan-400/50 bg-cyan-500/20 px-4 py-2 text-sm font-medium text-cyan-200 transition hover:bg-cyan-500/30 hover:text-white">保存粘贴内容</button>
           </div>
         </form>
 
-        <div id="followup-list" class="mt-4 h-[550px] space-y-3 overflow-y-auto pr-2 pb-2 scroll-smooth">
-          <p class="rounded-lg bg-slate-800/70 px-3 py-2 text-sm text-slate-400">正在获取跟进记录...</p>
+        <div
+          id="followup-list"
+          class="mt-2 flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto scroll-smooth pr-1 pb-1 sm:pr-2"
+        >
+          <p class="shrink-0 rounded-lg bg-slate-800/70 px-4 py-3 text-sm leading-relaxed text-slate-400">正在获取跟进记录...</p>
         </div>
       </section>
     </div>
@@ -1114,6 +1295,9 @@
     const nextFollowupDatetimeInput = document.getElementById("next-followup-datetime");
     const followupFormStatusEl = document.getElementById("followup-form-status");
     const saveFollowupBtn = document.getElementById("save-followup-btn");
+    const followupPastePreviewPanelEl = document.getElementById("followup-paste-preview-panel");
+    const followupPastePreviewImgEl = document.getElementById("followup-paste-preview-img");
+    const followupPastePreviewRemoveBtn = document.getElementById("followup-paste-preview-remove");
     const sendEmailBtn = document.getElementById("send-email-btn");
     const whatsappFollowupBtn = document.getElementById("whatsapp-followup-btn");
     const navDashboard = document.getElementById("nav-dashboard");
@@ -1189,12 +1373,32 @@
     const customerCountryFilterLabelEl = document.getElementById("customer-country-filter-label");
     const clearCustomerCountryFilterBtn = document.getElementById("clear-customer-country-filter-btn");
     const customerSearchInput = document.getElementById("customer-search-input");
+    const globalCustomerSearchInput = document.getElementById("global-customer-search");
+    const customerTagsInput = document.getElementById("customer-tags");
+    const followupCustomerTagsEl = document.getElementById("followup-customer-tags");
+    const followupCustomerTagsBlockEl = document.getElementById("followup-customer-tags-block");
+    const customerTagFilterBarEl = document.getElementById("customer-tag-filter-bar");
+    const customerTagFilterChipsEl = document.getElementById("customer-tag-filter-chips");
+    const customerTagFilterClearBtn = document.getElementById("customer-tag-filter-clear");
+    const navInsightsBtn = document.getElementById("nav-insights-btn");
+    const insightsModalEl = document.getElementById("insights-modal");
+    const closeInsightsModalBtn = document.getElementById("close-insights-modal-btn");
+    const insightsModalStatusEl = document.getElementById("insights-modal-status");
+    const customerKanbanShellEl = document.getElementById("customer-kanban-shell");
+    const customerKanbanBoardEl = document.getElementById("customer-kanban-board");
+    const customerTableShellEl = document.getElementById("customer-table-shell");
+    const btnDashboardViewList = document.getElementById("btn-dashboard-view-list");
+    const btnDashboardViewKanban = document.getElementById("btn-dashboard-view-kanban");
     const holidayCalendarEl = document.getElementById("holiday-calendar");
     const upcomingHolidaysListEl = document.getElementById("upcoming-holidays-list");
     const holidayIntelPanelEl = document.getElementById("holiday-intel-panel");
     const FOLLOWUPS_TABLE = "customer_followups";
+    const FOLLOWUP_SCREENSHOT_BUCKET = "followup-screenshots";
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     let selectedCustomer = null;
+    let followupScreenshotPublicUrl = null;
+    let followupScreenshotPreviewObjectUrl = null;
+    let followupScreenshotUploading = false;
     let currentView = "dashboard";
     let quotationCustomers = [];
     let quotationProducts = [];
@@ -1203,10 +1407,17 @@
     let privateCustomersCache = [];
     let closedCustomersCache = [];
     let revenueChartInstance = null;
+    let insightCountryChartInstance = null;
+    let insightFunnelChartInstance = null;
+    let insightWeeklyChartInstance = null;
+    let customerTagFilter = "";
     let selectedCustomerEmails = [];
     let editingCustomerId = null;
     let customerCountryFilter = "";
     let currentSearchQuery = "";
+    const KANBAN_STATUS_COLUMNS = ["新线索", "已报价", "谈判中", "准备打款"];
+    let dashboardPrivateViewMode = "list";
+    let kanbanSortableInstances = [];
     let selectedHolidayCountry = "";
     let holidayCalendarInstance = null;
     let holidayEventsData = [];
@@ -1709,6 +1920,9 @@
         holidaysView.classList.add("hidden");
         dashboardView.classList.remove("hidden");
         setNavActive("dashboard");
+        if (dashboardPrivateViewMode === "kanban") {
+          renderKanbanBoard();
+        }
       }
     }
 
@@ -1901,7 +2115,10 @@
       if (hasFilter) {
         customerCountryFilterLabelEl.textContent = "国家筛选: " + customerCountryFilter;
       }
-      renderRows(privateCustomersCache);
+      renderRows();
+      if (dashboardPrivateViewMode === "kanban") {
+        renderKanbanBoard();
+      }
       if (holidayCalendarInstance) {
         holidayCalendarInstance.rerenderEvents();
         renderUpcomingHolidayCards();
@@ -1979,7 +2196,9 @@
       const s = status || "新线索";
       const map = {
         新线索: "border-slate-500/45 bg-slate-500/20 text-slate-100",
+        已报价: "border-violet-500/45 bg-violet-500/20 text-violet-100",
         谈判中: "border-sky-500/45 bg-sky-500/20 text-sky-100",
+        准备打款: "border-emerald-500/45 bg-emerald-500/25 text-emerald-100",
         已寄样: "border-amber-500/45 bg-amber-500/20 text-amber-100",
         已成单: "border-emerald-500/45 bg-emerald-500/25 text-emerald-100",
         暂无意向: "border-rose-500/45 bg-rose-500/20 text-rose-100",
@@ -1991,7 +2210,9 @@
       const s = status || "新线索";
       const labels = {
         新线索: "🆕 新线索",
+        已报价: "📋 已报价",
         谈判中: "💬 谈判中",
+        准备打款: "💰 准备打款",
         已寄样: "📦 已寄样",
         已成单: "✅ 已成单",
         暂无意向: "🛑 暂无意向",
@@ -2771,6 +2992,7 @@
       customerModalDescEl.textContent = "填写客户基础信息后将自动写入 `customers` 表。";
       submitCustomerBtn.textContent = "提交客户";
       customerFormStatus.textContent = "";
+      if (customerTagsInput) customerTagsInput.value = "";
       if (customerStatusInput) customerStatusInput.value = "新线索";
       if (customerNextFollowupDateInput) customerNextFollowupDateInput.value = "";
       modalOverlayEl.classList.remove("hidden");
@@ -2802,6 +3024,9 @@
       }
       if (customerNextFollowupDateInput) {
         customerNextFollowupDateInput.value = nextFollowupIsoToDateInputValue(customer.next_followup_date);
+      }
+      if (customerTagsInput) {
+        customerTagsInput.value = formatTagsForInput(customer.tags);
       }
 
       modalOverlayEl.classList.remove("hidden");
@@ -2862,17 +3087,728 @@
       }
     }
 
-    function renderRows(customers) {
-      tableBodyEl.innerHTML = "";
-      const normalizedQuery = (currentSearchQuery || "").trim().toLowerCase();
-      const visibleCustomers = (customers || []).filter((customer) => {
-        const matchCountry = customerCountryFilter ? countryMatches(customer.country, customerCountryFilter) : true;
-        const matchSearch = normalizedQuery
-          ? [customer.company_name, customer.email, customer.contact_name, customer.country, customer.status]
-              .some((field) => (field || "").toLowerCase().includes(normalizedQuery))
-          : true;
-        return matchCountry && matchSearch;
+    function debounce(fn, delayMs) {
+      let timerId = null;
+      function debounced(...args) {
+        window.clearTimeout(timerId);
+        timerId = window.setTimeout(() => fn.apply(this, args), delayMs);
+      }
+      debounced.cancel = function cancelDebounced() {
+        window.clearTimeout(timerId);
+        timerId = null;
+      };
+      return debounced;
+    }
+
+    const TAG_BADGE_PALETTE = [
+      "border-sky-400/22 bg-sky-500/10 text-sky-100/88",
+      "border-violet-400/22 bg-violet-500/10 text-violet-100/88",
+      "border-teal-400/22 bg-teal-500/10 text-teal-100/88",
+      "border-amber-400/22 bg-amber-500/10 text-amber-100/88",
+      "border-fuchsia-400/22 bg-fuchsia-500/10 text-fuchsia-100/88",
+      "border-cyan-400/22 bg-cyan-500/10 text-cyan-100/88",
+      "border-rose-400/22 bg-rose-500/10 text-rose-100/88",
+      "border-lime-400/22 bg-lime-500/10 text-lime-100/85",
+    ];
+
+    function hashStringForPalette(str) {
+      let h = 0;
+      const s = String(str || "");
+      for (let i = 0; i < s.length; i++) {
+        h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
+      }
+      return Math.abs(h);
+    }
+
+    function getTagBadgeClass(tag) {
+      return TAG_BADGE_PALETTE[hashStringForPalette(tag) % TAG_BADGE_PALETTE.length];
+    }
+
+    function isInvalidTagToken(t) {
+      const s = String(t == null ? "" : t).trim();
+      if (!s) return true;
+      const low = s.toLowerCase();
+      if (low === "{}" || low === "[]") return true;
+      if (low === "null" || low === "undefined") return true;
+      if (low === "[object object]") return true;
+      return false;
+    }
+
+    /** 将数据库/接口中的 tags 统一解析为 string[]；无效占位（如 "{}"）会得到 []。 */
+    function parseCustomerTags(raw) {
+      if (raw == null) return [];
+      if (Array.isArray(raw)) {
+        return raw
+          .map((x) => (x == null ? "" : String(x).trim()))
+          .filter((x) => !isInvalidTagToken(x));
+      }
+      if (typeof raw === "object") {
+        return [];
+      }
+      if (typeof raw === "string") {
+        const s = raw.trim();
+        if (!s || s === "{}" || s === "[]") return [];
+        if (s.startsWith("[")) {
+          try {
+            const parsed = JSON.parse(s);
+            if (Array.isArray(parsed)) {
+              return parseCustomerTags(parsed);
+            }
+          } catch (e) {
+            /* 非合法 JSON 则按分隔符解析 */
+          }
+        }
+        return s
+          .split(/[,，、;\n\r]+/)
+          .map((x) => x.trim())
+          .filter((x) => !isInvalidTagToken(x));
+      }
+      const asStr = String(raw).trim();
+      if (!asStr || asStr === "[object Object]") return [];
+      return parseCustomerTags(asStr);
+    }
+
+    /** 写入 customers.tags：JSON 数组文本，例如 [] 或 ["高意向"]。 */
+    function normalizeTagsForSave(raw) {
+      const uniq = [];
+      const seen = new Set();
+      let source = raw;
+      if (Array.isArray(source)) {
+        source = source.join(",");
+      } else if (source != null && typeof source !== "string") {
+        source = String(source);
+      }
+      parseCustomerTags(source).forEach((tag) => {
+        const key = tag.toLowerCase();
+        if (seen.has(key)) return;
+        seen.add(key);
+        uniq.push(tag);
       });
+      return JSON.stringify(uniq);
+    }
+
+    function formatTagsForInput(raw) {
+      const list = Array.isArray(raw) ? raw.filter((t) => !isInvalidTagToken(t)) : parseCustomerTags(raw);
+      return list.join(", ");
+    }
+
+    function customerTagsForSearchBlob(tags) {
+      try {
+        if (tags == null) return "";
+        if (Array.isArray(tags)) {
+          return tags
+            .map((t) => (t == null ? "" : String(t)))
+            .join(" ")
+            .trim();
+        }
+        return String(tags);
+      } catch (e) {
+        return "";
+      }
+    }
+
+    /** 将任意字段安全转为可参与 includes 的小写字符串 */
+    function privateCustomerSearchToken(value) {
+      try {
+        return (value == null ? "" : String(value)).toLowerCase();
+      } catch (e) {
+        return "";
+      }
+    }
+
+    function privateCustomerMatchesSearchNeedle(customer, needleLower) {
+      if (!needleLower) return true;
+      try {
+        const companyStr = privateCustomerSearchToken(customer.company_name);
+        const contactStr = privateCustomerSearchToken(customer.contact_name);
+        const emailStr = privateCustomerSearchToken(customer.email);
+        const phoneStr = privateCustomerSearchToken(customer.phone);
+        const countryStr = privateCustomerSearchToken(customer.country);
+        const statusStr = privateCustomerSearchToken(customer.status);
+        const tagsStr = privateCustomerSearchToken(customerTagsForSearchBlob(customer.tags));
+        return (
+          companyStr.includes(needleLower) ||
+          contactStr.includes(needleLower) ||
+          emailStr.includes(needleLower) ||
+          phoneStr.includes(needleLower) ||
+          countryStr.includes(needleLower) ||
+          statusStr.includes(needleLower) ||
+          tagsStr.includes(needleLower)
+        );
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function privateCustomerMatchesTagFilter(customer, tagNeedleLower) {
+      if (!tagNeedleLower) return true;
+      try {
+        const tagList = Array.isArray(customer.tags) ? customer.tags : parseCustomerTags(customer.tags);
+        return tagList.some((t) => privateCustomerSearchToken(t) === tagNeedleLower);
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function fillFollowupCustomerTags(tagsRaw) {
+      if (!followupCustomerTagsEl) return;
+      followupCustomerTagsEl.innerHTML = "";
+      const tags = Array.isArray(tagsRaw) ? tagsRaw.filter((t) => !isInvalidTagToken(t)) : parseCustomerTags(tagsRaw);
+      if (!tags.length) {
+        if (followupCustomerTagsBlockEl) followupCustomerTagsBlockEl.classList.add("hidden");
+        return;
+      }
+      if (followupCustomerTagsBlockEl) followupCustomerTagsBlockEl.classList.remove("hidden");
+      tags.forEach((tag) => {
+        const chip = document.createElement("span");
+        chip.className =
+          "inline-flex max-w-full truncate rounded-md border px-2 py-0.5 text-[11px] font-medium " + getTagBadgeClass(tag);
+        chip.textContent = tag;
+        followupCustomerTagsEl.appendChild(chip);
+      });
+    }
+
+    function renderCustomerTagFilterBar() {
+      if (!customerTagFilterChipsEl || !customerTagFilterBarEl) return;
+      const counts = new Map();
+      (privateCustomersCache || []).forEach((c) => {
+        const list = Array.isArray(c.tags) ? c.tags.filter((t) => !isInvalidTagToken(t)) : parseCustomerTags(c.tags);
+        list.forEach((tag) => {
+          counts.set(tag, (counts.get(tag) || 0) + 1);
+        });
+      });
+      if (customerTagFilter && !counts.has(customerTagFilter)) {
+        customerTagFilter = "";
+      }
+      const sorted = Array.from(counts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 28);
+      customerTagFilterChipsEl.innerHTML = "";
+      if (!sorted.length) {
+        customerTagFilterBarEl.classList.add("hidden");
+        customerTagFilter = "";
+        return;
+      }
+      customerTagFilterBarEl.classList.remove("hidden");
+      sorted.forEach(([tag, cnt]) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        const active = customerTagFilter === tag;
+        btn.className =
+          "inline-flex max-w-full items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium transition " +
+          (active
+            ? "border-cyan-400/55 bg-cyan-500/18 text-cyan-100 shadow-[0_0_0_1px_rgba(34,211,238,0.12)]"
+            : "border-slate-600/60 bg-slate-800/80 text-slate-200 hover:border-slate-500 hover:bg-slate-800");
+        const name = document.createElement("span");
+        name.className = "max-w-[10rem] truncate";
+        name.textContent = tag;
+        const num = document.createElement("span");
+        num.className = "tabular-nums text-[10px] opacity-70";
+        num.textContent = String(cnt);
+        btn.appendChild(name);
+        btn.appendChild(num);
+        btn.addEventListener("click", () => {
+          customerTagFilter = active ? "" : tag;
+          renderCustomerTagFilterBar();
+          debouncedRefreshPrivateCustomerViews();
+        });
+        customerTagFilterChipsEl.appendChild(btn);
+      });
+    }
+
+    function destroyInsightCharts() {
+      [insightCountryChartInstance, insightFunnelChartInstance, insightWeeklyChartInstance].forEach((inst) => {
+        if (!inst) return;
+        try {
+          inst.destroy();
+        } catch (e) {
+          /* ignore */
+        }
+      });
+      insightCountryChartInstance = null;
+      insightFunnelChartInstance = null;
+      insightWeeklyChartInstance = null;
+    }
+
+    async function openInsightsModal() {
+      if (!insightsModalEl) return;
+      insightsModalEl.classList.remove("hidden");
+      insightsModalEl.classList.add("flex");
+      document.body.classList.add("overflow-hidden");
+      destroyInsightCharts();
+      await loadInsightCharts();
+    }
+
+    function closeInsightsModal() {
+      if (!insightsModalEl) return;
+      insightsModalEl.classList.add("hidden");
+      insightsModalEl.classList.remove("flex");
+      document.body.classList.remove("overflow-hidden");
+      destroyInsightCharts();
+      if (insightsModalStatusEl) {
+        insightsModalStatusEl.textContent = "";
+      }
+    }
+
+    async function loadInsightCharts() {
+      if (typeof Chart === "undefined") {
+        if (insightsModalStatusEl) {
+          insightsModalStatusEl.className = "mb-4 text-sm text-rose-300";
+          insightsModalStatusEl.textContent = "Chart.js 未加载，请检查网络后刷新。";
+        }
+        return;
+      }
+      const countryCanvas = document.getElementById("insight-country-chart");
+      const funnelCanvas = document.getElementById("insight-funnel-chart");
+      const weeklyCanvas = document.getElementById("insight-weekly-followups-chart");
+      if (!countryCanvas || !funnelCanvas || !weeklyCanvas) return;
+
+      destroyInsightCharts();
+
+      if (insightsModalStatusEl) {
+        insightsModalStatusEl.className = "mb-4 text-sm text-slate-400";
+        insightsModalStatusEl.textContent = "正在从 Supabase 拉取数据…";
+      }
+
+      const rangeStart = new Date();
+      rangeStart.setDate(rangeStart.getDate() - 6);
+      rangeStart.setHours(0, 0, 0, 0);
+
+      const [{ data: custRows, error: custErr }, { data: followRows, error: fuErr }] = await Promise.all([
+        supabaseClient
+          .from("customers")
+          .select("country,status")
+          .or("is_public.is.false,is_public.is.null")
+          .not("is_closed", "eq", true),
+        supabaseClient.from(FOLLOWUPS_TABLE).select("created_at").gte("created_at", rangeStart.toISOString()),
+      ]);
+
+      if (custErr || fuErr) {
+        if (insightsModalStatusEl) {
+          insightsModalStatusEl.className = "mb-4 text-sm text-rose-300";
+          insightsModalStatusEl.textContent =
+            "加载失败：" + (custErr && custErr.message ? custErr.message : fuErr && fuErr.message ? fuErr.message : "未知错误");
+        }
+        return;
+      }
+
+      if (insightsModalStatusEl) {
+        insightsModalStatusEl.className = "mb-4 text-sm text-emerald-300/90";
+        insightsModalStatusEl.textContent = "已更新 · " + new Date().toLocaleString();
+      }
+
+      const customers = custRows || [];
+      const followups = followRows || [];
+
+      const byCountry = new Map();
+      customers.forEach((c) => {
+        const k = (c.country || "").trim() || "未填国家";
+        byCountry.set(k, (byCountry.get(k) || 0) + 1);
+      });
+      const countryEntries = Array.from(byCountry.entries()).sort((a, b) => b[1] - a[1]);
+      const pieLabels = countryEntries.length ? countryEntries.map((x) => x[0]) : ["暂无数据"];
+      const pieData = countryEntries.length ? countryEntries.map((x) => x[1]) : [1];
+      const pieColors = pieLabels.map((_, i) => {
+        const hue = 200 + ((i * 37) % 150);
+        return "hsla(" + hue + ", 48%, 58%, 0.72)";
+      });
+
+      insightCountryChartInstance = new Chart(countryCanvas, {
+        type: "pie",
+        data: {
+          labels: pieLabels,
+          datasets: [{ data: pieData, backgroundColor: pieColors, borderWidth: 1, borderColor: "#0f172a" }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: "right", labels: { color: "#cbd5e1", boxWidth: 10 } },
+          },
+        },
+      });
+
+      const funnelLabels = ["新线索", "已报价", "谈判中", "准备打款"];
+      const stageCounts = { 新线索: 0, 已报价: 0, 谈判中: 0, 准备打款: 0 };
+      customers.forEach((c) => {
+        const s = (c.status || "").trim();
+        if (Object.prototype.hasOwnProperty.call(stageCounts, s)) {
+          stageCounts[s]++;
+        }
+      });
+      const funnelData = funnelLabels.map((k) => stageCounts[k]);
+
+      insightFunnelChartInstance = new Chart(funnelCanvas, {
+        type: "bar",
+        data: {
+          labels: funnelLabels,
+          datasets: [
+            {
+              label: "客户数",
+              data: funnelData,
+              backgroundColor: [
+                "rgba(56, 189, 248, 0.42)",
+                "rgba(129, 140, 248, 0.42)",
+                "rgba(244, 114, 182, 0.4)",
+                "rgba(52, 211, 153, 0.42)",
+              ],
+              borderColor: ["#38bdf8", "#818cf8", "#f472b6", "#34d399"],
+              borderWidth: 1,
+              borderRadius: 6,
+            },
+          ],
+        },
+        options: {
+          indexAxis: "y",
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+          },
+          scales: {
+            x: {
+              ticks: { color: "#94a3b8" },
+              grid: { color: "rgba(148, 163, 184, 0.12)" },
+              beginAtZero: true,
+            },
+            y: {
+              ticks: { color: "#e2e8f0" },
+              grid: { display: false },
+            },
+          },
+        },
+      });
+
+      const dayLabels = [];
+      const dayKeys = [];
+      const now = new Date();
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i, 12, 0, 0, 0);
+        const key =
+          d.getFullYear() +
+          "-" +
+          String(d.getMonth() + 1).padStart(2, "0") +
+          "-" +
+          String(d.getDate()).padStart(2, "0");
+        dayKeys.push(key);
+        dayLabels.push(String(d.getMonth() + 1) + "/" + String(d.getDate()).padStart(2, "0"));
+      }
+      const dayCountMap = {};
+      dayKeys.forEach((k) => {
+        dayCountMap[k] = 0;
+      });
+      followups.forEach((row) => {
+        if (!row.created_at) return;
+        const dt = new Date(row.created_at);
+        if (Number.isNaN(dt.getTime())) return;
+        const k =
+          dt.getFullYear() +
+          "-" +
+          String(dt.getMonth() + 1).padStart(2, "0") +
+          "-" +
+          String(dt.getDate()).padStart(2, "0");
+        if (Object.prototype.hasOwnProperty.call(dayCountMap, k)) {
+          dayCountMap[k]++;
+        }
+      });
+      const weeklySeries = dayKeys.map((k) => dayCountMap[k]);
+
+      insightWeeklyChartInstance = new Chart(weeklyCanvas, {
+        type: "line",
+        data: {
+          labels: dayLabels,
+          datasets: [
+            {
+              label: "跟进条数",
+              data: weeklySeries,
+              borderColor: "rgb(34, 211, 238)",
+              backgroundColor: "rgba(34, 211, 238, 0.12)",
+              fill: true,
+              tension: 0.35,
+              pointRadius: 3,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: "#cbd5e1" } },
+          },
+          scales: {
+            x: { ticks: { color: "#94a3b8" }, grid: { color: "rgba(148, 163, 184, 0.1)" } },
+            y: {
+              ticks: { color: "#94a3b8", precision: 0 },
+              grid: { color: "rgba(148, 163, 184, 0.1)" },
+              beginAtZero: true,
+            },
+          },
+        },
+      });
+    }
+
+    function getVisiblePrivateCustomers() {
+      let normalizedQuery = "";
+      let tagNeedle = "";
+      try {
+        normalizedQuery = privateCustomerSearchToken((currentSearchQuery || "").trim());
+      } catch (e) {
+        normalizedQuery = "";
+      }
+      try {
+        tagNeedle = privateCustomerSearchToken((customerTagFilter || "").trim());
+      } catch (e) {
+        tagNeedle = "";
+      }
+      const list = Array.isArray(privateCustomersCache) ? privateCustomersCache : [];
+      return list.filter((customer) => {
+        try {
+          const matchCountry = customerCountryFilter ? countryMatches(customer.country, customerCountryFilter) : true;
+          const matchSearch = privateCustomerMatchesSearchNeedle(customer, normalizedQuery);
+          const matchTag = privateCustomerMatchesTagFilter(customer, tagNeedle);
+          return matchCountry && matchSearch && matchTag;
+        } catch (e) {
+          return false;
+        }
+      });
+    }
+
+    function refreshPrivateCustomerViewsNow() {
+      try {
+        renderRows();
+        if (dashboardPrivateViewMode === "kanban") {
+          renderKanbanBoard();
+        }
+      } catch (e) {
+        console.warn("refreshPrivateCustomerViewsNow:", e);
+      }
+    }
+
+    const debouncedRefreshPrivateCustomerViews = debounce(refreshPrivateCustomerViewsNow, 200);
+
+    function applyPrivateCustomerSearchFromInput(sourceEl) {
+      currentSearchQuery = sourceEl && typeof sourceEl.value === "string" ? sourceEl.value : "";
+      syncCustomerSearchInputValues(sourceEl);
+      if (!String(currentSearchQuery).trim()) {
+        if (typeof debouncedRefreshPrivateCustomerViews.cancel === "function") {
+          debouncedRefreshPrivateCustomerViews.cancel();
+        }
+        refreshPrivateCustomerViewsNow();
+        return;
+      }
+      debouncedRefreshPrivateCustomerViews();
+    }
+
+    function bindPrivateCustomerSearchInput(el) {
+      if (!el || el.dataset.crmPrivateSearchBound === "1") return;
+      el.dataset.crmPrivateSearchBound = "1";
+      const handler = () => applyPrivateCustomerSearchFromInput(el);
+      el.addEventListener("input", handler);
+      el.addEventListener("search", handler);
+      el.addEventListener("change", handler);
+    }
+
+    function syncCustomerSearchInputValues(fromEl) {
+      const raw = fromEl && typeof fromEl.value === "string" ? fromEl.value : "";
+      if (globalCustomerSearchInput && globalCustomerSearchInput !== fromEl) {
+        globalCustomerSearchInput.value = raw;
+      }
+      if (customerSearchInput && customerSearchInput !== fromEl) {
+        customerSearchInput.value = raw;
+      }
+    }
+
+    function mapKanbanColumnForStatus(status) {
+      const s = (status || "").trim();
+      if (KANBAN_STATUS_COLUMNS.includes(s)) return s;
+      return "新线索";
+    }
+
+    function isNextFollowupDateToday(iso) {
+      if (!iso) return false;
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return false;
+      const now = new Date();
+      return (
+        d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate()
+      );
+    }
+
+    function destroyKanbanSortables() {
+      kanbanSortableInstances.forEach((inst) => {
+        try {
+          inst.destroy();
+        } catch (e) {
+          /* ignore */
+        }
+      });
+      kanbanSortableInstances = [];
+    }
+
+    function createKanbanCustomerCard(customer) {
+      const card = document.createElement("div");
+      card.className =
+        "kanban-card cursor-grab rounded-xl border border-slate-600/80 bg-slate-800/90 px-3 py-2 text-left shadow-sm transition hover:border-cyan-500/35 active:cursor-grabbing";
+      card.dataset.customerId = String(customer.id);
+
+      const title = document.createElement("div");
+      title.className = "truncate text-sm font-semibold text-white";
+      title.textContent = customer.company_name || "未命名";
+
+      const sub = document.createElement("div");
+      sub.className = "mt-1 truncate text-xs text-slate-400";
+      sub.textContent = (customer.contact_name || "—") + " · " + (customer.country || "—");
+
+      const due = document.createElement("div");
+      due.className =
+        "mt-1.5 text-xs tabular-nums " +
+        (isNextFollowupDateToday(customer.next_followup_date) ? "font-semibold text-rose-400" : "text-slate-400");
+      due.textContent = customer.next_followup_date
+        ? "下次：" + formatNextFollowupColumnDate(customer.next_followup_date)
+        : "下次：—";
+
+      const tagLine = document.createElement("div");
+      tagLine.className = "mt-1.5 flex flex-wrap gap-1";
+      const fullTags = Array.isArray(customer.tags) ? customer.tags : parseCustomerTags(customer.tags);
+      const kt = fullTags.slice(0, 2);
+      if (kt.length) {
+        kt.forEach((tag) => {
+          const chip = document.createElement("span");
+          chip.className =
+            "inline-flex max-w-[6.5rem] truncate rounded border px-1 py-0.5 text-[9px] font-medium " +
+            getTagBadgeClass(tag);
+          chip.textContent = tag;
+          tagLine.appendChild(chip);
+        });
+        if (fullTags.length > 2) {
+          const more = document.createElement("span");
+          more.className = "text-[9px] text-slate-500";
+          more.textContent = "…";
+          tagLine.appendChild(more);
+        }
+      }
+
+      card.appendChild(title);
+      card.appendChild(sub);
+      if (kt.length) {
+        card.appendChild(tagLine);
+      }
+      card.appendChild(due);
+      return card;
+    }
+
+    function renderKanbanBoard() {
+      if (!customerKanbanBoardEl) return;
+      destroyKanbanSortables();
+      customerKanbanBoardEl.innerHTML = "";
+      if (typeof Sortable === "undefined") {
+        customerKanbanBoardEl.innerHTML =
+          '<p class="px-2 py-6 text-center text-sm text-rose-300">看板需要 Sortable.js，请检查网络后刷新页面。</p>';
+        return;
+      }
+
+      const visible = getVisiblePrivateCustomers();
+      const byCol = {};
+      KANBAN_STATUS_COLUMNS.forEach((col) => {
+        byCol[col] = [];
+      });
+      visible.forEach((c) => {
+        byCol[mapKanbanColumnForStatus(c.status)].push(c);
+      });
+
+      KANBAN_STATUS_COLUMNS.forEach((status) => {
+        const colEl = document.createElement("div");
+        colEl.className =
+          "flex w-[min(100vw-2.5rem,280px)] shrink-0 flex-col rounded-2xl border border-slate-700/80 bg-slate-900/70 shadow-inner";
+        colEl.dataset.kanbanStatus = status;
+
+        const head = document.createElement("div");
+        head.className = "flex items-center justify-between gap-2 border-b border-slate-700/80 px-3 py-2.5";
+        const title = document.createElement("span");
+        title.className = "text-sm font-semibold text-white";
+        title.textContent = status;
+        const cnt = document.createElement("span");
+        cnt.className =
+          "rounded-full bg-slate-700/90 px-2 py-0.5 text-xs font-medium tabular-nums text-slate-200";
+        cnt.textContent = String(byCol[status].length);
+        head.appendChild(title);
+        head.appendChild(cnt);
+
+        const drop = document.createElement("div");
+        drop.className = "kanban-drop-zone flex min-h-[200px] flex-col gap-2 p-2";
+        drop.dataset.kanbanStatus = status;
+        byCol[status].forEach((customer) => {
+          drop.appendChild(createKanbanCustomerCard(customer));
+        });
+
+        colEl.appendChild(head);
+        colEl.appendChild(drop);
+        customerKanbanBoardEl.appendChild(colEl);
+
+        const inst = Sortable.create(drop, {
+          group: { name: "private-customers", pull: true, put: true },
+          animation: 160,
+          sort: false,
+          draggable: ".kanban-card",
+          onEnd: handleKanbanSortEnd,
+        });
+        kanbanSortableInstances.push(inst);
+      });
+    }
+
+    async function handleKanbanSortEnd(evt) {
+      if (evt.from === evt.to) return;
+      const newStatus = evt.to.dataset ? evt.to.dataset.kanbanStatus : null;
+      const idRaw = evt.item && evt.item.dataset ? evt.item.dataset.customerId : null;
+      const customerId = idRaw ? Number.parseInt(idRaw, 10) : NaN;
+      if (!newStatus || !Number.isFinite(customerId) || customerId <= 0) return;
+
+      const { error } = await supabaseClient.from("customers").update({ status: newStatus }).eq("id", customerId);
+      if (error) {
+        showToast("更新状态失败：" + error.message, "error");
+        renderKanbanBoard();
+        renderRows();
+        return;
+      }
+
+      const idx = privateCustomersCache.findIndex((c) => String(c.id) === String(idRaw));
+      if (idx >= 0) {
+        privateCustomersCache[idx] = { ...privateCustomersCache[idx], status: newStatus };
+      }
+      showToast("状态更新成功");
+      if (dashboardPrivateViewMode === "kanban") {
+        renderKanbanBoard();
+      }
+      renderRows();
+    }
+
+    function setDashboardPrivateViewMode(mode) {
+      dashboardPrivateViewMode = mode === "kanban" ? "kanban" : "list";
+      const isKanban = dashboardPrivateViewMode === "kanban";
+      if (customerKanbanShellEl) customerKanbanShellEl.classList.toggle("hidden", !isKanban);
+      if (customerTableShellEl) customerTableShellEl.classList.toggle("hidden", isKanban);
+
+      const inactiveBtn =
+        "rounded-lg px-3 py-1.5 text-xs font-medium text-slate-400 transition hover:bg-slate-700/50 hover:text-white sm:text-sm";
+      const activeBtn =
+        "rounded-lg bg-cyan-500/20 px-3 py-1.5 text-xs font-medium text-cyan-100 ring-1 ring-cyan-400/40 sm:text-sm";
+
+      if (btnDashboardViewList) {
+        btnDashboardViewList.className = isKanban ? inactiveBtn : activeBtn;
+      }
+      if (btnDashboardViewKanban) {
+        btnDashboardViewKanban.className = isKanban ? activeBtn : inactiveBtn;
+      }
+
+      if (isKanban) {
+        renderKanbanBoard();
+      } else {
+        destroyKanbanSortables();
+        renderRows();
+      }
+    }
+
+    function renderRows() {
+      tableBodyEl.innerHTML = "";
+      const visibleCustomers = getVisiblePrivateCustomers();
 
       if (!visibleCustomers.length) {
         const emptyRow = document.createElement("tr");
@@ -2924,6 +3860,23 @@
           companyWrap.appendChild(overdueIcon);
         }
         companyCell.appendChild(companyWrap);
+        const dashboardRowTags = (Array.isArray(customer.tags) ? customer.tags : parseCustomerTags(customer.tags)).slice(
+          0,
+          6,
+        );
+        if (dashboardRowTags.length) {
+          const tagRow = document.createElement("div");
+          tagRow.className = "mt-1.5 flex flex-wrap gap-1";
+          dashboardRowTags.forEach((tag) => {
+            const chip = document.createElement("span");
+            chip.className =
+              "inline-flex max-w-[7.5rem] truncate rounded-md border px-1.5 py-0.5 text-[10px] font-medium " +
+              getTagBadgeClass(tag);
+            chip.textContent = tag;
+            tagRow.appendChild(chip);
+          });
+          companyCell.appendChild(tagRow);
+        }
 
         const statusCell = document.createElement("td");
         statusCell.className = "px-2 py-2 align-middle sm:px-4 sm:py-3";
@@ -3407,7 +4360,7 @@
       const { data, error } = await supabaseClient
         .from("customers")
         .select(
-          "id, company_name, contact_name, email, phone, country, address, source, social_media, is_public, is_closed, next_followup_date, status, last_follow_up",
+          "id, company_name, contact_name, email, phone, country, address, source, social_media, is_public, is_closed, next_followup_date, status, last_follow_up, tags",
         )
         .or("is_public.is.false,is_public.is.null")
         .not("is_closed", "eq", true)
@@ -3421,31 +4374,256 @@
         return;
       }
 
-      const filtered = (data || []).filter((c) => isDueForTodayOrOverdue(c.next_followup_date));
+      const normalizedRows = (data || []).map((c) => ({
+        ...c,
+        tags: parseCustomerTags(c.tags),
+      }));
+      const filtered = normalizedRows.filter((c) => isDueForTodayOrOverdue(c.next_followup_date));
       renderTodayFollowupsPanel(filtered);
+    }
+
+    function isPublicHttpUrlForScreenshot(url) {
+      if (!url || typeof url !== "string") return false;
+      try {
+        const u = new URL(url.trim());
+        return u.protocol === "https:" || u.protocol === "http:";
+      } catch {
+        return false;
+      }
+    }
+
+    function buildFollowupScreenshotStoragePath(customerId, file) {
+      let ext = ".jpg";
+      const mime = (file.type || "").toLowerCase();
+      if (mime.includes("png")) ext = ".png";
+      else if (mime.includes("webp")) ext = ".webp";
+      else if (mime.includes("gif")) ext = ".gif";
+      const dot = (file.name || "").lastIndexOf(".");
+      if (dot > -1) {
+        const fromName = file.name.slice(dot).toLowerCase().replace(/[^.a-z0-9]/g, "");
+        if (fromName.length >= 4 && fromName.length <= 5) ext = fromName;
+      }
+      const rid =
+        typeof crypto !== "undefined" && crypto.randomUUID
+          ? crypto.randomUUID()
+          : "x" + String(Math.random()).slice(2, 12);
+      return String(customerId) + "/" + Date.now() + "-" + rid + ext;
+    }
+
+    function resetFollowupScreenshotAttachment() {
+      followupScreenshotPublicUrl = null;
+      followupScreenshotUploading = false;
+      if (followupScreenshotPreviewObjectUrl) {
+        URL.revokeObjectURL(followupScreenshotPreviewObjectUrl);
+        followupScreenshotPreviewObjectUrl = null;
+      }
+      if (followupPastePreviewImgEl) {
+        followupPastePreviewImgEl.removeAttribute("src");
+      }
+      if (followupPastePreviewPanelEl) {
+        followupPastePreviewPanelEl.classList.add("hidden");
+      }
+    }
+
+    async function uploadFollowupPastedImageToStorage(file, customerId) {
+      const path = buildFollowupScreenshotStoragePath(customerId, file);
+      const { error } = await supabaseClient.storage
+        .from(FOLLOWUP_SCREENSHOT_BUCKET)
+        .upload(path, file, { contentType: file.type || "image/jpeg", cacheControl: "3600", upsert: false });
+      if (error) throw error;
+      const { data } = supabaseClient.storage.from(FOLLOWUP_SCREENSHOT_BUCKET).getPublicUrl(path);
+      const publicUrl = data && data.publicUrl ? data.publicUrl : null;
+      if (!publicUrl) throw new Error("无法生成公网访问链接");
+      return publicUrl;
+    }
+
+    function adjustFollowupContentTextareaHeight() {
+      const el = followupContentInput;
+      if (!el) return;
+      const maxPx = Math.min(Math.round(window.innerHeight * 0.48), 580);
+      const minPx = 80;
+      el.style.height = "auto";
+      const scrollH = el.scrollHeight;
+      const next = Math.min(Math.max(scrollH, minPx), maxPx);
+      el.style.height = next + "px";
+      el.style.overflowY = scrollH > maxPx ? "auto" : "hidden";
+    }
+
+    async function handleFollowupContentPaste(event) {
+      const items = event.clipboardData && event.clipboardData.items;
+      if (!items || !items.length) return;
+
+      let imageFile = null;
+      for (let i = 0; i < items.length; i++) {
+        const it = items[i];
+        if (it.kind === "file" && it.type && it.type.indexOf("image/") === 0) {
+          const f = it.getAsFile();
+          if (f) {
+            imageFile = f;
+            break;
+          }
+        }
+      }
+      if (!imageFile) return;
+
+      event.preventDefault();
+
+      if (!selectedCustomer || !selectedCustomer.id) {
+        showToast("请先打开客户跟进抽屉后再粘贴截图。", "error");
+        return;
+      }
+
+      const customerId = Number.parseInt(selectedCustomer.id, 10);
+      if (!Number.isInteger(customerId) || customerId <= 0) {
+        showToast("客户 ID 无效，无法上传截图。", "error");
+        return;
+      }
+
+      if (followupScreenshotUploading) {
+        showToast("上一张截图正在上传，请稍候。", "error");
+        return;
+      }
+
+      resetFollowupScreenshotAttachment();
+
+      const objectUrl = URL.createObjectURL(imageFile);
+      followupScreenshotPreviewObjectUrl = objectUrl;
+      if (followupPastePreviewImgEl) {
+        followupPastePreviewImgEl.src = objectUrl;
+      }
+      if (followupPastePreviewPanelEl) {
+        followupPastePreviewPanelEl.classList.remove("hidden");
+      }
+
+      followupScreenshotUploading = true;
+      try {
+        const publicUrl = await uploadFollowupPastedImageToStorage(imageFile, customerId);
+        followupScreenshotPublicUrl = publicUrl;
+        if (followupScreenshotPreviewObjectUrl) {
+          URL.revokeObjectURL(followupScreenshotPreviewObjectUrl);
+          followupScreenshotPreviewObjectUrl = null;
+        }
+        if (followupPastePreviewImgEl) {
+          followupPastePreviewImgEl.src = publicUrl;
+        }
+        showToast("截图已上传，点击「保存粘贴内容」写入跟进记录。", "success");
+      } catch (err) {
+        const msg = err && err.message ? err.message : String(err);
+        showToast("截图上传失败：" + msg, "error");
+        resetFollowupScreenshotAttachment();
+      } finally {
+        followupScreenshotUploading = false;
+      }
     }
 
     function renderFollowups(records) {
       followupListEl.innerHTML = "";
       if (!records.length) {
-        followupListEl.innerHTML = '<p class="rounded-lg bg-slate-800/70 px-3 py-2 text-sm text-slate-400">暂无跟进记录，添加第一条吧。</p>';
+        followupListEl.innerHTML =
+          '<p class="shrink-0 rounded-lg bg-slate-800/70 px-4 py-4 text-base leading-relaxed text-slate-400">暂无跟进记录，添加第一条吧。</p>';
         return;
       }
 
       records.forEach((record) => {
-        const card = document.createElement("div");
-        card.className =
-          "rounded-xl border border-slate-700 bg-slate-900/70 p-3 transition-all hover:border-blue-500/50";
-        card.innerHTML = '<div class="rounded-lg bg-cyan-500/10 px-3 py-2"><p class="text-xs text-slate-300"></p><p class="mt-1 text-sm font-medium text-cyan-200"></p></div><div class="mt-2 rounded-lg bg-slate-800/75 px-3 py-3 text-sm text-slate-100 whitespace-pre-wrap break-words"></div>';
         const rawType = (record.type || "").toLowerCase();
         const isAiType = rawType === "ai";
-        const typeLabel = isAiType ? "AI" : (rawType === "manual" ? "Manual" : (record.type || "跟进"));
+        const typeLabel = isAiType ? "AI" : rawType === "manual" ? "Manual" : record.type || "跟进";
         const typeIcon = isAiType ? "🤖" : "💬";
-        card.querySelector("p:first-child").textContent = formatFollowupTime(record.created_at);
-        card.querySelector("p:nth-child(2)").textContent = typeIcon + " 联系方式：" + typeLabel;
-        card.querySelector("div:last-child").textContent = record.content || "(空记录)";
-        followupListEl.appendChild(card);
+
+        const item = document.createElement("div");
+        item.className = "shrink-0 flex w-full flex-col items-start";
+
+        const col = document.createElement("div");
+        col.className = "flex w-full max-w-full flex-col items-stretch";
+
+        const metaRow = document.createElement("div");
+        metaRow.className =
+          "mb-1.5 flex w-full max-w-full items-end justify-between pl-1 text-sm text-slate-400";
+
+        const metaLeft = document.createElement("div");
+        metaLeft.className = "min-w-0 flex-1 pr-2 leading-relaxed";
+
+        const timeLine = document.createElement("div");
+        timeLine.className = "text-slate-400";
+        timeLine.textContent = formatFollowupTime(record.created_at);
+
+        const typeLine = document.createElement("div");
+        typeLine.className = "mt-0.5 text-slate-400";
+        typeLine.textContent = typeIcon + " 跟进方式：" + typeLabel;
+
+        metaLeft.appendChild(timeLine);
+        metaLeft.appendChild(typeLine);
+
+        const delBtn = document.createElement("button");
+        delBtn.type = "button";
+        delBtn.className =
+          "shrink-0 cursor-pointer text-slate-500 transition-colors hover:text-rose-500";
+        delBtn.setAttribute("aria-label", "删除此条跟进记录");
+        delBtn.textContent = "删除";
+        delBtn.addEventListener("click", () => deleteFollowUp(record.id));
+
+        metaRow.appendChild(metaLeft);
+        metaRow.appendChild(delBtn);
+
+        const bubble = document.createElement("div");
+        bubble.className =
+          "flex w-full max-w-full flex-col gap-4 rounded-2xl rounded-tl-sm border border-emerald-800/50 bg-emerald-900/30 px-5 py-4 text-base leading-loose text-emerald-50";
+
+        const trimmed = (record.content || "").trim();
+        const shot = record.screenshot_url && isPublicHttpUrlForScreenshot(record.screenshot_url);
+
+        if (trimmed) {
+          const textEl = document.createElement("div");
+          textEl.className = "break-words whitespace-pre-wrap text-base leading-loose";
+          textEl.textContent = trimmed;
+          bubble.appendChild(textEl);
+        } else if (!shot) {
+          const textEl = document.createElement("div");
+          textEl.className = "break-words whitespace-pre-wrap text-base leading-loose";
+          textEl.textContent = "(空记录)";
+          bubble.appendChild(textEl);
+        }
+
+        if (shot) {
+          const imgWrap = document.createElement("div");
+          imgWrap.className = trimmed ? "pt-1" : "";
+          const shotImg = document.createElement("img");
+          shotImg.src = record.screenshot_url.trim();
+          shotImg.alt = "跟进聊天截图";
+          shotImg.loading = "lazy";
+          shotImg.decoding = "async";
+          shotImg.className =
+            "max-w-sm cursor-pointer rounded-xl border border-emerald-700/45 object-contain transition hover:opacity-95";
+          shotImg.addEventListener("click", () => {
+            window.open(record.screenshot_url.trim(), "_blank", "noopener,noreferrer");
+          });
+          imgWrap.appendChild(shotImg);
+          bubble.appendChild(imgWrap);
+        }
+
+        col.appendChild(metaRow);
+        col.appendChild(bubble);
+        item.appendChild(col);
+        followupListEl.appendChild(item);
       });
+    }
+
+    async function deleteFollowUp(recordId) {
+      const confirmed = await showConfirm("删除跟进记录", "确定要删除这条跟进记录吗？");
+      if (!confirmed) return;
+      if (!selectedCustomer || !selectedCustomer.id) {
+        showToast("未选择客户，无法删除。", "error");
+        return;
+      }
+      const customerId = Number.parseInt(selectedCustomer.id, 10);
+      const { error } = await supabaseClient.from(FOLLOWUPS_TABLE).delete().eq("id", recordId);
+      if (error) {
+        showToast("删除失败：" + error.message, "error");
+        return;
+      }
+      showToast("删除成功");
+      await loadFollowups(customerId);
+      await Promise.all([loadCustomers(), loadClosedCustomers(), loadTodayTodoFollowupsFromDb()]);
     }
 
     function openProductModal() {
@@ -3516,17 +4694,21 @@
 
     async function loadFollowups(customerId) {
       followupStatusEl.textContent = "加载跟进记录中...";
-      followupListEl.innerHTML = '<p class="rounded-lg bg-slate-800/70 px-3 py-2 text-sm text-slate-400">正在获取跟进记录...</p>';
+      followupListEl.innerHTML =
+        '<p class="shrink-0 rounded-lg bg-slate-800/70 px-4 py-3 text-base leading-loose text-slate-400">正在获取跟进记录...</p>';
 
       const { data, error } = await supabaseClient
         .from(FOLLOWUPS_TABLE)
-        .select("id, customer_id, type, content, created_at")
+        .select("id, customer_id, type, content, screenshot_url, created_at")
         .eq("customer_id", customerId)
         .order("created_at", { ascending: false });
 
       if (error) {
         followupStatusEl.textContent = "加载失败";
-        followupListEl.innerHTML = '<p class="rounded-lg bg-rose-500/10 px-3 py-2 text-sm text-rose-300">读取跟进记录失败：' + error.message + "</p>";
+        followupListEl.innerHTML =
+          '<p class="shrink-0 rounded-lg bg-rose-500/10 px-4 py-3 text-base leading-loose text-rose-300">读取跟进记录失败：' +
+          error.message +
+          "</p>";
         return;
       }
 
@@ -3535,31 +4717,39 @@
     }
 
     function openFollowupDrawer(customer) {
-      selectedCustomer = customer;
-      followupCustomerNameEl.textContent = (customer.company_name || "未命名客户") + " · ID " + customer.id;
-      followupCustomerCompanyEl.textContent = customer.company_name || "-";
-      followupCustomerContactNameEl.textContent = customer.contact_name || "-";
-      followupCustomerEmailEl.textContent = customer.email || "-";
-      followupCustomerPhoneEl.textContent = customer.phone || "-";
-      followupCustomerCountryEl.textContent = customer.country || "-";
-      followupCustomerAddressEl.textContent = customer.address || "-";
-      followupCustomerSourceEl.textContent = customer.source || "-";
-      followupCustomerSocialEl.textContent = customer.social_media || "-";
+      const fromCache = privateCustomersCache.find((c) => String(c.id) === String(customer.id));
+      const merged = Object.assign({}, fromCache || {}, customer);
+      merged.tags = parseCustomerTags(merged.tags);
+      selectedCustomer = merged;
+      resetFollowupScreenshotAttachment();
+      fillFollowupCustomerTags(merged.tags);
+      followupCustomerNameEl.textContent = (merged.company_name || "未命名客户") + " · ID " + merged.id;
+      followupCustomerCompanyEl.textContent = merged.company_name || "-";
+      followupCustomerContactNameEl.textContent = merged.contact_name || "-";
+      followupCustomerEmailEl.textContent = merged.email || "-";
+      followupCustomerPhoneEl.textContent = merged.phone || "-";
+      followupCustomerCountryEl.textContent = merged.country || "-";
+      followupCustomerAddressEl.textContent = merged.address || "-";
+      followupCustomerSourceEl.textContent = merged.source || "-";
+      followupCustomerSocialEl.textContent = merged.social_media || "-";
       nextFollowupDatetimeInput.value = "";
       followupFormStatusEl.textContent = "";
       followupDrawerOverlay.classList.remove("hidden");
       followupDrawer.classList.remove("translate-x-[110%]");
-      loadFollowups(customer.id);
+      loadFollowups(merged.id);
       followupContentInput.focus();
-      startCustomerLocalTime(customer.country);
+      requestAnimationFrame(() => adjustFollowupContentTextareaHeight());
+      startCustomerLocalTime(merged.country);
     }
 
     function closeFollowupDrawer() {
       resetFollowupLocalTimeUI();
+      resetFollowupScreenshotAttachment();
       followupDrawer.classList.add("translate-x-[110%]");
       followupDrawerOverlay.classList.add("hidden");
       selectedCustomer = null;
       followupForm.reset();
+      adjustFollowupContentTextareaHeight();
       followupFormStatusEl.textContent = "";
       followupCustomerCompanyEl.textContent = "-";
       followupCustomerContactNameEl.textContent = "-";
@@ -3571,6 +4761,7 @@
       followupCustomerSocialEl.textContent = "-";
       nextFollowupDatetimeInput.value = "";
       saveFollowupBtn.disabled = false;
+      fillFollowupCustomerTags("");
     }
 
     async function loadCustomers() {
@@ -3579,7 +4770,7 @@
       const { data, error } = await supabaseClient
         .from("customers")
         .select(
-          "id, company_name, contact_name, email, phone, country, address, source, social_media, is_public, is_closed, next_followup_date, status, last_follow_up",
+          "id, company_name, contact_name, email, phone, country, address, source, social_media, is_public, is_closed, next_followup_date, status, last_follow_up, tags",
         )
         .or("is_public.is.false,is_public.is.null")
         .not("is_closed", "eq", true);
@@ -3594,8 +4785,15 @@
       }
 
       statusEl.textContent = "已加载";
-      privateCustomersCache = sortCustomersByLastFollowUp(data || []);
-      renderRows(privateCustomersCache);
+      privateCustomersCache = sortCustomersByLastFollowUp(data || []).map((c) => ({
+        ...c,
+        tags: parseCustomerTags(c.tags),
+      }));
+      renderCustomerTagFilterBar();
+      renderRows();
+      if (dashboardPrivateViewMode === "kanban") {
+        renderKanbanBoard();
+      }
       updateBulkEmailSelectionUI();
     }
 
@@ -4300,6 +5498,9 @@
         status: customerStatusInput ? customerStatusInput.value.trim() || "新线索" : "新线索",
         is_public: false,
       };
+      if (customerTagsInput) {
+        payload.tags = normalizeTagsForSave(customerTagsInput.value);
+      }
       const nextFollowDateVal = customerNextFollowupDateInput ? customerNextFollowupDateInput.value.trim() : "";
       payload.next_followup_date = nextFollowDateVal ? localDateInputToNextFollowupIso(nextFollowDateVal) : null;
       if (!editingCustomerId) {
@@ -4344,9 +5545,10 @@
       }
 
       const content = followupContentInput.value.trim();
+      const screenshotUrl = followupScreenshotPublicUrl;
       const reminderTime = nextFollowupDatetimeInput.value;
-      if (!content) {
-        followupFormStatusEl.textContent = "请填写跟进内容。";
+      if (!content && !screenshotUrl) {
+        followupFormStatusEl.textContent = "请填写跟进内容，或先上传一张聊天截图。";
         followupFormStatusEl.className = "min-h-5 text-sm text-amber-300";
         return;
       }
@@ -4362,13 +5564,16 @@
         return;
       }
 
-      const { error } = await supabaseClient.from(FOLLOWUPS_TABLE).insert([
-        {
-          customer_id: customerId,
-          type: "manual",
-          content: content,
-        },
-      ]);
+      const rowPayload = {
+        customer_id: customerId,
+        type: "manual",
+        content: content,
+      };
+      if (screenshotUrl) {
+        rowPayload.screenshot_url = screenshotUrl;
+      }
+
+      const { error } = await supabaseClient.from(FOLLOWUPS_TABLE).insert([rowPayload]);
 
       if (error) {
         followupFormStatusEl.textContent = "保存失败：" + error.message;
@@ -4376,6 +5581,8 @@
         saveFollowupBtn.disabled = false;
         return;
       }
+
+      resetFollowupScreenshotAttachment();
 
       const touchRes = await updateLastFollowUp(customerId);
       if (touchRes && touchRes.error) {
@@ -4400,6 +5607,7 @@
 
       followupForm.reset();
       nextFollowupDatetimeInput.value = "";
+      adjustFollowupContentTextareaHeight();
       followupFormStatusEl.textContent = "保存成功";
       followupFormStatusEl.className = "min-h-5 text-sm text-emerald-300";
       saveFollowupBtn.disabled = false;
@@ -4528,13 +5736,32 @@
       event.preventDefault();
       switchView("holidays");
     });
+    if (navInsightsBtn) {
+      navInsightsBtn.addEventListener("click", () => {
+        void openInsightsModal();
+      });
+    }
+    if (closeInsightsModalBtn) {
+      closeInsightsModalBtn.addEventListener("click", closeInsightsModal);
+    }
+    if (customerTagFilterClearBtn) {
+      customerTagFilterClearBtn.addEventListener("click", () => {
+        customerTagFilter = "";
+        renderCustomerTagFilterBar();
+        debouncedRefreshPrivateCustomerViews();
+      });
+    }
     clearCustomerCountryFilterBtn.addEventListener("click", () => {
       setCustomerCountryFilter("");
     });
-    customerSearchInput.addEventListener("input", () => {
-      currentSearchQuery = customerSearchInput.value || "";
-      renderRows(privateCustomersCache);
-    });
+    bindPrivateCustomerSearchInput(globalCustomerSearchInput);
+    bindPrivateCustomerSearchInput(customerSearchInput);
+    if (btnDashboardViewList) {
+      btnDashboardViewList.addEventListener("click", () => setDashboardPrivateViewMode("list"));
+    }
+    if (btnDashboardViewKanban) {
+      btnDashboardViewKanban.addEventListener("click", () => setDashboardPrivateViewMode("kanban"));
+    }
     selectAllCustomersEl.addEventListener("change", () => {
       const allVisible = Array.from(tableBodyEl.querySelectorAll(".customer-checkbox"));
       if (!allVisible.length) return;
@@ -4594,6 +5821,18 @@
     closeFollowupDrawerBtn.addEventListener("click", closeFollowupDrawer);
     followupDrawerOverlay.addEventListener("click", closeFollowupDrawer);
     followupForm.addEventListener("submit", handleFollowupSubmit);
+    if (followupContentInput) {
+      followupContentInput.addEventListener("paste", (e) => {
+        void handleFollowupContentPaste(e);
+        setTimeout(() => adjustFollowupContentTextareaHeight(), 0);
+      });
+      followupContentInput.addEventListener("input", adjustFollowupContentTextareaHeight);
+    }
+    if (followupPastePreviewRemoveBtn) {
+      followupPastePreviewRemoveBtn.addEventListener("click", () => {
+        resetFollowupScreenshotAttachment();
+      });
+    }
     sendEmailBtn.addEventListener("click", handleSendEmail);
     if (whatsappFollowupBtn) {
       whatsappFollowupBtn.addEventListener("click", handleWhatsAppFromDrawer);
@@ -4611,16 +5850,24 @@
     confirmOrderBtn.addEventListener("click", handleConfirmOrder);
     exportPdfBtn.addEventListener("click", exportQuotationPdf);
     document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape" && !modalEl.classList.contains("hidden")) {
+      if (event.key !== "Escape") return;
+      if (insightsModalEl && !insightsModalEl.classList.contains("hidden")) {
+        closeInsightsModal();
+        return;
+      }
+      if (!modalEl.classList.contains("hidden")) {
         closeCustomerModal();
+        return;
       }
-      if (event.key === "Escape" && !followupDrawer.classList.contains("translate-x-[110%]")) {
+      if (!followupDrawer.classList.contains("translate-x-[110%]")) {
         closeFollowupDrawer();
+        return;
       }
-      if (event.key === "Escape" && !productModalEl.classList.contains("hidden")) {
+      if (!productModalEl.classList.contains("hidden")) {
         closeProductModal();
+        return;
       }
-      if (event.key === "Escape" && salesRecordModalEl && !salesRecordModalEl.classList.contains("hidden")) {
+      if (salesRecordModalEl && !salesRecordModalEl.classList.contains("hidden")) {
         closeSalesRecordModal();
       }
     });
