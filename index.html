@@ -11,8 +11,16 @@
        alter table customer_followups add column if not exists screenshot_url text;
        alter table customers add column if not exists tags text default '[]';
        （应用内以 JSON 数组文本存储，例如 [] 或 ["高意向","展会客户"]；兼容旧版逗号分隔。）
-       另请在 Storage 创建公开桶 followup-screenshots，并配置允许已登录用户上传/读取（与 anon 策略一致）。 -->
-  <title>外贸 CRM 工作台</title>
+       另请在 Storage 创建公开桶 followup-screenshots，并配置允许已登录用户上传/读取（与 anon 策略一致）。
+       批量导入（可选）：若希望使用 PostgREST upsert(onConflict: email)，可为邮箱建唯一约束，例如：
+       create unique index if not exists customers_email_unique on public.customers (lower(trim(email))); -->
+  <title>MyGlobal CRM</title>
+  <!-- 无图片时：用 SVG + Emoji 作标签图标；若改用自有 Logo，把 logo.png 放在与本 index.html 同一目录后改为：<link rel="icon" href="logo.png" type="image/png" sizes="32x32" /> 并删除下一行 favicon。 -->
+  <link
+    rel="icon"
+    type="image/svg+xml"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext x='16' y='18' font-size='28' text-anchor='middle' dominant-baseline='middle' font-family='system-ui,sans-serif'%3E%F0%9F%8C%8D%3C/text%3E%3C/svg%3E"
+  />
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -26,12 +34,242 @@
     };
   </script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
   <style>
+    /* ========== 多主题 CSS 变量（由 changeTheme 写入 document.documentElement.style，此处为脚本运行前回退） ========== */
+    :root {
+      /* 语义别名（随 --theme-* 变化） */
+      --bg-color: var(--theme-app-bg);
+      --card-bg: var(--theme-card-bg);
+      --text-color: var(--theme-text-primary);
+      --primary-color: var(--theme-primary);
+
+      --theme-primary: #818cf8;
+      --theme-app-bg: #020617;
+      --theme-app-bg-mid: #0f172a;
+      --theme-app-bg-end: #020617;
+      --theme-sidebar-bg: rgba(15, 23, 42, 0.98);
+      --theme-sidebar-border: #1e293b;
+      --theme-topbar-bg: rgba(2, 6, 23, 0.92);
+      --theme-topbar-border: rgba(30, 41, 59, 0.75);
+      --theme-mobile-topbar-bg: rgba(2, 6, 23, 0.95);
+      --theme-mobile-topbar-border: rgba(30, 41, 59, 0.8);
+      --theme-card-bg: rgba(15, 23, 42, 0.5);
+      --theme-card-border: rgba(51, 65, 85, 0.75);
+      --theme-table-head-bg: rgba(30, 41, 55, 0.7);
+      --theme-row-hover-bg: rgba(30, 41, 55, 0.4);
+      --theme-modal-overlay-bg: rgba(2, 6, 23, 0.72);
+      --theme-modal-panel-bg: rgba(15, 23, 42, 0.96);
+      --theme-modal-panel-border: rgba(51, 65, 85, 0.85);
+      --theme-drawer-bg: rgba(15, 23, 42, 0.96);
+      --theme-drawer-border: rgba(51, 65, 85, 0.8);
+      --theme-login-overlay-bg: #020617;
+      --theme-login-card-bg: rgba(15, 23, 42, 0.95);
+      --theme-login-card-border: rgba(51, 65, 85, 0.8);
+      --theme-insights-bg-start: #020617;
+      --theme-insights-bg-mid: #020617;
+      --theme-insights-bg-end: #0f172a;
+      --theme-text-primary: #f1f5f9;
+      --theme-text-muted: #94a3b8;
+      --theme-input-bg: rgba(15, 23, 42, 0.88);
+      --theme-sidebar-widget-bg: rgba(30, 41, 55, 0.4);
+      --theme-sidebar-widget-border: #1e293b;
+      --theme-nav-hover-bg: rgba(30, 41, 55, 0.55);
+      --theme-nav-active-bg: rgba(99, 102, 241, 0.22);
+      --theme-nav-active-border: rgba(129, 140, 248, 0.38);
+      --theme-nav-active-text: #c7d2fe;
+      --theme-nav-active-shadow: 0 0 0 1px rgba(99, 102, 241, 0.35), 0 10px 30px rgba(99, 102, 241, 0.18);
+    }
+
+    #app-sidebar .crm-nav-link {
+      border-width: 1px;
+      border-style: solid;
+      border-color: transparent;
+      color: var(--theme-text-muted);
+      text-decoration: none;
+      transition:
+        background-color 0.15s ease,
+        border-color 0.15s ease,
+        color 0.15s ease,
+        box-shadow 0.15s ease;
+    }
+    #app-sidebar button.crm-nav-link {
+      cursor: pointer;
+      background: transparent;
+    }
+    #app-sidebar .crm-nav-link:hover {
+      background-color: var(--theme-nav-hover-bg) !important;
+      color: var(--theme-text-primary);
+    }
+    #app-sidebar .crm-nav-link-active {
+      background-color: var(--theme-nav-active-bg) !important;
+      border-color: var(--theme-nav-active-border) !important;
+      color: var(--theme-nav-active-text) !important;
+      box-shadow: var(--theme-nav-active-shadow);
+    }
+
+    .crm-theme-body {
+      background-color: var(--theme-app-bg) !important;
+      color: var(--theme-text-primary) !important;
+    }
+    .crm-theme-login {
+      background-color: var(--theme-login-overlay-bg) !important;
+    }
+    .crm-theme-login-card {
+      background-color: var(--theme-login-card-bg) !important;
+      border-color: var(--theme-login-card-border) !important;
+    }
+    .crm-theme-app {
+      background-color: var(--theme-app-bg) !important;
+    }
+    .crm-theme-sidebar {
+      background-color: var(--theme-sidebar-bg) !important;
+      border-color: var(--theme-sidebar-border) !important;
+    }
+    .crm-theme-sidebar-widget {
+      background-color: var(--theme-sidebar-widget-bg) !important;
+      border-color: var(--theme-sidebar-widget-border) !important;
+    }
+    .crm-theme-main {
+      background: linear-gradient(
+        to bottom right,
+        var(--theme-app-bg),
+        var(--theme-app-bg-mid),
+        var(--theme-app-bg-end)
+      ) !important;
+    }
+    .crm-theme-topbar {
+      background-color: var(--theme-topbar-bg) !important;
+      border-bottom-color: var(--theme-topbar-border) !important;
+    }
+    .crm-theme-mobile-topbar {
+      background-color: var(--theme-mobile-topbar-bg) !important;
+      border-bottom-color: var(--theme-mobile-topbar-border) !important;
+    }
+    .crm-theme-modal-overlay {
+      background-color: var(--theme-modal-overlay-bg) !important;
+    }
+    .crm-theme-modal-card {
+      background-color: var(--theme-modal-panel-bg) !important;
+      border-color: var(--theme-modal-panel-border) !important;
+    }
+    .crm-theme-drawer-shell {
+      background-color: var(--theme-drawer-bg) !important;
+      border-color: var(--theme-drawer-border) !important;
+    }
+    .crm-theme-insights-shell {
+      background: linear-gradient(
+        to bottom,
+        var(--theme-insights-bg-start),
+        var(--theme-insights-bg-mid),
+        var(--theme-insights-bg-end)
+      ) !important;
+      color: var(--theme-text-primary) !important;
+    }
+
+    #app-container main thead[class*="bg-slate-800"] {
+      background-color: var(--theme-table-head-bg) !important;
+    }
+    #app-container main tbody tr:hover {
+      background-color: var(--theme-row-hover-bg) !important;
+    }
+    #app-container main section.rounded-2xl.border[class*="bg-slate-900"] {
+      background-color: var(--theme-card-bg) !important;
+      border-color: var(--theme-card-border) !important;
+    }
+
+    /* 护眼莫兰迪（浅底）：正文与侧栏可读性 */
+    html[data-theme="soft-sand"] #app-container .text-white,
+    html[data-theme="soft-sand"] #app-container .text-slate-50 {
+      color: #334155 !important;
+    }
+    html[data-theme="soft-sand"] #app-container .text-slate-100,
+    html[data-theme="soft-sand"] #app-container .text-slate-200 {
+      color: #475569 !important;
+    }
+    html[data-theme="soft-sand"] #app-container .text-slate-300,
+    html[data-theme="soft-sand"] #app-container .text-slate-400 {
+      color: #64748b !important;
+    }
+    html[data-theme="soft-sand"] #app-sidebar .text-white,
+    html[data-theme="soft-sand"] #app-sidebar .text-slate-100,
+    html[data-theme="soft-sand"] #app-sidebar .text-slate-200 {
+      color: #334155 !important;
+    }
+    html[data-theme="soft-sand"] #app-sidebar .text-slate-300,
+    html[data-theme="soft-sand"] #app-sidebar .text-slate-400 {
+      color: #64748b !important;
+    }
+    html[data-theme="soft-sand"] #top-app-bar .text-slate-400,
+    html[data-theme="soft-sand"] #top-app-bar .text-slate-500,
+    html[data-theme="soft-sand"] #mobile-app-top-bar .text-slate-400 {
+      color: #64748b !important;
+    }
+    html[data-theme="soft-sand"] .crm-theme-modal-card .text-white,
+    html[data-theme="soft-sand"] .crm-theme-modal-card .text-slate-100,
+    html[data-theme="soft-sand"] .crm-theme-modal-card .text-slate-200 {
+      color: #334155 !important;
+    }
+    html[data-theme="soft-sand"] .crm-theme-modal-card .text-slate-300,
+    html[data-theme="soft-sand"] .crm-theme-modal-card .text-slate-400 {
+      color: #64748b !important;
+    }
+    html[data-theme="soft-sand"] .crm-theme-drawer-shell .text-white {
+      color: #334155 !important;
+    }
+    html[data-theme="soft-sand"] .crm-theme-drawer-shell .text-slate-300,
+    html[data-theme="soft-sand"] .crm-theme-drawer-shell .text-slate-400 {
+      color: #64748b !important;
+    }
+
+    html[data-theme="soft-sand"] #insights-modal .text-white,
+    html[data-theme="soft-sand"] #insights-modal .text-slate-50 {
+      color: #334155 !important;
+    }
+    html[data-theme="soft-sand"] #insights-modal .text-slate-100,
+    html[data-theme="soft-sand"] #insights-modal .text-slate-200 {
+      color: #475569 !important;
+    }
+    html[data-theme="soft-sand"] #insights-modal .text-slate-300,
+    html[data-theme="soft-sand"] #insights-modal .text-slate-400,
+    html[data-theme="soft-sand"] #insights-modal .text-slate-500 {
+      color: #64748b !important;
+    }
+    html[data-theme="soft-sand"] #custom-confirm-modal .text-white {
+      color: #334155 !important;
+    }
+    html[data-theme="soft-sand"] #custom-confirm-modal .text-slate-300,
+    html[data-theme="soft-sand"] #custom-confirm-modal .text-slate-400 {
+      color: #64748b !important;
+    }
+    html[data-theme="soft-sand"] #crm-theme-switcher-wrap .text-slate-500 {
+      color: #64748b !important;
+    }
+
+    .crm-theme-insights-header {
+      background-color: var(--theme-topbar-bg) !important;
+      border-bottom-color: var(--theme-topbar-border) !important;
+    }
+    .crm-theme-insights-article {
+      background-color: var(--theme-card-bg) !important;
+      border-color: var(--theme-card-border) !important;
+    }
+    #crm-theme-switcher .crm-theme-dot--active {
+      box-shadow:
+        0 0 0 2px rgba(34, 211, 238, 0.85),
+        0 0 0 4px rgba(15, 23, 42, 0.35);
+    }
+    html[data-theme="soft-sand"] #crm-theme-switcher .crm-theme-dot--active {
+      box-shadow:
+        0 0 0 2px #6366f1,
+        0 0 0 4px rgba(241, 245, 249, 0.96);
+    }
+
     #holidays-view .holiday-glass {
       background: rgba(15, 23, 42, 0.45);
       border: 1px solid rgba(255, 255, 255, 0.12);
@@ -116,15 +354,20 @@
     #followup-list::-webkit-scrollbar-thumb:hover {
       background: rgba(148, 163, 184, 0.6);
     }
+    /* 客户表「更多」下拉展开时抬高当前行，避免菜单被下一行表格盖住 */
+    tr.crm-row-has-open-actions-menu {
+      position: relative;
+      z-index: 50;
+    }
   </style>
 </head>
-<body class="min-h-screen max-w-[100vw] overflow-x-hidden bg-slate-950 text-slate-100">
+<body class="crm-theme-body min-h-screen max-w-[100vw] overflow-x-hidden">
   <div
     id="login-view"
-    class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950 px-4"
+    class="crm-theme-login fixed inset-0 z-[100] flex items-center justify-center px-4"
   >
     <div
-      class="relative w-full max-w-md overflow-hidden rounded-2xl border border-slate-700/80 bg-slate-900/95 p-8 shadow-[0_0_0_1px_rgba(148,163,184,0.08),0_24px_60px_rgba(2,6,23,0.65)] backdrop-blur-md"
+      class="crm-theme-login-card relative w-full max-w-md overflow-hidden rounded-2xl border border-slate-700/80 p-8 shadow-[0_0_0_1px_rgba(148,163,184,0.08),0_24px_60px_rgba(2,6,23,0.65)] backdrop-blur-md"
     >
       <div class="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-indigo-500/20 blur-3xl"></div>
       <div class="pointer-events-none absolute -bottom-12 -left-12 h-36 w-36 rounded-full bg-sky-500/15 blur-3xl"></div>
@@ -169,11 +412,11 @@
 
   <div
     id="app-container"
-    class="hidden flex min-h-screen w-full max-w-[100vw] flex-col overflow-x-hidden bg-slate-950 md:flex-row"
+    class="crm-theme-app hidden flex min-h-screen w-full max-w-[100vw] flex-col overflow-x-hidden md:flex-row"
   >
     <header
       id="mobile-app-top-bar"
-      class="sticky top-0 z-[70] flex h-11 shrink-0 items-center justify-between border-b border-slate-800/80 bg-slate-950/95 px-3 py-1.5 text-sm backdrop-blur-md md:hidden"
+      class="crm-theme-mobile-topbar sticky top-0 z-[70] flex h-11 shrink-0 items-center justify-between border-b border-slate-800/80 px-3 py-1.5 text-sm backdrop-blur-md md:hidden"
     >
       <div class="flex min-w-0 items-center gap-2">
         <span class="shrink-0 text-[0.65rem] font-bold uppercase tracking-[0.22em] text-indigo-400">MyCRM</span>
@@ -193,13 +436,13 @@
 
     <div
       id="mobile-sidebar-overlay"
-      class="fixed inset-0 z-[50] hidden bg-black/60 backdrop-blur-[1px] md:hidden"
+      class="crm-theme-modal-overlay fixed inset-0 z-[50] hidden backdrop-blur-[1px] md:hidden"
       aria-hidden="true"
     ></div>
 
     <aside
       id="app-sidebar"
-      class="fixed inset-y-0 left-0 z-[60] flex h-full w-[min(18rem,88vw)] -translate-x-full flex-col overflow-y-auto overscroll-contain border-r border-slate-800 bg-slate-900/[0.98] p-4 shadow-2xl transition-transform duration-300 ease-out md:relative md:inset-auto md:z-auto md:h-auto md:min-h-screen md:w-72 md:max-w-none md:bg-slate-900/95 md:p-6 md:shadow-none md:!translate-x-0"
+      class="crm-theme-sidebar fixed inset-y-0 left-0 z-[60] flex h-full w-[min(18rem,88vw)] -translate-x-full flex-col overflow-y-auto overscroll-contain border-r border-slate-800 p-4 shadow-2xl transition-transform duration-300 ease-out md:relative md:inset-auto md:z-auto md:h-auto md:min-h-screen md:w-72 md:max-w-none md:p-6 md:shadow-none md:!translate-x-0"
     >
       <div class="mb-6 md:mb-10">
         <p class="text-[0.65rem] uppercase tracking-[0.28em] text-indigo-400/80 md:text-xs">MyCRM</p>
@@ -207,43 +450,85 @@
       </div>
 
       <nav class="space-y-1.5 md:space-y-2">
-        <a id="nav-dashboard" href="#" class="flex items-center gap-2.5 rounded-xl border border-indigo-400/30 bg-indigo-500/20 px-3 py-2.5 text-sm text-indigo-200 shadow-glow md:gap-3 md:px-4 md:py-3 md:text-base">
+        <a
+          id="nav-dashboard"
+          href="#"
+          class="crm-nav-link crm-nav-link-active flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm md:gap-3 md:px-4 md:py-3 md:text-base"
+        >
           <span class="h-2.5 w-2.5 rounded-full bg-indigo-300"></span>
           <span class="font-medium">工作台</span>
         </a>
         <button
           id="nav-insights-btn"
           type="button"
-          class="flex w-full items-center gap-2.5 rounded-xl border border-slate-700/80 bg-slate-800/40 px-3 py-2.5 text-left text-sm text-slate-200 transition hover:border-cyan-500/40 hover:bg-slate-800/80 hover:text-white md:gap-3 md:px-4 md:py-3 md:text-base"
+          class="crm-nav-link flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm md:gap-3 md:px-4 md:py-3 md:text-base"
         >
           <span class="h-2.5 w-2.5 rounded-full bg-cyan-400/90"></span>
           <span class="font-medium">数据洞察</span>
         </button>
-        <a id="nav-public-pool" href="#" class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm text-slate-100/90 transition hover:bg-slate-800/70 hover:text-white md:gap-3 md:px-4 md:py-3 md:text-base">
+        <a id="nav-public-pool" href="#" class="crm-nav-link flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm md:gap-3 md:px-4 md:py-3 md:text-base">
           <span class="h-2.5 w-2.5 rounded-full bg-cyan-300"></span>
           <span class="font-medium">客户公海</span>
         </a>
-        <a id="nav-closed-customers" href="#" class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm text-slate-100/90 transition hover:bg-slate-800/70 hover:text-white md:gap-3 md:px-4 md:py-3 md:text-base">
+        <a id="nav-closed-customers" href="#" class="crm-nav-link flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm md:gap-3 md:px-4 md:py-3 md:text-base">
           <span class="h-2.5 w-2.5 rounded-full bg-rose-300"></span>
           <span class="font-medium">成交老客户</span>
         </a>
-        <a id="nav-sales-report" href="#" class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm text-slate-100/90 transition hover:bg-slate-800/70 hover:text-white md:gap-3 md:px-4 md:py-3 md:text-base">
+        <a id="nav-sales-report" href="#" class="crm-nav-link flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm md:gap-3 md:px-4 md:py-3 md:text-base">
           <span class="h-2.5 w-2.5 rounded-full bg-pink-300"></span>
           <span class="font-medium">销售报表</span>
         </a>
-        <a id="nav-quotations" href="#" class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm text-slate-100/90 transition hover:bg-slate-800/70 hover:text-white md:gap-3 md:px-4 md:py-3 md:text-base">
+        <a id="nav-quotations" href="#" class="crm-nav-link flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm md:gap-3 md:px-4 md:py-3 md:text-base">
           <span class="h-2.5 w-2.5 rounded-full bg-amber-300"></span>
           <span class="font-medium">报价单</span>
         </a>
-        <a id="nav-products" href="#" class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm text-slate-100/90 transition hover:bg-slate-800/70 hover:text-white md:gap-3 md:px-4 md:py-3 md:text-base">
+        <a id="nav-products" href="#" class="crm-nav-link flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm md:gap-3 md:px-4 md:py-3 md:text-base">
           <span class="h-2.5 w-2.5 rounded-full bg-violet-300"></span>
           <span class="font-medium">产品管理</span>
         </a>
-        <a id="nav-holidays" href="#" class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm text-slate-100/90 transition hover:bg-slate-800/70 hover:text-white md:gap-3 md:px-4 md:py-3 md:text-base">
+        <a id="nav-holidays" href="#" class="crm-nav-link flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm md:gap-3 md:px-4 md:py-3 md:text-base">
           <span class="h-2.5 w-2.5 rounded-full bg-sky-300"></span>
           <span class="font-medium">全球节日</span>
         </a>
       </nav>
+
+      <div id="crm-theme-switcher-wrap" class="mt-5 pt-1 md:mt-6">
+        <p class="mb-2 text-center text-[10px] font-medium uppercase tracking-wide text-slate-500 md:text-[11px]">主题</p>
+        <div id="crm-theme-switcher" class="flex items-center justify-center gap-2.5 md:gap-3" role="toolbar" aria-label="主题切换">
+          <button
+            type="button"
+            data-crm-theme-dot="geek-dark"
+            class="crm-theme-dot h-4 w-4 shrink-0 rounded-full border border-indigo-400/50 shadow-md transition hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+            style="background: linear-gradient(135deg, #4338ca, #1e1b4b)"
+            title="极客暗（默认）"
+            aria-label="极客暗"
+          ></button>
+          <button
+            type="button"
+            data-crm-theme-dot="midnight-blue"
+            class="crm-theme-dot h-4 w-4 shrink-0 rounded-full border border-sky-500/45 shadow-md transition hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+            style="background: linear-gradient(135deg, #38bdf8, #0f172a)"
+            title="午夜深蓝"
+            aria-label="午夜深蓝"
+          ></button>
+          <button
+            type="button"
+            data-crm-theme-dot="graphite"
+            class="crm-theme-dot h-4 w-4 shrink-0 rounded-full border border-purple-500/40 shadow-md transition hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+            style="background: linear-gradient(135deg, #a855f7, #18181b)"
+            title="石墨深灰"
+            aria-label="石墨深灰"
+          ></button>
+          <button
+            type="button"
+            data-crm-theme-dot="soft-sand"
+            class="crm-theme-dot h-4 w-4 shrink-0 rounded-full border border-indigo-300/60 shadow-md transition hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+            style="background: linear-gradient(135deg, #f1f5f9, #ffffff)"
+            title="护眼莫兰迪"
+            aria-label="护眼莫兰迪"
+          ></button>
+        </div>
+      </div>
 
       <div class="mt-4 border-t border-slate-800 pt-4 md:mt-6 md:pt-5">
         <button
@@ -255,7 +540,7 @@
         </button>
       </div>
 
-      <div class="mt-auto rounded-xl border border-slate-800 bg-slate-800/40 p-3 transition-all hover:border-blue-500/50 md:rounded-2xl md:p-4">
+      <div class="crm-theme-sidebar-widget mt-auto rounded-xl border border-slate-800 p-3 transition-all hover:border-blue-500/50 md:rounded-2xl md:p-4">
         <p class="text-xs text-slate-300 md:text-sm">今日线索跟进率</p>
         <div class="mt-3 h-2 rounded-full bg-slate-700 overflow-hidden">
           <div class="h-full w-3/4 rounded-full bg-gradient-to-r from-indigo-400 via-cyan-400 to-emerald-400"></div>
@@ -265,11 +550,11 @@
     </aside>
 
     <main
-      class="flex w-full min-w-0 flex-1 flex-col overflow-x-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 md:min-h-0"
+      class="crm-theme-main flex w-full min-w-0 flex-1 flex-col overflow-x-hidden md:min-h-0"
     >
       <header
         id="top-app-bar"
-        class="sticky top-0 z-30 flex min-h-[3rem] shrink-0 flex-col gap-2 border-b border-slate-800/70 bg-slate-950/92 px-3 py-2 text-sm backdrop-blur-md sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-3 sm:px-6 sm:text-base sm:py-2.5 lg:px-10"
+        class="crm-theme-topbar sticky top-0 z-30 flex min-h-[3rem] shrink-0 flex-col gap-2 border-b border-slate-800/70 px-3 py-2 text-sm backdrop-blur-md sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-3 sm:px-6 sm:text-base sm:py-2.5 lg:px-10"
       >
         <div class="relative w-full min-w-0 sm:max-w-xl sm:flex-1 lg:max-w-3xl">
           <span class="pointer-events-none absolute inset-y-0 left-4 flex items-center text-slate-400" aria-hidden="true">
@@ -403,7 +688,7 @@
                   <span>今日待办跟进</span>
                   <span id="today-followups-badge" class="rounded-full bg-rose-500/25 px-2 py-0.5 text-xs font-semibold tabular-nums text-rose-300">—</span>
                 </h3>
-                <p id="today-followups-sub" class="mt-1 text-xs text-slate-500">已从数据库加载（私有客户 · next_followup_date ≤ 今日）</p>
+                <p id="today-followups-sub" class="mt-1 text-xs text-slate-500">全量客户（含公海、老客户）· 下次跟进日历日 ≤ 今日</p>
               </div>
             </div>
             <ul id="today-followups-list" class="mt-4 space-y-3 text-sm">
@@ -439,12 +724,44 @@
               </button>
             </div>
           </div>
-          <div class="flex flex-wrap items-center gap-3">
-            <div class="relative min-w-0 flex-1 sm:max-w-xs">
+          <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+            <div class="relative min-w-0 w-full flex-1 sm:max-w-xs">
               <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">🔍</span>
               <input id="customer-search-input" type="text" class="w-full rounded-xl border border-slate-700 bg-slate-800/80 py-2.5 pl-9 pr-3 text-sm text-slate-100 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/30 sm:py-2" placeholder="筛选（与顶部搜索同步）" />
             </div>
-            <p id="customers-status" class="text-sm text-slate-400">加载中...</p>
+            <select
+              id="dashboard-filter-country"
+              title="国家/地区"
+              class="w-full min-w-0 max-w-[11rem] shrink-0 rounded-xl border border-slate-700 bg-slate-800/80 px-2 py-2 text-xs text-slate-200 outline-none transition focus:border-cyan-400 sm:w-auto sm:max-w-[13rem] sm:text-sm"
+            >
+              <option value="">全部国家</option>
+            </select>
+            <select
+              id="dashboard-filter-status"
+              title="当前状态"
+              class="w-full min-w-0 max-w-[9rem] shrink-0 rounded-xl border border-slate-700 bg-slate-800/80 px-2 py-2 text-xs text-slate-200 outline-none transition focus:border-cyan-400 sm:w-auto sm:text-sm"
+            >
+              <option value="">全部状态</option>
+              <option value="新线索">新线索</option>
+              <option value="已报价">已报价</option>
+              <option value="谈判中">谈判中</option>
+              <option value="准备打款">准备打款</option>
+              <option value="已寄样">已寄样</option>
+              <option value="已成单">已成单</option>
+              <option value="已成交">已成交</option>
+              <option value="暂无意向">暂无意向</option>
+            </select>
+            <select
+              id="dashboard-filter-follow-recency"
+              title="最后跟进 / 计划"
+              class="w-full min-w-0 max-w-[10rem] shrink-0 rounded-xl border border-slate-700 bg-slate-800/80 px-2 py-2 text-xs text-slate-200 outline-none transition focus:border-cyan-400 sm:w-auto sm:max-w-[12rem] sm:text-sm"
+            >
+              <option value="">跟进时间（不限）</option>
+              <option value="no_contact_3d">3 天未联系</option>
+              <option value="no_contact_7d">7 天未联系</option>
+              <option value="no_plan">无下次计划</option>
+            </select>
+            <p id="customers-status" class="w-full shrink-0 text-sm text-slate-400 sm:w-auto">加载中...</p>
             <p id="customer-country-filter-label" class="hidden rounded-lg border border-sky-400/40 bg-sky-500/15 px-2 py-1 text-xs text-sky-200"></p>
             <button id="clear-customer-country-filter-btn" type="button" class="hidden rounded-lg border border-slate-600 px-2 py-1 text-xs text-slate-300 transition hover:bg-slate-800 hover:text-white">清除筛选</button>
             <button
@@ -453,6 +770,13 @@
               class="hidden rounded-xl border border-sky-400/50 bg-sky-500/20 px-4 py-3 text-sm font-medium text-sky-200 shadow-glow transition hover:bg-sky-500/30 hover:text-white sm:py-2"
             >
               群发邮件 (<span id="selected-count">0</span>)
+            </button>
+            <button
+              id="open-bulk-import-btn"
+              type="button"
+              class="rounded-xl border border-emerald-400/45 bg-emerald-500/15 px-4 py-3 text-sm font-medium text-emerald-200 shadow-glow transition hover:bg-emerald-500/25 hover:text-white sm:py-2"
+            >
+              批量导入
             </button>
             <button
               id="open-customer-modal-btn"
@@ -483,24 +807,66 @@
           <div id="customer-kanban-board" class="flex min-h-0 gap-4 overflow-x-auto pb-2 pt-1 [scrollbar-width:thin]"></div>
         </div>
         <div id="customer-table-shell" class="mt-4 -mx-1 overflow-x-auto sm:mx-0">
-          <table class="min-w-[860px] w-full text-sm">
+          <div
+            id="workbench-bulk-actions-bar"
+            class="mb-3 hidden flex-col gap-3 rounded-xl border border-cyan-500/35 bg-slate-900/92 px-4 py-3 shadow-lg backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div class="flex flex-wrap items-center gap-2 text-sm text-slate-200">
+              <span
+                >已选 <strong id="workbench-bulk-selected-count" class="text-cyan-200">0</strong> 位私海客户</span
+              >
+              <span id="workbench-bulk-actions-loading" class="hidden text-xs text-slate-400">处理中…</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <button
+                id="bulk-to-public-btn"
+                type="button"
+                class="rounded-lg border border-sky-500/45 bg-sky-500/15 px-3 py-1.5 text-xs font-medium text-sky-200 transition hover:bg-sky-500/25 hover:text-white sm:text-sm"
+              >
+                批量退回公海
+              </button>
+              <button
+                id="bulk-mark-won-btn"
+                type="button"
+                class="rounded-lg border border-emerald-500/45 bg-emerald-500/15 px-3 py-1.5 text-xs font-medium text-emerald-200 transition hover:bg-emerald-500/25 hover:text-white sm:text-sm"
+              >
+                批量标记成交
+              </button>
+              <button
+                id="bulk-delete-private-btn"
+                type="button"
+                class="rounded-lg border border-rose-500/45 bg-rose-500/15 px-3 py-1.5 text-xs font-medium text-rose-200 transition hover:bg-rose-500/25 hover:text-white sm:text-sm"
+              >
+                批量删除
+              </button>
+              <button
+                id="bulk-clear-selection-btn"
+                type="button"
+                class="rounded-lg border border-slate-600 px-3 py-1.5 text-xs text-slate-300 transition hover:bg-slate-800 hover:text-white sm:text-sm"
+              >
+                取消选择
+              </button>
+            </div>
+          </div>
+          <table class="min-w-[980px] w-full text-sm">
             <thead class="bg-slate-800/70 text-slate-200">
               <tr>
-                <th class="sticky left-0 z-10 bg-slate-800/95 px-3 py-3 text-left font-medium backdrop-blur sm:px-4">
+                <th class="bg-transparent px-3 py-3 text-left font-medium sm:px-4">
                   <input type="checkbox" id="select-all-customers" class="h-4 w-4" />
                 </th>
-                <th class="min-w-[7rem] px-3 py-3 text-left font-medium sm:px-4">客户名</th>
+                <th class="min-w-[11rem] px-3 py-3 text-left font-medium sm:min-w-[13rem] sm:px-4">客户名</th>
+                <th class="w-[5.5rem] max-w-[6.5rem] shrink-0 px-2 py-3 text-left text-xs font-medium sm:w-[6.25rem] sm:px-3">来源</th>
                 <th class="min-w-[5rem] px-2 py-3 text-left font-medium sm:px-4">状态</th>
                 <th class="hidden min-w-[6rem] whitespace-nowrap px-2 py-3 text-left font-medium sm:table-cell sm:px-4">下次跟进</th>
                 <th class="hidden min-w-[7rem] px-3 py-3 text-left font-medium sm:table-cell sm:px-4">最后跟进</th>
                 <th class="hidden min-w-[10rem] px-3 py-3 text-left font-medium md:table-cell md:px-4">邮箱</th>
                 <th class="hidden min-w-[5rem] px-3 py-3 text-left font-medium lg:table-cell lg:px-4">国家</th>
-                <th class="min-w-[9rem] whitespace-nowrap px-2 py-3 text-left font-medium sm:min-w-[11rem] sm:px-4">操作</th>
+                <th class="min-w-[8rem] whitespace-nowrap px-2 py-3 text-left font-medium sm:min-w-[10rem] sm:px-4">操作</th>
               </tr>
             </thead>
             <tbody id="customers-table-body" class="divide-y divide-slate-800 text-slate-300">
               <tr>
-                <td colspan="8" class="px-4 py-4 text-center text-slate-400">正在获取客户数据...</td>
+                <td colspan="9" class="px-4 py-4 text-center text-slate-400">正在获取客户数据...</td>
               </tr>
             </tbody>
           </table>
@@ -516,8 +882,15 @@
         <section class="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 transition-all hover:border-blue-500/50">
           <div class="flex flex-wrap items-center justify-between gap-4">
             <h3 class="text-lg font-semibold text-white">公海客户列表</h3>
-            <div class="flex items-center gap-3">
+            <div class="flex flex-wrap items-center gap-3">
               <p id="public-customers-status" class="text-sm text-slate-400">加载中...</p>
+              <button
+                id="open-public-bulk-import-btn"
+                type="button"
+                class="rounded-xl border border-emerald-400/45 bg-emerald-500/15 px-4 py-2 text-sm font-medium text-emerald-200 shadow-glow transition hover:bg-emerald-500/25 hover:text-white"
+              >
+                批量导入
+              </button>
               <button
                 id="open-public-bulk-email-btn"
                 type="button"
@@ -528,20 +901,23 @@
             </div>
           </div>
           <div class="mt-4 -mx-1 overflow-x-auto sm:mx-0">
-            <table class="min-w-[640px] w-full text-sm">
+            <table class="min-w-[760px] w-full text-sm">
               <thead class="bg-slate-800/70 text-slate-200">
                 <tr>
-                  <th class="px-3 py-3 text-left font-medium sm:px-4"><input type="checkbox" id="select-all-public-customers" title="全选当前列表" class="h-4 w-4" /></th>
-                  <th class="min-w-[7rem] px-3 py-3 text-left font-medium sm:px-4">客户名</th>
+                  <th class="bg-transparent px-3 py-3 text-left font-medium sm:px-4">
+                    <input type="checkbox" id="select-all-public-customers" title="全选当前列表" class="h-4 w-4" />
+                  </th>
+                  <th class="min-w-[11rem] px-3 py-3 text-left font-medium sm:min-w-[13rem] sm:px-4">客户名</th>
+                  <th class="w-[5.5rem] max-w-[6.5rem] shrink-0 px-2 py-3 text-left text-xs font-medium sm:w-[6.25rem] sm:px-3">来源</th>
                   <th class="min-w-[5rem] px-2 py-3 text-left font-medium sm:px-4">状态</th>
                   <th class="hidden min-w-[10rem] px-3 py-3 text-left font-medium md:table-cell md:px-4">邮箱</th>
                   <th class="hidden min-w-[5rem] px-3 py-3 text-left font-medium lg:table-cell lg:px-4">国家</th>
-                  <th class="min-w-[5rem] whitespace-nowrap px-2 py-3 text-left font-medium sm:min-w-[6rem] sm:px-4">操作</th>
+                  <th class="min-w-[9rem] whitespace-nowrap px-2 py-3 text-left font-medium sm:min-w-[10rem] sm:px-4">操作</th>
                 </tr>
               </thead>
               <tbody id="public-customers-table-body" class="divide-y divide-slate-800 text-slate-300">
                 <tr>
-                  <td colspan="6" class="px-4 py-4 text-center text-slate-400">正在获取公海客户数据...</td>
+                  <td colspan="7" class="px-4 py-4 text-center text-slate-400">正在获取公海客户数据...</td>
                 </tr>
               </tbody>
             </table>
@@ -561,20 +937,22 @@
             <p id="closed-customers-status" class="text-sm text-slate-400">加载中...</p>
           </div>
           <div class="mt-4 -mx-1 overflow-x-auto sm:mx-0">
-            <table class="min-w-[920px] w-full text-sm">
+            <table class="min-w-[1100px] w-full text-sm">
               <thead class="bg-slate-800/70 text-slate-200">
                 <tr>
-                  <th class="min-w-[7rem] px-3 py-3 text-left font-medium sm:px-4">客户名</th>
+                  <th class="min-w-[11rem] px-3 py-3 text-left font-medium sm:min-w-[13rem] sm:px-4">客户名</th>
+                  <th class="w-[5.5rem] max-w-[6.5rem] shrink-0 px-2 py-3 text-left text-xs font-medium sm:w-[6.25rem] sm:px-3">来源</th>
+                  <th class="min-w-[8.5rem] px-2 py-3 text-left font-medium sm:px-4">跟进提醒</th>
                   <th class="min-w-[5rem] px-2 py-3 text-left font-medium sm:px-4">状态</th>
                   <th class="hidden min-w-[7rem] px-3 py-3 text-left font-medium sm:table-cell sm:px-4">最后跟进</th>
                   <th class="hidden min-w-[10rem] px-3 py-3 text-left font-medium md:table-cell md:px-4">邮箱</th>
                   <th class="hidden min-w-[5rem] px-3 py-3 text-left font-medium lg:table-cell lg:px-4">国家</th>
-                  <th class="min-w-[15rem] whitespace-nowrap px-2 py-3 text-left font-medium sm:min-w-[17rem] sm:px-4">操作</th>
+                  <th class="min-w-[11rem] whitespace-nowrap px-2 py-3 text-left font-medium sm:min-w-[12rem] sm:px-4">操作</th>
                 </tr>
               </thead>
               <tbody id="closed-customers-table-body" class="divide-y divide-slate-800 text-slate-300">
                 <tr>
-                  <td colspan="6" class="px-4 py-4 text-center text-slate-400">正在获取成交客户...</td>
+                  <td colspan="8" class="px-4 py-4 text-center text-slate-400">正在获取成交客户...</td>
                 </tr>
               </tbody>
             </table>
@@ -830,9 +1208,9 @@
     </main>
   </div>
 
-  <div id="customer-modal-overlay" class="fixed inset-0 z-40 hidden bg-slate-950/70 backdrop-blur-sm"></div>
+  <div id="customer-modal-overlay" class="crm-theme-modal-overlay fixed inset-0 z-40 hidden backdrop-blur-sm"></div>
   <div id="customer-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
-    <div class="w-full max-w-md max-h-[88vh] overflow-y-auto rounded-2xl border border-slate-700 bg-slate-900/90 p-6 shadow-glow">
+    <div class="crm-theme-modal-card w-full max-w-md max-h-[88vh] overflow-y-auto rounded-2xl border border-slate-700 p-6 shadow-glow">
       <div class="flex items-center justify-between">
         <h3 id="customer-modal-title" class="text-xl font-semibold text-white">新增客户</h3>
         <button id="close-customer-modal-btn" type="button" class="rounded-lg px-2 py-1 text-slate-400 transition hover:bg-slate-800 hover:text-white">✕</button>
@@ -933,17 +1311,17 @@
 
   <div
     id="insights-modal"
-    class="fixed inset-0 z-[120] hidden min-h-0 flex-col bg-gradient-to-b from-slate-950 via-slate-950 to-slate-900 text-slate-100"
+    class="crm-theme-insights-shell fixed inset-0 z-[120] hidden min-h-0 flex-col text-slate-100"
     role="dialog"
     aria-modal="true"
     aria-labelledby="insights-modal-title"
   >
     <header
-      class="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-cyan-500/15 bg-slate-950/90 px-4 py-3 backdrop-blur sm:px-6"
+      class="crm-theme-insights-header flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-cyan-500/15 px-4 py-3 backdrop-blur sm:px-6"
     >
       <div>
         <h2 id="insights-modal-title" class="text-lg font-semibold tracking-tight text-white">数据洞察</h2>
-        <p class="mt-0.5 text-xs text-slate-500">实时统计 · 私有未成交客户与跟进记录</p>
+        <p class="mt-0.5 text-xs text-slate-500">实时统计 · 全库客户（私海 / 公海 / 老客户）与全局跟进记录</p>
       </div>
       <button
         id="close-insights-modal-btn"
@@ -957,28 +1335,28 @@
       <p id="insights-modal-status" class="mb-4 min-h-[1.25rem] text-sm text-slate-400"></p>
       <div class="grid gap-4 lg:grid-cols-2">
         <article
-          class="rounded-2xl border border-cyan-500/20 bg-slate-900/85 p-4 shadow-[0_0_40px_-12px_rgba(34,211,238,0.35)] sm:p-5"
+          class="crm-theme-insights-article rounded-2xl border border-cyan-500/20 p-4 shadow-[0_0_40px_-12px_rgba(34,211,238,0.35)] sm:p-5"
         >
           <h3 class="text-sm font-semibold text-cyan-100/95">客户分布（国家）</h3>
-          <p class="mt-0.5 text-xs text-slate-500">按国家字段统计当前列表同源客户</p>
+          <p class="mt-0.5 text-xs text-slate-500">按国家字段统计全库 customers（含公海与成交老客户）</p>
           <div class="relative mt-3 h-56 w-full sm:h-64">
             <canvas id="insight-country-chart" aria-label="客户国家分布饼图"></canvas>
           </div>
         </article>
         <article
-          class="rounded-2xl border border-violet-500/20 bg-slate-900/85 p-4 shadow-[0_0_40px_-12px_rgba(167,139,250,0.3)] sm:p-5"
+          class="crm-theme-insights-article rounded-2xl border border-violet-500/20 p-4 shadow-[0_0_40px_-12px_rgba(167,139,250,0.3)] sm:p-5"
         >
           <h3 class="text-sm font-semibold text-violet-100/95">跟进漏斗</h3>
-          <p class="mt-0.5 text-xs text-slate-500">各阶段客户数量（新线索 · 已报价 · 谈判中 · 准备打款）</p>
+          <p class="mt-0.5 text-xs text-slate-500">各阶段客户数量（含最底层「已成交/老客户」）</p>
           <div class="relative mt-3 h-56 w-full sm:h-64">
             <canvas id="insight-funnel-chart" aria-label="跟进漏斗图"></canvas>
           </div>
         </article>
         <article
-          class="rounded-2xl border border-emerald-500/20 bg-slate-900/85 p-4 shadow-[0_0_40px_-12px_rgba(52,211,153,0.28)] sm:p-5 lg:col-span-2"
+          class="crm-theme-insights-article rounded-2xl border border-emerald-500/20 p-4 shadow-[0_0_40px_-12px_rgba(52,211,153,0.28)] sm:p-5 lg:col-span-2"
         >
           <h3 class="text-sm font-semibold text-emerald-100/95">近 7 天跟进趋势</h3>
-          <p class="mt-0.5 text-xs text-slate-500">按 customer_followups.created_at 按日汇总</p>
+          <p class="mt-0.5 text-xs text-slate-500">全表 customer_followups.created_at 按日汇总（含老客户售后与问候）</p>
           <div class="relative mt-3 h-52 w-full sm:h-56">
             <canvas id="insight-weekly-followups-chart" aria-label="周跟进趋势图"></canvas>
           </div>
@@ -987,9 +1365,9 @@
     </div>
   </div>
 
-  <div id="sales-record-modal-overlay" class="fixed inset-0 z-40 hidden bg-slate-950/70 backdrop-blur-sm"></div>
+  <div id="sales-record-modal-overlay" class="crm-theme-modal-overlay fixed inset-0 z-40 hidden backdrop-blur-sm"></div>
   <div id="sales-record-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
-    <div class="w-full max-w-lg max-h-[92vh] overflow-y-auto rounded-2xl border border-pink-900/40 bg-slate-900/95 p-6 shadow-glow">
+    <div class="crm-theme-modal-card w-full max-w-lg max-h-[92vh] overflow-y-auto rounded-2xl border border-pink-900/40 p-6 shadow-glow">
       <div class="flex items-center justify-between">
         <h3 id="sales-record-modal-title" class="text-xl font-semibold text-white">新增销售记录</h3>
         <button id="close-sales-record-modal-btn" type="button" class="rounded-lg px-2 py-1 text-slate-400 transition hover:bg-slate-800 hover:text-white">✕</button>
@@ -1067,8 +1445,8 @@
     </div>
   </div>
 
-  <div id="followup-drawer-overlay" class="fixed inset-0 z-40 hidden bg-slate-950/60 backdrop-blur-sm"></div>
-  <aside id="followup-drawer" class="fixed right-3 top-3 z-50 h-[calc(100vh-1.5rem)] w-full max-w-[min(100vw-1.5rem,1280px)] translate-x-[110%] rounded-2xl border border-slate-700 bg-slate-900/95 p-4 shadow-2xl transition-transform duration-300 overflow-hidden xl:p-5">
+  <div id="followup-drawer-overlay" class="crm-theme-modal-overlay fixed inset-0 z-40 hidden backdrop-blur-sm"></div>
+  <aside id="followup-drawer" class="crm-theme-drawer-shell fixed right-3 top-3 z-50 h-[calc(100vh-1.5rem)] w-full max-w-[min(100vw-1.5rem,1280px)] translate-x-[110%] rounded-2xl border border-slate-700 p-4 shadow-2xl transition-transform duration-300 overflow-hidden xl:p-5">
     <div class="flex items-center justify-between">
       <div>
         <h3 class="text-lg font-semibold text-white">客户跟进详情</h3>
@@ -1127,10 +1505,12 @@
 
         <div class="mt-4 flex flex-wrap items-center gap-2">
           <button id="send-email-btn" type="button" class="rounded-xl border border-indigo-400/50 bg-indigo-500/20 px-4 py-3 text-sm font-medium text-indigo-200 shadow-glow transition hover:bg-indigo-500/30 hover:text-white sm:py-2">发送邮件</button>
-          <button
+          <a
             id="whatsapp-followup-btn"
-            type="button"
-            class="inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-[#25D366] px-3 py-3 text-sm font-medium text-white shadow-glow transition hover:bg-[#20bd5a] sm:px-4 sm:py-2"
+            href="#"
+            target="CRM_WhatsApp_Portal"
+            rel="noopener noreferrer"
+            class="relative z-20 inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-[#25D366] px-3 py-3 text-sm font-medium text-white no-underline shadow-glow transition hover:bg-[#20bd5a] sm:px-4 sm:py-2"
             title="WhatsApp Web"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5 shrink-0 sm:h-4 sm:w-4" aria-hidden="true">
@@ -1139,7 +1519,7 @@
               />
             </svg>
             <span class="hidden sm:inline">WhatsApp</span>
-          </button>
+          </a>
         </div>
 
       </section>
@@ -1202,9 +1582,9 @@
       </section>
     </div>
   </aside>
-  <div id="product-modal-overlay" class="fixed inset-0 z-40 hidden bg-slate-950/70 backdrop-blur-sm"></div>
+  <div id="product-modal-overlay" class="crm-theme-modal-overlay fixed inset-0 z-40 hidden backdrop-blur-sm"></div>
   <div id="product-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
-    <div class="w-full max-w-lg rounded-2xl border border-slate-700 bg-slate-900/90 p-6 shadow-glow">
+    <div class="crm-theme-modal-card w-full max-w-lg rounded-2xl border border-slate-700 p-6 shadow-glow">
       <div class="flex items-center justify-between">
         <h3 class="text-xl font-semibold text-white">新增产品</h3>
         <button id="close-product-modal-btn" type="button" class="rounded-lg px-2 py-1 text-slate-400 transition hover:bg-slate-800 hover:text-white">✕</button>
@@ -1238,11 +1618,73 @@
     </div>
   </div>
 
+  <div id="bulk-import-modal-overlay" class="crm-theme-modal-overlay fixed inset-0 z-[960] hidden backdrop-blur-sm"></div>
+  <div id="bulk-import-modal" class="fixed inset-0 z-[970] hidden items-center justify-center p-4">
+    <div class="crm-theme-modal-card w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-700 p-6 shadow-glow">
+      <div class="flex items-center justify-between gap-3">
+        <h3 class="text-xl font-semibold text-white">批量导入客户</h3>
+        <button id="close-bulk-import-modal-btn" type="button" class="shrink-0 rounded-lg px-2 py-1 text-slate-400 transition hover:bg-slate-800 hover:text-white">✕</button>
+      </div>
+      <p class="mt-2 text-sm text-slate-400">
+        支持 .xlsx、.xls、.csv。可自动跳过表顶合并大标题行，定位含「公司名 / 联系人」等关键字的表头行；列尽力匹配，缺失填「待补充」或空字符串。与库中<strong>公司名或联系人</strong>重名则跳过不覆盖。默认阶段「潜在客户」，国家空为「待定」。
+      </p>
+      <p class="mt-2 text-sm">
+        <a
+          id="bulk-import-download-template"
+          href="#"
+          class="font-medium text-emerald-300 underline decoration-emerald-500/50 underline-offset-2 transition hover:text-emerald-200"
+          >下载导入模板（CSV）</a
+        >
+        <span class="text-slate-500"> · 列顺序建议：</span><span class="text-slate-300">公司名, 联系人, 邮箱, 电话, 标签</span>
+      </p>
+      <div class="mt-4">
+        <label
+          for="bulk-import-file-input"
+          class="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-600 bg-slate-800/40 px-4 py-10 text-center transition hover:border-emerald-500/50 hover:bg-slate-800/70"
+        >
+          <span class="text-2xl">📄</span>
+          <span class="text-sm text-slate-300">点击选择或拖入 Excel / CSV</span>
+          <span id="bulk-import-file-label" class="text-xs text-slate-500">未选择文件</span>
+        </label>
+        <input id="bulk-import-file-input" type="file" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv" class="sr-only" />
+      </div>
+      <p id="bulk-import-parse-status" class="mt-3 min-h-[1.25rem] text-sm text-slate-400"></p>
+      <div id="bulk-import-progress-wrap" class="mt-2 hidden">
+        <div class="h-2 w-full overflow-hidden rounded-full bg-slate-800">
+          <div id="bulk-import-progress-bar" class="h-full w-0 rounded-full bg-emerald-500 transition-[width] duration-200 ease-out"></div>
+        </div>
+        <p id="bulk-import-progress-text" class="mt-1 text-center text-xs text-slate-500"></p>
+      </div>
+      <div class="mt-5 flex flex-wrap justify-end gap-3">
+        <button id="cancel-bulk-import-btn" type="button" class="rounded-xl border border-slate-600 px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-800 hover:text-white">取消</button>
+        <button
+          id="start-bulk-import-btn"
+          type="button"
+          class="rounded-xl border border-emerald-400/50 bg-emerald-500/20 px-4 py-2 text-sm font-medium text-emerald-200 transition hover:bg-emerald-500/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+          disabled
+        >
+          开始导入
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="bulk-import-result-modal-overlay" class="crm-theme-modal-overlay fixed inset-0 z-[980] hidden backdrop-blur-sm"></div>
+  <div id="bulk-import-result-modal" class="fixed inset-0 z-[990] hidden items-center justify-center p-4">
+    <div class="crm-theme-modal-card w-full max-w-md rounded-2xl border border-slate-700 p-6 shadow-glow">
+      <h3 class="text-xl font-semibold text-white">导入结果</h3>
+      <p id="bulk-import-result-body" class="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-slate-300"></p>
+      <div class="mt-6 flex justify-end">
+        <button id="close-bulk-import-result-btn" type="button" class="rounded-xl border border-emerald-400/50 bg-emerald-500/20 px-4 py-2 text-sm font-medium text-emerald-200 transition hover:bg-emerald-500/30 hover:text-white">确定</button>
+      </div>
+    </div>
+  </div>
+
   <div
     id="custom-confirm-modal"
-    class="hidden fixed inset-0 z-[1000] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+    class="crm-theme-modal-overlay hidden fixed inset-0 z-[1000] flex items-center justify-center backdrop-blur-sm"
   >
-    <div class="relative mx-4 w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
+    <div class="crm-theme-modal-card relative mx-4 w-full max-w-sm rounded-2xl border border-slate-700 p-6 shadow-2xl">
       <h3 id="confirm-title" class="mb-2 text-xl font-bold text-white">确认操作</h3>
       <p id="confirm-message" class="mb-6 text-slate-400">你确定要执行此操作吗？</p>
       <div class="flex justify-end gap-3">
@@ -1264,6 +1706,217 @@
     const SUPABASE_URL = "https://msurrijrfyepjzfydrwb.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1zdXJyaWpyZnllcGp6ZnlkcndiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2MzM4OTcsImV4cCI6MjA5MjIwOTg5N30.0AQbAXEh2vi49xLJ2GgUzAAqZVFPBpmrc-rDE4UxHTg";
 
+    const CRM_THEME_STORAGE_KEY = "mycrm-theme-v1";
+    const CRM_THEME_IDS = ["geek-dark", "midnight-blue", "graphite", "soft-sand"];
+    const CRM_THEME_LEGACY_MAP = {
+      "professional-light": "soft-sand",
+      "business-navy": "midnight-blue",
+      "forest-green": "graphite",
+    };
+
+    const CRM_THEME_PRESETS = {
+      "geek-dark": {
+        "--theme-primary": "#818cf8",
+        "--theme-app-bg": "#020617",
+        "--theme-app-bg-mid": "#0f172a",
+        "--theme-app-bg-end": "#020617",
+        "--theme-sidebar-bg": "rgba(15, 23, 42, 0.98)",
+        "--theme-sidebar-border": "#1e293b",
+        "--theme-topbar-bg": "rgba(2, 6, 23, 0.92)",
+        "--theme-topbar-border": "rgba(30, 41, 59, 0.75)",
+        "--theme-mobile-topbar-bg": "rgba(2, 6, 23, 0.95)",
+        "--theme-mobile-topbar-border": "rgba(30, 41, 59, 0.8)",
+        "--theme-card-bg": "rgba(15, 23, 42, 0.5)",
+        "--theme-card-border": "rgba(51, 65, 85, 0.75)",
+        "--theme-table-head-bg": "rgba(30, 41, 55, 0.7)",
+        "--theme-row-hover-bg": "rgba(30, 41, 55, 0.4)",
+        "--theme-modal-overlay-bg": "rgba(2, 6, 23, 0.72)",
+        "--theme-modal-panel-bg": "rgba(15, 23, 42, 0.96)",
+        "--theme-modal-panel-border": "rgba(51, 65, 85, 0.85)",
+        "--theme-drawer-bg": "rgba(15, 23, 42, 0.96)",
+        "--theme-drawer-border": "rgba(51, 65, 85, 0.8)",
+        "--theme-login-overlay-bg": "#020617",
+        "--theme-login-card-bg": "rgba(15, 23, 42, 0.95)",
+        "--theme-login-card-border": "rgba(51, 65, 85, 0.8)",
+        "--theme-insights-bg-start": "#020617",
+        "--theme-insights-bg-mid": "#020617",
+        "--theme-insights-bg-end": "#0f172a",
+        "--theme-text-primary": "#f1f5f9",
+        "--theme-text-muted": "#94a3b8",
+        "--theme-input-bg": "rgba(15, 23, 42, 0.88)",
+        "--theme-sidebar-widget-bg": "rgba(30, 41, 55, 0.4)",
+        "--theme-sidebar-widget-border": "#1e293b",
+        "--theme-nav-hover-bg": "rgba(30, 41, 55, 0.55)",
+        "--theme-nav-active-bg": "rgba(99, 102, 241, 0.22)",
+        "--theme-nav-active-border": "rgba(129, 140, 248, 0.38)",
+        "--theme-nav-active-text": "#c7d2fe",
+        "--theme-nav-active-shadow": "0 0 0 1px rgba(99, 102, 241, 0.35), 0 10px 30px rgba(99, 102, 241, 0.18)",
+      },
+      "midnight-blue": {
+        "--theme-primary": "#38bdf8",
+        "--theme-app-bg": "#0f172a",
+        "--theme-app-bg-mid": "#111f33",
+        "--theme-app-bg-end": "#0c1424",
+        "--theme-sidebar-bg": "rgba(15, 23, 42, 0.98)",
+        "--theme-sidebar-border": "#334155",
+        "--theme-topbar-bg": "rgba(15, 23, 42, 0.93)",
+        "--theme-topbar-border": "rgba(51, 65, 85, 0.75)",
+        "--theme-mobile-topbar-bg": "rgba(15, 23, 42, 0.96)",
+        "--theme-mobile-topbar-border": "rgba(51, 65, 85, 0.8)",
+        "--theme-card-bg": "#1e293b",
+        "--theme-card-border": "rgba(56, 189, 248, 0.2)",
+        "--theme-table-head-bg": "rgba(30, 41, 59, 0.92)",
+        "--theme-row-hover-bg": "rgba(56, 189, 248, 0.1)",
+        "--theme-modal-overlay-bg": "rgba(2, 6, 23, 0.75)",
+        "--theme-modal-panel-bg": "#1e293b",
+        "--theme-modal-panel-border": "rgba(56, 189, 248, 0.28)",
+        "--theme-drawer-bg": "#1e293b",
+        "--theme-drawer-border": "rgba(56, 189, 248, 0.22)",
+        "--theme-login-overlay-bg": "#0f172a",
+        "--theme-login-card-bg": "#1e293b",
+        "--theme-login-card-border": "rgba(56, 189, 248, 0.25)",
+        "--theme-insights-bg-start": "#0f172a",
+        "--theme-insights-bg-mid": "#111f33",
+        "--theme-insights-bg-end": "#1e293b",
+        "--theme-text-primary": "#f8fafc",
+        "--theme-text-muted": "#94a3b8",
+        "--theme-input-bg": "rgba(30, 41, 59, 0.9)",
+        "--theme-sidebar-widget-bg": "rgba(30, 41, 59, 0.55)",
+        "--theme-sidebar-widget-border": "#334155",
+        "--theme-nav-hover-bg": "rgba(30, 58, 95, 0.45)",
+        "--theme-nav-active-bg": "rgba(56, 189, 248, 0.16)",
+        "--theme-nav-active-border": "rgba(56, 189, 248, 0.45)",
+        "--theme-nav-active-text": "#e0f2fe",
+        "--theme-nav-active-shadow": "0 0 0 1px rgba(56, 189, 248, 0.35), 0 10px 28px rgba(56, 189, 248, 0.12)",
+      },
+      "graphite": {
+        "--theme-primary": "#a855f7",
+        "--theme-app-bg": "#18181b",
+        "--theme-app-bg-mid": "#1c1c1f",
+        "--theme-app-bg-end": "#121214",
+        "--theme-sidebar-bg": "rgba(24, 24, 27, 0.98)",
+        "--theme-sidebar-border": "#3f3f46",
+        "--theme-topbar-bg": "rgba(24, 24, 27, 0.94)",
+        "--theme-topbar-border": "rgba(63, 63, 70, 0.85)",
+        "--theme-mobile-topbar-bg": "rgba(24, 24, 27, 0.96)",
+        "--theme-mobile-topbar-border": "rgba(63, 63, 70, 0.88)",
+        "--theme-card-bg": "#27272a",
+        "--theme-card-border": "rgba(168, 85, 247, 0.22)",
+        "--theme-table-head-bg": "rgba(39, 39, 42, 0.95)",
+        "--theme-row-hover-bg": "rgba(168, 85, 247, 0.1)",
+        "--theme-modal-overlay-bg": "rgba(9, 9, 11, 0.78)",
+        "--theme-modal-panel-bg": "#27272a",
+        "--theme-modal-panel-border": "rgba(168, 85, 247, 0.3)",
+        "--theme-drawer-bg": "#27272a",
+        "--theme-drawer-border": "rgba(168, 85, 247, 0.24)",
+        "--theme-login-overlay-bg": "#18181b",
+        "--theme-login-card-bg": "#27272a",
+        "--theme-login-card-border": "rgba(168, 85, 247, 0.28)",
+        "--theme-insights-bg-start": "#18181b",
+        "--theme-insights-bg-mid": "#1f1f23",
+        "--theme-insights-bg-end": "#27272a",
+        "--theme-text-primary": "#f4f4f5",
+        "--theme-text-muted": "#a1a1aa",
+        "--theme-input-bg": "rgba(39, 39, 42, 0.92)",
+        "--theme-sidebar-widget-bg": "rgba(39, 39, 42, 0.72)",
+        "--theme-sidebar-widget-border": "#3f3f46",
+        "--theme-nav-hover-bg": "rgba(63, 63, 70, 0.85)",
+        "--theme-nav-active-bg": "rgba(168, 85, 247, 0.18)",
+        "--theme-nav-active-border": "rgba(168, 85, 247, 0.42)",
+        "--theme-nav-active-text": "#f3e8ff",
+        "--theme-nav-active-shadow": "0 0 0 1px rgba(168, 85, 247, 0.3), 0 10px 28px rgba(168, 85, 247, 0.12)",
+      },
+      "soft-sand": {
+        "--theme-primary": "#6366f1",
+        "--theme-app-bg": "#f1f5f9",
+        "--theme-app-bg-mid": "#e8edf3",
+        "--theme-app-bg-end": "#eef2f7",
+        "--theme-sidebar-bg": "rgba(255, 255, 255, 0.94)",
+        "--theme-sidebar-border": "#e2e8f0",
+        "--theme-topbar-bg": "rgba(241, 245, 249, 0.94)",
+        "--theme-topbar-border": "rgba(203, 213, 225, 0.9)",
+        "--theme-mobile-topbar-bg": "rgba(241, 245, 249, 0.96)",
+        "--theme-mobile-topbar-border": "rgba(203, 213, 225, 0.88)",
+        "--theme-card-bg": "#ffffff",
+        "--theme-card-border": "#e2e8f0",
+        "--theme-table-head-bg": "#e8eef4",
+        "--theme-row-hover-bg": "#e2e8f0",
+        "--theme-modal-overlay-bg": "rgba(51, 65, 85, 0.3)",
+        "--theme-modal-panel-bg": "#ffffff",
+        "--theme-modal-panel-border": "#e2e8f0",
+        "--theme-drawer-bg": "#ffffff",
+        "--theme-drawer-border": "#e2e8f0",
+        "--theme-login-overlay-bg": "#f1f5f9",
+        "--theme-login-card-bg": "#ffffff",
+        "--theme-login-card-border": "#e2e8f0",
+        "--theme-insights-bg-start": "#f1f5f9",
+        "--theme-insights-bg-mid": "#e8edf3",
+        "--theme-insights-bg-end": "#ffffff",
+        "--theme-text-primary": "#334155",
+        "--theme-text-muted": "#64748b",
+        "--theme-input-bg": "#ffffff",
+        "--theme-sidebar-widget-bg": "#f1f5f9",
+        "--theme-sidebar-widget-border": "#e2e8f0",
+        "--theme-nav-hover-bg": "rgba(226, 232, 240, 0.9)",
+        "--theme-nav-active-bg": "rgba(99, 102, 241, 0.14)",
+        "--theme-nav-active-border": "rgba(99, 102, 241, 0.42)",
+        "--theme-nav-active-text": "#4338ca",
+        "--theme-nav-active-shadow": "0 0 0 1px rgba(99, 102, 241, 0.28)",
+      },
+    };
+
+    function changeTheme(themeName) {
+      const id = CRM_THEME_IDS.includes(themeName) ? themeName : "geek-dark";
+      const root = document.documentElement;
+      root.setAttribute("data-theme", id);
+      const preset = CRM_THEME_PRESETS[id];
+      Object.entries(preset).forEach(([key, value]) => {
+        root.style.setProperty(key, value);
+      });
+      try {
+        localStorage.setItem(CRM_THEME_STORAGE_KEY, id);
+      } catch (_) {
+        /* ignore quota / private mode */
+      }
+      root.style.colorScheme = id === "soft-sand" ? "light" : "dark";
+      document.querySelectorAll("#crm-theme-switcher .crm-theme-dot").forEach((btn) => {
+        const active = btn.getAttribute("data-crm-theme-dot") === id;
+        btn.classList.toggle("crm-theme-dot--active", active);
+        btn.setAttribute("aria-pressed", active ? "true" : "false");
+      });
+      queueMicrotask(() => {
+        try {
+          refreshAllChartsTheme();
+        } catch (_) {
+          /* 图表变量尚未初始化 */
+        }
+      });
+    }
+    window.changeTheme = changeTheme;
+
+    (function initCrmThemeSwitcher() {
+      let saved = "geek-dark";
+      try {
+        const v = localStorage.getItem(CRM_THEME_STORAGE_KEY);
+        if (v && CRM_THEME_LEGACY_MAP[v]) {
+          saved = CRM_THEME_LEGACY_MAP[v];
+        } else if (v && CRM_THEME_IDS.includes(v)) {
+          saved = v;
+        }
+      } catch (_) {
+        /* ignore */
+      }
+      changeTheme(saved);
+      const sw = document.getElementById("crm-theme-switcher");
+      if (sw) {
+        sw.addEventListener("click", (e) => {
+          const btn = e.target.closest("[data-crm-theme-dot]");
+          if (!btn) return;
+          changeTheme(btn.getAttribute("data-crm-theme-dot") || "geek-dark");
+        });
+      }
+    })();
+
     const loginViewEl = document.getElementById("login-view");
     const appContainerEl = document.getElementById("app-container");
     const loginEmailEl = document.getElementById("login-email");
@@ -1279,6 +1932,8 @@
     const kpiOrdersCountEl = document.getElementById("kpi-orders-count");
     const tableBodyEl = document.getElementById("customers-table-body");
     const openModalBtn = document.getElementById("open-customer-modal-btn");
+    const openBulkImportBtn = document.getElementById("open-bulk-import-btn");
+    const openPublicBulkImportBtn = document.getElementById("open-public-bulk-import-btn");
     const openBulkEmailBtn = document.getElementById("open-bulk-email-btn");
     const openPublicBulkEmailBtn = document.getElementById("open-public-bulk-email-btn");
     const selectedCountEl = document.getElementById("selected-count");
@@ -1401,6 +2056,16 @@
     const customerCountryFilterLabelEl = document.getElementById("customer-country-filter-label");
     const clearCustomerCountryFilterBtn = document.getElementById("clear-customer-country-filter-btn");
     const customerSearchInput = document.getElementById("customer-search-input");
+    const dashboardFilterCountryEl = document.getElementById("dashboard-filter-country");
+    const dashboardFilterStatusEl = document.getElementById("dashboard-filter-status");
+    const dashboardFilterFollowRecencyEl = document.getElementById("dashboard-filter-follow-recency");
+    const workbenchBulkActionsBarEl = document.getElementById("workbench-bulk-actions-bar");
+    const workbenchBulkSelectedCountEl = document.getElementById("workbench-bulk-selected-count");
+    const workbenchBulkActionsLoadingEl = document.getElementById("workbench-bulk-actions-loading");
+    const bulkToPublicBtn = document.getElementById("bulk-to-public-btn");
+    const bulkMarkWonBtn = document.getElementById("bulk-mark-won-btn");
+    const bulkDeletePrivateBtn = document.getElementById("bulk-delete-private-btn");
+    const bulkClearSelectionBtn = document.getElementById("bulk-clear-selection-btn");
     const globalCustomerSearchInput = document.getElementById("global-customer-search");
     const customerTagsInput = document.getElementById("customer-tags");
     const followupCustomerTagsEl = document.getElementById("followup-customer-tags");
@@ -1423,6 +2088,90 @@
     const FOLLOWUPS_TABLE = "customer_followups";
     const FOLLOWUP_SCREENSHOT_BUCKET = "followup-screenshots";
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const CUSTOMERS_GLOBAL_SELECT =
+      "id, company_name, contact_name, email, phone, country, address, source, social_media, is_public, is_closed, next_followup_date, status, last_follow_up, tags";
+
+    /** 先于其余 CRM 事件绑定，避免后面初始化报错导致无法登录。 */
+    let crmAppBootstrapped = false;
+
+    function bootstrapCrmApp() {
+      if (crmAppBootstrapped) return;
+      crmAppBootstrapped = true;
+      initFxToolbar();
+      void Promise.all([refreshAllCustomerDataAndUI(), loadDashboardMetrics()]);
+      initCountryDatalist();
+      updateQuotationDocumentMeta();
+      renderQuotationItemsBuilderTable();
+      setNavActive("dashboard");
+    }
+
+    function syncAuthUi(session) {
+      if (!loginViewEl || !appContainerEl) return;
+      if (session) {
+        loginViewEl.classList.add("hidden");
+        appContainerEl.classList.remove("hidden");
+        bootstrapCrmApp();
+      } else {
+        loginViewEl.classList.remove("hidden");
+        appContainerEl.classList.add("hidden");
+        crmAppBootstrapped = false;
+        if (loginErrorEl) loginErrorEl.textContent = "";
+      }
+    }
+
+    if (loginBtnEl) {
+      loginBtnEl.addEventListener("click", async () => {
+        if (!loginErrorEl || !loginEmailEl || !loginPasswordEl) return;
+        loginErrorEl.textContent = "";
+        const email = loginEmailEl.value.trim();
+        const password = loginPasswordEl.value;
+        if (!email || !password) {
+          loginErrorEl.textContent = "请输入邮箱和密码。";
+          return;
+        }
+        loginBtnEl.disabled = true;
+        try {
+          const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+          if (error) {
+            loginErrorEl.textContent = error.message;
+            return;
+          }
+        } catch (loginErr) {
+          console.error("登录请求异常", loginErr);
+          loginErrorEl.textContent =
+            loginErr && loginErr.message ? String(loginErr.message) : "登录失败，请稍后重试。";
+        } finally {
+          loginBtnEl.disabled = false;
+        }
+      });
+    }
+
+    if (logoutBtnEl) {
+      logoutBtnEl.addEventListener("click", async () => {
+        try {
+          await supabaseClient.auth.signOut();
+        } catch (e) {
+          console.error("signOut 异常", e);
+        }
+        window.location.reload();
+      });
+    }
+
+    supabaseClient.auth.onAuthStateChange((_event, session) => {
+      syncAuthUi(session);
+    });
+
+    supabaseClient.auth
+      .getSession()
+      .then(({ data: { session } }) => {
+        syncAuthUi(session);
+      })
+      .catch((sessionErr) => {
+        console.error("getSession 失败", sessionErr);
+        syncAuthUi(null);
+      });
+
     let selectedCustomer = null;
     let followupScreenshotPublicUrl = null;
     let followupScreenshotPreviewObjectUrl = null;
@@ -1432,16 +2181,101 @@
     let quotationProducts = [];
     let selectedQuotationCustomerId = "";
     let quotationItems = [];
+    /** 全局唯一客户数据源（与 Supabase 对齐后由 fetchLatestCustomersFromSupabase 写入）。 */
+    let customersGlobal = [];
+    /** 工作台「跟进中」列表 = 从 customersGlobal 过滤得到，禁止单独写库拉取。 */
     let privateCustomersCache = [];
-    let closedCustomersCache = [];
     let revenueChartInstance = null;
     let insightCountryChartInstance = null;
     let insightFunnelChartInstance = null;
     let insightWeeklyChartInstance = null;
+
+    function getCrmChartTheme() {
+      const root = document.documentElement;
+      const style = getComputedStyle(root);
+      const dataTheme = root.getAttribute("data-theme") || "geek-dark";
+      const isLight = dataTheme === "soft-sand";
+      const primary = (style.getPropertyValue("--theme-primary") || "#818cf8").trim();
+      const appBg = (style.getPropertyValue("--theme-app-bg") || "#020617").trim();
+
+      function hexToRgb(hex) {
+        let h = (hex || "").trim().replace(/^#/, "");
+        if (h.length === 3) {
+          h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+        }
+        const m = /^([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i.exec(h);
+        return m ? [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)] : [129, 140, 248];
+      }
+
+      function rgbaFromHex(hex, a) {
+        const [r, g, b] = hexToRgb(hex);
+        return "rgba(" + r + "," + g + "," + b + "," + a + ")";
+      }
+
+      const legend = isLight ? "#475569" : "#cbd5e1";
+      const ticks = isLight ? "#64748b" : "#94a3b8";
+      const ticksStrong = isLight ? "#334155" : "#e2e8f0";
+      const grid = isLight ? "rgba(51, 65, 85, 0.14)" : "rgba(148, 163, 184, 0.14)";
+      const pieBorder = isLight ? "#e2e8f0" : appBg.charAt(0) === "#" ? appBg : "#0f172a";
+
+      return { isLight, primary, rgbaFromHex, legend, ticks, ticksStrong, grid, pieBorder };
+    }
+
+    function refreshAllChartsTheme() {
+      const t = getCrmChartTheme();
+      if (insightCountryChartInstance && insightCountryChartInstance.data.datasets[0]) {
+        insightCountryChartInstance.data.datasets[0].borderColor = t.pieBorder;
+        if (insightCountryChartInstance.options.plugins.legend && insightCountryChartInstance.options.plugins.legend.labels) {
+          insightCountryChartInstance.options.plugins.legend.labels.color = t.legend;
+        }
+        insightCountryChartInstance.update("none");
+      }
+      if (insightFunnelChartInstance && insightFunnelChartInstance.options.scales) {
+        const sx = insightFunnelChartInstance.options.scales.x;
+        const sy = insightFunnelChartInstance.options.scales.y;
+        if (sx && sx.ticks) sx.ticks.color = t.ticks;
+        if (sx && sx.grid) sx.grid.color = t.grid;
+        if (sy && sy.ticks) sy.ticks.color = t.ticksStrong;
+        insightFunnelChartInstance.update("none");
+      }
+      if (insightWeeklyChartInstance && insightWeeklyChartInstance.data.datasets[0]) {
+        const ds = insightWeeklyChartInstance.data.datasets[0];
+        ds.borderColor = t.primary;
+        ds.backgroundColor = t.rgbaFromHex(t.primary, 0.14);
+        if (insightWeeklyChartInstance.options.plugins.legend && insightWeeklyChartInstance.options.plugins.legend.labels) {
+          insightWeeklyChartInstance.options.plugins.legend.labels.color = t.legend;
+        }
+        const wx = insightWeeklyChartInstance.options.scales.x;
+        const wy = insightWeeklyChartInstance.options.scales.y;
+        if (wx && wx.ticks) wx.ticks.color = t.ticks;
+        if (wx && wx.grid) wx.grid.color = t.grid;
+        if (wy && wy.ticks) wy.ticks.color = t.ticks;
+        if (wy && wy.grid) wy.grid.color = t.grid;
+        insightWeeklyChartInstance.update("none");
+      }
+      if (revenueChartInstance && revenueChartInstance.data.datasets[0]) {
+        const ds = revenueChartInstance.data.datasets[0];
+        ds.borderColor = t.primary;
+        ds.backgroundColor = t.rgbaFromHex(t.primary, 0.22);
+        if (revenueChartInstance.options.plugins.legend && revenueChartInstance.options.plugins.legend.labels) {
+          revenueChartInstance.options.plugins.legend.labels.color = t.legend;
+        }
+        const rx = revenueChartInstance.options.scales.x;
+        const ry = revenueChartInstance.options.scales.y;
+        if (rx && rx.ticks) rx.ticks.color = t.ticks;
+        if (rx && rx.grid) rx.grid.color = t.grid;
+        if (ry && ry.ticks) ry.ticks.color = t.ticks;
+        if (ry && ry.grid) ry.grid.color = t.grid;
+        revenueChartInstance.update("none");
+      }
+    }
+
     let customerTagFilter = "";
     let selectedCustomerEmails = [];
     let editingCustomerId = null;
     let customerCountryFilter = "";
+    let privateListFilterStatus = "";
+    let privateListFilterFollowRecency = "";
     let currentSearchQuery = "";
     const KANBAN_STATUS_COLUMNS = ["新线索", "已报价", "谈判中", "准备打款"];
     let dashboardPrivateViewMode = "list";
@@ -1843,11 +2677,7 @@
     ];
 
     function setNavActive(activeTab) {
-      const activeClasses = ["bg-indigo-500/20", "text-indigo-200", "border", "border-indigo-400/30", "shadow-glow"];
-      const activeRoseClasses = ["bg-rose-500/20", "text-rose-200", "border", "border-rose-400/35", "shadow-glow"];
-      const activePinkClasses = ["bg-pink-500/20", "text-pink-200", "border", "border-pink-400/35", "shadow-glow"];
-      const inactiveClasses = ["text-slate-300"];
-      [
+      const navEls = [
         navDashboard,
         navPublicPool,
         navClosedCustomers,
@@ -1855,25 +2685,20 @@
         navProducts,
         navQuotations,
         navHolidays,
-      ].forEach((nav) => {
-        nav.classList.remove(...activeClasses, ...activeRoseClasses, ...activePinkClasses);
-        nav.classList.add(...inactiveClasses);
+      ];
+      navEls.forEach((nav) => {
+        if (!nav) return;
+        nav.classList.remove("crm-nav-link-active");
+        nav.classList.add("crm-nav-link");
       });
-      if (activeTab === "publicPool") {
-        navPublicPool.classList.add(...activeClasses);
-      } else if (activeTab === "closedCustomers") {
-        navClosedCustomers.classList.add(...activeRoseClasses);
-      } else if (activeTab === "salesReport") {
-        navSalesReport.classList.add(...activePinkClasses);
-      } else if (activeTab === "products") {
-        navProducts.classList.add(...activeClasses);
-      } else if (activeTab === "quotations") {
-        navQuotations.classList.add(...activeClasses);
-      } else if (activeTab === "holidays") {
-        navHolidays.classList.add(...activeClasses);
-      } else {
-        navDashboard.classList.add(...activeClasses);
-      }
+      let target = navDashboard;
+      if (activeTab === "publicPool") target = navPublicPool;
+      else if (activeTab === "closedCustomers") target = navClosedCustomers;
+      else if (activeTab === "salesReport") target = navSalesReport;
+      else if (activeTab === "products") target = navProducts;
+      else if (activeTab === "quotations") target = navQuotations;
+      else if (activeTab === "holidays") target = navHolidays;
+      if (target) target.classList.add("crm-nav-link-active");
     }
 
     function switchView(viewName) {
@@ -2143,6 +2968,14 @@
       if (hasFilter) {
         customerCountryFilterLabelEl.textContent = "国家筛选: " + customerCountryFilter;
       }
+      if (dashboardFilterCountryEl) {
+        const v = customerCountryFilter || "";
+        if (dashboardFilterCountryEl.value !== v) {
+          if (!v || [...dashboardFilterCountryEl.options].some((o) => o.value === v)) {
+            dashboardFilterCountryEl.value = v;
+          }
+        }
+      }
       renderRows();
       if (dashboardPrivateViewMode === "kanban") {
         renderKanbanBoard();
@@ -2151,6 +2984,181 @@
         holidayCalendarInstance.rerenderEvents();
         renderUpcomingHolidayCards();
       }
+    }
+
+    function populateDashboardCountryFilterOptions() {
+      if (!dashboardFilterCountryEl) return;
+      const prev = dashboardFilterCountryEl.value;
+      const set = new Set(Array.isArray(BILINGUAL_COUNTRIES) ? BILINGUAL_COUNTRIES : []);
+      (privateCustomersCache || []).forEach((c) => {
+        const co = (c && c.country ? String(c.country) : "").trim();
+        if (co) set.add(co);
+      });
+      const arr = Array.from(set).sort((a, b) => String(a).localeCompare(String(b), "zh-CN"));
+      dashboardFilterCountryEl.innerHTML = '<option value="">全部国家</option>';
+      arr.forEach((c) => {
+        const o = document.createElement("option");
+        o.value = c;
+        o.textContent = c.length > 36 ? c.slice(0, 34) + "…" : c;
+        dashboardFilterCountryEl.appendChild(o);
+      });
+      const target = customerCountryFilter || "";
+      if (target && [...dashboardFilterCountryEl.options].some((o) => o.value === target)) {
+        dashboardFilterCountryEl.value = target;
+      } else if (prev && [...dashboardFilterCountryEl.options].some((o) => o.value === prev)) {
+        dashboardFilterCountryEl.value = prev;
+      } else {
+        dashboardFilterCountryEl.value = target;
+      }
+    }
+
+    function daysSinceLastContactForFilter(customer) {
+      const raw = customer && customer.last_follow_up;
+      if (!raw) return Infinity;
+      const d = new Date(raw);
+      if (Number.isNaN(d.getTime())) return Infinity;
+      return (Date.now() - d.getTime()) / 86400000;
+    }
+
+    function matchesPrivateFollowRecencyFilter(customer, key) {
+      if (!key) return true;
+      if (key === "no_plan") {
+        const n = customer && customer.next_followup_date;
+        return !n || !String(n).trim();
+      }
+      const days = daysSinceLastContactForFilter(customer);
+      if (key === "no_contact_3d") return days >= 3;
+      if (key === "no_contact_7d") return days >= 7;
+      return true;
+    }
+
+    function getSelectedWorkbenchCustomerIds() {
+      if (!tableBodyEl) return [];
+      return Array.from(tableBodyEl.querySelectorAll(".customer-checkbox:checked"))
+        .map((el) => Number.parseInt(String(el.dataset.customerId || ""), 10))
+        .filter((id) => Number.isInteger(id) && id > 0);
+    }
+
+    function setWorkbenchBulkLoading(on) {
+      if (workbenchBulkActionsLoadingEl) {
+        workbenchBulkActionsLoadingEl.classList.toggle("hidden", !on);
+      }
+      const busy = Boolean(on);
+      if (bulkToPublicBtn) bulkToPublicBtn.disabled = busy;
+      if (bulkMarkWonBtn) bulkMarkWonBtn.disabled = busy;
+      if (bulkDeletePrivateBtn) bulkDeletePrivateBtn.disabled = busy;
+      if (bulkClearSelectionBtn) bulkClearSelectionBtn.disabled = busy;
+    }
+
+    function updateWorkbenchBulkActionBar() {
+      const ids = getSelectedWorkbenchCustomerIds();
+      const n = ids.length;
+      if (workbenchBulkSelectedCountEl) {
+        workbenchBulkSelectedCountEl.textContent = String(n);
+      }
+      if (workbenchBulkActionsBarEl) {
+        workbenchBulkActionsBarEl.classList.toggle("hidden", n === 0);
+      }
+    }
+
+    function clearWorkbenchBulkSelection() {
+      const boxes = tableBodyEl ? Array.from(tableBodyEl.querySelectorAll(".customer-checkbox:checked")) : [];
+      const emails = new Set(boxes.map((el) => (el.value || "").trim()).filter(Boolean));
+      selectedCustomerEmails = selectedCustomerEmails.filter((e) => !emails.has(e));
+      boxes.forEach((el) => {
+        el.checked = false;
+      });
+      if (selectAllCustomersEl) {
+        selectAllCustomersEl.checked = false;
+      }
+      syncBulkEmailCheckboxesAcrossViews();
+      updateBulkEmailSelectionUI();
+    }
+
+    async function runBatchedCustomerUpdate(ids, patch) {
+      const list = (ids || []).filter((id) => Number.isInteger(id) && id > 0);
+      if (!list.length) return { error: null };
+      const chunkSize = 80;
+      for (let i = 0; i < list.length; i += chunkSize) {
+        const chunk = list.slice(i, i + chunkSize);
+        const { error } = await supabaseClient.from("customers").update(patch).in("id", chunk);
+        if (error) return { error };
+      }
+      return { error: null };
+    }
+
+    async function runBatchedCustomerDelete(ids) {
+      const list = (ids || []).filter((id) => Number.isInteger(id) && id > 0);
+      if (!list.length) return { error: null };
+      const chunkSize = 80;
+      for (let i = 0; i < list.length; i += chunkSize) {
+        const chunk = list.slice(i, i + chunkSize);
+        const { error } = await supabaseClient.from("customers").delete().in("id", chunk);
+        if (error) return { error };
+      }
+      return { error: null };
+    }
+
+    async function handleBulkReturnToPublicPool() {
+      const ids = getSelectedWorkbenchCustomerIds();
+      if (!ids.length) {
+        showToast("请先在私海列表中勾选客户。", "error");
+        return;
+      }
+      setWorkbenchBulkLoading(true);
+      const { error } = await runBatchedCustomerUpdate(ids, { is_public: true });
+      setWorkbenchBulkLoading(false);
+      if (error) {
+        showToast("批量退回公海失败：" + error.message, "error");
+        return;
+      }
+      showToast("已将所选客户退回公海", "success");
+      clearWorkbenchBulkSelection();
+      await refreshAllCustomerDataAndUI();
+      pinClosedCustomersViewVisible();
+    }
+
+    async function handleBulkMarkWon() {
+      const ids = getSelectedWorkbenchCustomerIds();
+      if (!ids.length) {
+        showToast("请先在私海列表中勾选客户。", "error");
+        return;
+      }
+      setWorkbenchBulkLoading(true);
+      const { error } = await runBatchedCustomerUpdate(ids, { is_closed: true, status: "已成交" });
+      setWorkbenchBulkLoading(false);
+      if (error) {
+        showToast("批量标记成交失败：" + error.message, "error");
+        return;
+      }
+      showToast("已将所选客户标记为成交", "success");
+      clearWorkbenchBulkSelection();
+      await refreshAllCustomerDataAndUI();
+      pinClosedCustomersViewVisible();
+    }
+
+    async function handleBulkDeletePrivateCustomers() {
+      const ids = getSelectedWorkbenchCustomerIds();
+      if (!ids.length) {
+        showToast("请先在私海列表中勾选客户。", "error");
+        return;
+      }
+      const confirmed = await showConfirm(
+        "批量删除客户",
+        "确定要永久删除所选的 " + ids.length + " 位客户吗？此操作不可撤销。",
+      );
+      if (!confirmed) return;
+      setWorkbenchBulkLoading(true);
+      const { error } = await runBatchedCustomerDelete(ids);
+      setWorkbenchBulkLoading(false);
+      if (error) {
+        showToast("批量删除失败：" + error.message, "error");
+        return;
+      }
+      showSuccessCelebration("已删除所选客户");
+      clearWorkbenchBulkSelection();
+      await refreshAllCustomerDataAndUI();
+      pinClosedCustomersViewVisible();
     }
 
     function copyTextWithFeedback(text, button) {
@@ -2207,6 +3215,295 @@
     const WHATSAPP_ICON_SVG_ROW =
       '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="h-3.5 w-3.5 shrink-0"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.123 1.035 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.435 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>';
 
+    /** 固定 target：浏览器在同一命名浏览上下文中复用标签页打开 WhatsApp Web */
+    const CRM_WHATSAPP_LINK_TARGET = "CRM_WhatsApp_Portal";
+    let crmWhatsAppNavLastClickMs = 0;
+
+    function crmShouldBlockWhatsAppDoubleClick(ev) {
+      const now = Date.now();
+      if (now - crmWhatsAppNavLastClickMs < 400) {
+        ev.preventDefault();
+        return true;
+      }
+      crmWhatsAppNavLastClickMs = now;
+      return false;
+    }
+
+    /** 仅含数字的 phone 参数经 encodeURIComponent，避免异常字符影响 URL */
+    function buildWhatsAppWebUrl(phone) {
+      const digits = normalizeWhatsAppPhoneDigits(phone);
+      if (!digits) return "";
+      return "https://web.whatsapp.com/send?phone=" + encodeURIComponent(digits);
+    }
+
+    /** 在用户手势内同步打开 WhatsApp Web，避免 await 刷新 DOM 取消默认导航。 */
+    function openWhatsAppInNamedPortal(url) {
+      if (!url) return false;
+      try {
+        const w = window.open(url, CRM_WHATSAPP_LINK_TARGET, "noopener,noreferrer");
+        if (w == null) {
+          window.open(url, "_blank", "noopener,noreferrer");
+        }
+        return true;
+      } catch (err) {
+        console.warn("openWhatsAppInNamedPortal", err);
+        window.open(url, "_blank", "noopener,noreferrer");
+        return true;
+      }
+    }
+
+    const CRM_ROW_ACTION_MORE_MENU_ITEM =
+      "block w-full text-left px-3 py-2 text-xs font-medium text-slate-200 transition hover:bg-slate-800/95 active:bg-slate-800";
+
+    let crmRowActionMenuOutsideCloseBound = false;
+    function closeAllCustomerRowMoreMenusExcept(exceptWrap) {
+      document.querySelectorAll("tr.crm-row-has-open-actions-menu").forEach((r) => {
+        if (exceptWrap && r.contains(exceptWrap)) return;
+        r.classList.remove("crm-row-has-open-actions-menu");
+      });
+      document.querySelectorAll(".crm-row-actions-more-menu").forEach((menu) => {
+        const w = menu.closest(".crm-row-actions-more-wrap");
+        if (exceptWrap && w === exceptWrap) return;
+        menu.classList.add("hidden");
+        menu.setAttribute("data-open", "0");
+      });
+      document.querySelectorAll(".crm-row-actions-more-btn").forEach((btn) => {
+        const w = btn.closest(".crm-row-actions-more-wrap");
+        if (exceptWrap && w === exceptWrap) return;
+        btn.setAttribute("aria-expanded", "false");
+      });
+    }
+
+    function ensureCrmRowActionMenuOutsideClose() {
+      if (crmRowActionMenuOutsideCloseBound) return;
+      crmRowActionMenuOutsideCloseBound = true;
+      document.addEventListener("click", () => {
+        closeAllCustomerRowMoreMenusExcept(null);
+      });
+    }
+
+    /**
+     * 客户列表「更多」下拉：绝对定位 + 高层级，纵向菜单；点击切换，点外部关闭。
+     * @param {{ label: string, onActivate: () => void | Promise<void>, danger?: boolean, warn?: boolean }[]} items
+     */
+    function createCustomerRowMoreMenu(items) {
+      ensureCrmRowActionMenuOutsideClose();
+      const wrap = document.createElement("div");
+      wrap.className = "crm-row-actions-more-wrap relative shrink-0";
+
+      const toggle = document.createElement("button");
+      toggle.type = "button";
+      toggle.className =
+        "crm-row-actions-more-btn inline-flex items-center gap-0.5 rounded-md border border-transparent px-1.5 py-0.5 text-[11px] font-medium text-slate-500 transition hover:border-slate-600/50 hover:bg-slate-800/70 hover:text-slate-200";
+      toggle.setAttribute("aria-expanded", "false");
+      toggle.setAttribute("aria-haspopup", "true");
+      toggle.title = "更多操作";
+      toggle.innerHTML =
+        '<span class="inline sm:hidden" aria-hidden="true">⋯</span><span class="hidden sm:inline">更多</span><span class="text-[10px] text-slate-500 sm:ml-px" aria-hidden="true">▾</span>';
+
+      const menu = document.createElement("div");
+      menu.className =
+        "crm-row-actions-more-menu pointer-events-auto absolute right-0 top-full z-[240] mt-1 hidden min-w-[9.25rem] flex-col rounded-lg border border-slate-600/90 bg-slate-900/98 py-1 shadow-2xl ring-1 ring-black/30 backdrop-blur-md";
+      menu.setAttribute("data-open", "0");
+      menu.setAttribute("role", "menu");
+
+      items.forEach((item) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.setAttribute("role", "menuitem");
+        let itemClass = CRM_ROW_ACTION_MORE_MENU_ITEM;
+        if (item.danger) {
+          itemClass +=
+            " text-slate-400 hover:bg-rose-500/15 hover:text-rose-300 active:bg-rose-500/20";
+        } else if (item.warn) {
+          itemClass +=
+            " text-amber-100/90 hover:bg-amber-500/12 hover:text-amber-50 active:bg-amber-500/18";
+        }
+        btn.className = itemClass;
+        btn.textContent = item.label;
+        btn.addEventListener("click", async (ev) => {
+          ev.stopPropagation();
+          const row = wrap.closest("tr");
+          if (row) row.classList.remove("crm-row-has-open-actions-menu");
+          menu.classList.add("hidden");
+          menu.setAttribute("data-open", "0");
+          toggle.setAttribute("aria-expanded", "false");
+          try {
+            await item.onActivate();
+          } catch (e) {
+            /* onActivate 内已 toast */
+          }
+        });
+        menu.appendChild(btn);
+      });
+
+      toggle.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        const wasOpen = !menu.classList.contains("hidden");
+        closeAllCustomerRowMoreMenusExcept(null);
+        if (!wasOpen) {
+          menu.classList.remove("hidden");
+          menu.setAttribute("data-open", "1");
+          toggle.setAttribute("aria-expanded", "true");
+          const row = wrap.closest("tr");
+          if (row) row.classList.add("crm-row-has-open-actions-menu");
+        }
+      });
+
+      wrap.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+      });
+
+      wrap.appendChild(toggle);
+      wrap.appendChild(menu);
+      return wrap;
+    }
+
+    function appendCustomerPrimaryDetailButton(actionWrap, customer) {
+      const detailBtn = document.createElement("button");
+      detailBtn.type = "button";
+      detailBtn.className =
+        CRM_ROW_ACTION_BTN +
+        " border border-cyan-400/40 bg-cyan-500/15 text-cyan-200 hover:bg-cyan-500/30 hover:text-white";
+      detailBtn.textContent = "详情/跟进";
+      detailBtn.addEventListener("click", () => {
+        openFollowupDrawer(customer);
+      });
+      actionWrap.appendChild(detailBtn);
+    }
+
+    function appendCustomerPrimaryMailButton(actionWrap, customer) {
+      const mailBtn = document.createElement("button");
+      mailBtn.type = "button";
+      mailBtn.className =
+        CRM_ROW_ACTION_BTN +
+        " border border-sky-400/40 bg-sky-500/15 text-sky-200 hover:bg-sky-500/30 hover:text-white";
+      mailBtn.textContent = "发送邮件";
+      mailBtn.addEventListener("click", () => {
+        const email = (customer.email || "").trim();
+        if (!email) {
+          showToast("该客户没有邮箱地址。", "error");
+          return;
+        }
+        window.location.href = "mailto:" + email;
+        scheduleAutoFollowupAfterChannel(customer, "email");
+      });
+      actionWrap.appendChild(mailBtn);
+    }
+
+    function appendCustomerPrimaryWhatsAppButton(actionWrap, customer) {
+      const url = buildWhatsAppWebUrl(customer.phone);
+      const waLink = document.createElement("a");
+      waLink.className = WHATSAPP_ROW_BTN_CLASS + " relative z-20 no-underline";
+      waLink.title = "WhatsApp Web";
+      waLink.setAttribute("aria-label", "WhatsApp");
+      waLink.innerHTML = WHATSAPP_ICON_SVG_ROW + '<span class="hidden sm:inline">WhatsApp</span>';
+      waLink.target = CRM_WHATSAPP_LINK_TARGET;
+      waLink.rel = "noopener noreferrer";
+      if (!url) {
+        waLink.href = "#";
+        waLink.setAttribute("aria-disabled", "true");
+        waLink.classList.add("pointer-events-none", "opacity-45", "cursor-not-allowed");
+        waLink.addEventListener("click", (e) => {
+          e.preventDefault();
+          showToast("未录入手机号", "error");
+        });
+      } else {
+        waLink.href = url;
+        waLink.addEventListener("click", (e) => {
+          console.log("WhatsApp Clicked", { scope: "customer-row", customerId: customer && customer.id });
+          if (crmShouldBlockWhatsAppDoubleClick(e)) return;
+          e.preventDefault();
+          e.stopPropagation();
+          openWhatsAppInNamedPortal(url);
+          scheduleAutoFollowupAfterChannel(customer, "whatsapp");
+        });
+      }
+      actionWrap.appendChild(waLink);
+    }
+
+    /** 工作台：外露 详情/跟进、发送邮件、WhatsApp；更多内 编辑 / 标记成交 / 退回公海 / 删除 */
+    function mountWorkbenchCustomerRowActions(actionWrap, customer) {
+      appendCustomerPrimaryDetailButton(actionWrap, customer);
+      appendCustomerPrimaryMailButton(actionWrap, customer);
+      appendCustomerPrimaryWhatsAppButton(actionWrap, customer);
+      const more = createCustomerRowMoreMenu([
+        {
+          label: "编辑",
+          onActivate: () => {
+            editCustomer(customer);
+          },
+        },
+        {
+          label: "标记成交",
+          onActivate: () => markCustomerClosed(customer.id),
+        },
+        {
+          label: "退回公海",
+          warn: true,
+          onActivate: () => setCustomerPublicState(customer.id, true),
+        },
+        {
+          label: "删除",
+          danger: true,
+          onActivate: () => deleteCustomer(customer.id, customer.company_name || "未命名客户"),
+        },
+      ]);
+      actionWrap.appendChild(more);
+    }
+
+    /** 公海：外露 认领、详情/跟进、WhatsApp；更多内 发送邮件 */
+    function mountPublicCustomerRowActions(actionWrap, customer) {
+      const claimBtn = document.createElement("button");
+      claimBtn.type = "button";
+      claimBtn.className =
+        CRM_ROW_ACTION_BTN +
+        " border border-emerald-400/40 bg-emerald-500/15 text-emerald-200 hover:bg-emerald-500/30 hover:text-white";
+      claimBtn.textContent = "认领";
+      claimBtn.addEventListener("click", async () => {
+        await setCustomerPublicState(customer.id, false);
+      });
+      actionWrap.appendChild(claimBtn);
+      appendCustomerPrimaryDetailButton(actionWrap, customer);
+      appendCustomerPrimaryWhatsAppButton(actionWrap, customer);
+      const email = (customer.email || "").trim();
+      if (email) {
+        const more = createCustomerRowMoreMenu([
+          {
+            label: "发送邮件",
+            onActivate: async () => {
+              window.location.href = "mailto:" + email;
+              scheduleAutoFollowupAfterChannel(customer, "email");
+            },
+          },
+        ]);
+        actionWrap.appendChild(more);
+      }
+    }
+
+    /** 成交老客户：外露 详情/跟进、发送邮件、WhatsApp；更多内 编辑 / 移出至公海 */
+    function mountClosedCustomerRowActions(actionWrap, customer) {
+      appendCustomerPrimaryDetailButton(actionWrap, customer);
+      appendCustomerPrimaryMailButton(actionWrap, customer);
+      appendCustomerPrimaryWhatsAppButton(actionWrap, customer);
+      const more = createCustomerRowMoreMenu([
+        {
+          label: "编辑",
+          onActivate: () => {
+            editCustomer(customer);
+          },
+        },
+        {
+          label: "移出至公海",
+          warn: true,
+          onActivate: () => {
+            releaseClosedCustomerToPublicSea(customer);
+          },
+        },
+      ]);
+      actionWrap.appendChild(more);
+    }
+
     function sortCustomersByLastFollowUp(rows) {
       const list = Array.isArray(rows) ? [...rows] : [];
       list.sort((a, b) => {
@@ -2254,6 +3551,34 @@
         "inline-flex max-w-full items-center whitespace-nowrap rounded-full border px-1.5 py-px text-xs font-medium leading-tight " +
         getStatusBadgeClass(status);
       span.textContent = getStatusBadgeLabel(status);
+      return span;
+    }
+
+    /** 列表「来源」列：空值显示「未标注」；阿里 / 领英·LinkedIn / 其它 使用不同底色。 */
+    function getCustomerSourceBadgeClasses(raw) {
+      const s = String(raw == null ? "" : raw).trim();
+      if (!s) {
+        return "border-slate-500/40 bg-slate-600/20 text-slate-400";
+      }
+      const lower = s.toLowerCase();
+      if (s.includes("阿里")) {
+        return "border-orange-400/45 bg-orange-500/22 text-orange-100";
+      }
+      if (s.includes("领英") || lower.includes("linkedin")) {
+        return "border-sky-400/45 bg-sky-600/28 text-sky-100";
+      }
+      return "border-violet-400/28 bg-violet-500/14 text-violet-100/90";
+    }
+
+    function createCustomerSourceBadge(source) {
+      const span = document.createElement("span");
+      const s = String(source == null ? "" : source).trim();
+      const display = s ? s : "未标注";
+      span.className =
+        "inline-flex max-w-[6.25rem] items-center truncate rounded-full border px-1.5 py-px text-[11px] font-medium leading-tight sm:max-w-[7rem] " +
+        getCustomerSourceBadgeClasses(s);
+      span.textContent = display;
+      span.title = s || "客户来源未标注";
       return span;
     }
 
@@ -2572,27 +3897,47 @@
       return s.replace(/\D/g, "");
     }
 
-    /**
-     * 在新标签页打开 WhatsApp Web（避免唤起本地 App）；成功返回 true。
-     */
-    function openWhatsAppWeb(phone) {
-      const processedPhone = normalizeWhatsAppPhoneDigits(phone);
-      if (!processedPhone) {
-        showToast("未录入手机号", "error");
-        return false;
+    const CRM_AUTO_LOG_EMAIL = "[系统自动记录] 通过邮件发起联系";
+    const CRM_AUTO_LOG_WHATSAPP = "[系统自动记录] 通过 WhatsApp 发起联系";
+
+    async function insertAutoChannelFollowup(customer, channel) {
+      const cid = Number.parseInt(String(customer && customer.id), 10);
+      if (!Number.isInteger(cid) || cid <= 0) {
+        return { ok: false, error: new Error("无效客户") };
       }
-      const url = "https://web.whatsapp.com/send?phone=" + encodeURIComponent(processedPhone);
-      window.open(url, "_blank", "noopener,noreferrer");
-      return true;
+      const isWa = channel === "whatsapp";
+      const row = {
+        customer_id: cid,
+        type: isWa ? "WhatsApp" : "邮件",
+        content: isWa ? CRM_AUTO_LOG_WHATSAPP : CRM_AUTO_LOG_EMAIL,
+      };
+      const { error } = await supabaseClient.from(FOLLOWUPS_TABLE).insert([row]);
+      if (error) return { ok: false, error };
+      const touch = await updateLastFollowUp(cid);
+      if (touch && touch.error) return { ok: true, warn: touch.error };
+      return { ok: true };
     }
 
-    /** 发起 WhatsApp/邮件等轻量触达后刷新各列表并保持当前视图（如成交老客户）。 */
-    async function touchFollowUpAfterChannelClick(customer) {
-      const cid = Number.parseInt(String(customer.id), 10);
-      if (!Number.isInteger(cid) || cid <= 0) return;
-      await updateLastFollowUp(cid);
-      await Promise.all([loadCustomers(), loadPublicCustomers(), loadClosedCustomers(), loadTodayTodoFollowupsFromDb()]);
-      pinClosedCustomersViewVisible();
+    /** 后台写入自动跟进并刷新 UI（勿阻塞 WhatsApp 跳转）。 */
+    function scheduleAutoFollowupAfterChannel(customer, channel) {
+      void (async () => {
+        try {
+          const ch = channel === "email" ? "email" : "whatsapp";
+          const res = await insertAutoChannelFollowup(customer, ch);
+          await refreshAllCustomerDataAndUI();
+          pinClosedCustomersViewVisible();
+          if (!res.ok) {
+            showToast("自动跟进记录失败：" + (res.error && res.error.message ? res.error.message : "未知错误"), "error");
+          } else if (res.warn) {
+            showToast("跟进已记录，但更新最后跟进时间失败：" + res.warn.message, "error");
+          } else {
+            showToast("已自动写入跟进记录", "success");
+          }
+        } catch (err) {
+          console.error("scheduleAutoFollowupAfterChannel", err);
+          showToast("自动跟进记录异常：" + (err && err.message ? err.message : String(err)), "error");
+        }
+      })();
     }
 
     function renderHolidayIntelLoading(holidayEvent) {
@@ -3095,24 +4440,27 @@
 
     async function loadQuotationOptions() {
       quoteBuilderStatusEl.textContent = "加载客户与产品中...";
-      const [
-        { data: customersData, error: customersError },
-        { data: productsData, error: productsError },
-      ] = await Promise.all([
-        supabaseClient
-          .from("customers")
-          .select("id, company_name, country")
-          .or("is_public.is.false,is_public.is.null")
-          .order("company_name", { ascending: true }),
-        supabaseClient.from("products").select("id, name, sku, price, image_url").order("name", { ascending: true }),
-      ]);
+      if (!customersGlobal.length) {
+        await refreshAllCustomerDataAndUI();
+      }
+      if (!customersGlobal.length) {
+        quoteBuilderStatusEl.textContent = "加载失败：客户列表未就绪";
+        return;
+      }
+      quotationCustomers = filterCustomersForQuotationPicker(customersGlobal)
+        .map((c) => ({ id: c.id, company_name: c.company_name, country: c.country }))
+        .sort((a, b) => String(a.company_name || "").localeCompare(String(b.company_name || ""), "zh-CN"));
 
-      if (customersError || productsError) {
-        quoteBuilderStatusEl.textContent = "加载失败：" + (customersError?.message || productsError?.message || "未知错误");
+      const { data: productsData, error: productsError } = await supabaseClient
+        .from("products")
+        .select("id, name, sku, price, image_url")
+        .order("name", { ascending: true });
+
+      if (productsError) {
+        quoteBuilderStatusEl.textContent = "加载失败：" + productsError.message;
         return;
       }
 
-      quotationCustomers = customersData || [];
       quotationProducts = productsData || [];
       populateQuotationSelectors();
       quoteBuilderStatusEl.textContent = "已加载客户 " + quotationCustomers.length + " 位，产品 " + quotationProducts.length + " 个";
@@ -3203,7 +4551,7 @@
 
       showSuccessCelebration("保存成功，订单已确认成交！");
       await loadDashboardMetrics();
-      await Promise.all([loadCustomers(), loadClosedCustomers(), loadTodayTodoFollowupsFromDb()]);
+      await refreshAllCustomerDataAndUI();
     }
 
     function openCustomerModal() {
@@ -3280,6 +4628,7 @@
       if (openPublicBulkEmailBtn) {
         openPublicBulkEmailBtn.classList.toggle("hidden", !show);
       }
+      updateWorkbenchBulkActionBar();
     }
 
     function handleDirectBulkEmail() {
@@ -3412,6 +4761,31 @@
       return list.join(", ");
     }
 
+    /** 列表/看板/跟进抽屉：不展示与公司名或联系人完全相同的“伪标签”（常见于历史错误导入）。 */
+    function getCustomerTagsForDisplay(customer) {
+      if (!customer) return [];
+      const list = Array.isArray(customer.tags) ? customer.tags : parseCustomerTags(customer.tags);
+      const co = String(customer.company_name || "").trim().toLowerCase();
+      const ct = String(customer.contact_name || "").trim().toLowerCase();
+      return list.filter((t) => {
+        const x = String(t).trim().toLowerCase();
+        if (!x || isInvalidTagToken(t)) return false;
+        if (co && x === co) return false;
+        if (ct && x === ct) return false;
+        return true;
+      });
+    }
+
+    /** 无「标签」列或单元格为空时写入 []，禁止把其它列内容误当标签落库。 */
+    function bulkImportTagsStorageValue(fieldToCol, tagsRaw) {
+      if (!fieldToCol || fieldToCol.tags === undefined) {
+        return JSON.stringify([]);
+      }
+      const s = String(tagsRaw == null ? "" : tagsRaw).trim();
+      if (!s) return JSON.stringify([]);
+      return normalizeTagsForSave(s);
+    }
+
     function customerTagsForSearchBlob(tags) {
       try {
         if (tags == null) return "";
@@ -3470,10 +4844,10 @@
       }
     }
 
-    function fillFollowupCustomerTags(tagsRaw) {
+    function fillFollowupCustomerTags(customer) {
       if (!followupCustomerTagsEl) return;
       followupCustomerTagsEl.innerHTML = "";
-      const tags = Array.isArray(tagsRaw) ? tagsRaw.filter((t) => !isInvalidTagToken(t)) : parseCustomerTags(tagsRaw);
+      const tags = customer ? getCustomerTagsForDisplay(customer) : [];
       if (!tags.length) {
         if (followupCustomerTagsBlockEl) followupCustomerTagsBlockEl.classList.add("hidden");
         return;
@@ -3492,7 +4866,7 @@
       if (!customerTagFilterChipsEl || !customerTagFilterBarEl) return;
       const counts = new Map();
       (privateCustomersCache || []).forEach((c) => {
-        const list = Array.isArray(c.tags) ? c.tags.filter((t) => !isInvalidTagToken(t)) : parseCustomerTags(c.tags);
+        const list = getCustomerTagsForDisplay(c);
         list.forEach((tag) => {
           counts.set(tag, (counts.get(tag) || 0) + 1);
         });
@@ -3548,6 +4922,57 @@
       insightWeeklyChartInstance = null;
     }
 
+    /** 漏斗最底层：成交老客户（is_closed）或状态为已成单/已成交 */
+    function customerInsightsFunnelIsDealStage(c) {
+      if (!c) return false;
+      if (customerRowIsClosedFlag(c)) return true;
+      const s = (c.status || "").trim();
+      return s === "已成单" || s === "已成交";
+    }
+
+    /** 数据洞察：分页拉取全库 customers，避免行数截断 */
+    async function fetchInsightCustomersAll() {
+      const pageSize = 1000;
+      let offset = 0;
+      const all = [];
+      const maxRows = 50000;
+      while (offset < maxRows) {
+        const { data, error } = await supabaseClient
+          .from("customers")
+          .select("country,status,is_closed,is_public")
+          .order("id", { ascending: true })
+          .range(offset, offset + pageSize - 1);
+        if (error) return { rows: null, error };
+        const batch = data || [];
+        all.push(...batch);
+        if (batch.length < pageSize) break;
+        offset += pageSize;
+      }
+      return { rows: all, error: null };
+    }
+
+    /** 近 7 日跟进：分页拉取全表 followups，避免 PostgREST 默认行数截断 */
+    async function fetchInsightFollowupsInRangeSince(isoSince) {
+      const pageSize = 1000;
+      let offset = 0;
+      const all = [];
+      const maxRows = 50000;
+      while (offset < maxRows) {
+        const { data, error } = await supabaseClient
+          .from(FOLLOWUPS_TABLE)
+          .select("created_at")
+          .gte("created_at", isoSince)
+          .order("created_at", { ascending: true })
+          .range(offset, offset + pageSize - 1);
+        if (error) return { rows: null, error };
+        const batch = data || [];
+        all.push(...batch);
+        if (batch.length < pageSize) break;
+        offset += pageSize;
+      }
+      return { rows: all, error: null };
+    }
+
     async function openInsightsModal() {
       if (!insightsModalEl) return;
       insightsModalEl.classList.remove("hidden");
@@ -3592,20 +5017,21 @@
       rangeStart.setDate(rangeStart.getDate() - 6);
       rangeStart.setHours(0, 0, 0, 0);
 
-      const [{ data: custRows, error: custErr }, { data: followRows, error: fuErr }] = await Promise.all([
-        supabaseClient
-          .from("customers")
-          .select("country,status")
-          .or("is_public.is.false,is_public.is.null")
-          .not("is_closed", "eq", true),
-        supabaseClient.from(FOLLOWUPS_TABLE).select("created_at").gte("created_at", rangeStart.toISOString()),
+      const [custPack, fuRes] = await Promise.all([
+        fetchInsightCustomersAll(),
+        fetchInsightFollowupsInRangeSince(rangeStart.toISOString()),
       ]);
+      const custRows = custPack.rows;
+      const custErr = custPack.error;
+      const followRows = fuRes.rows;
+      const fuErr = fuRes.error;
 
       if (custErr || fuErr) {
         if (insightsModalStatusEl) {
           insightsModalStatusEl.className = "mb-4 text-sm text-rose-300";
           insightsModalStatusEl.textContent =
-            "加载失败：" + (custErr && custErr.message ? custErr.message : fuErr && fuErr.message ? fuErr.message : "未知错误");
+            "加载失败：" +
+            (custErr && custErr.message ? custErr.message : fuErr && fuErr.message ? fuErr.message : "未知错误");
         }
         return;
       }
@@ -3617,6 +5043,7 @@
 
       const customers = custRows || [];
       const followups = followRows || [];
+      const ct = getCrmChartTheme();
 
       const byCountry = new Map();
       customers.forEach((c) => {
@@ -3628,27 +5055,33 @@
       const pieData = countryEntries.length ? countryEntries.map((x) => x[1]) : [1];
       const pieColors = pieLabels.map((_, i) => {
         const hue = 200 + ((i * 37) % 150);
-        return "hsla(" + hue + ", 48%, 58%, 0.72)";
+        const light = ct.isLight ? 50 : 58;
+        const alpha = ct.isLight ? 0.9 : 0.72;
+        return "hsla(" + hue + ", 48%, " + light + "%, " + alpha + ")";
       });
 
       insightCountryChartInstance = new Chart(countryCanvas, {
         type: "pie",
         data: {
           labels: pieLabels,
-          datasets: [{ data: pieData, backgroundColor: pieColors, borderWidth: 1, borderColor: "#0f172a" }],
+          datasets: [{ data: pieData, backgroundColor: pieColors, borderWidth: 1, borderColor: ct.pieBorder }],
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
-            legend: { position: "right", labels: { color: "#cbd5e1", boxWidth: 10 } },
+            legend: { position: "right", labels: { color: ct.legend, boxWidth: 10 } },
           },
         },
       });
 
-      const funnelLabels = ["新线索", "已报价", "谈判中", "准备打款"];
-      const stageCounts = { 新线索: 0, 已报价: 0, 谈判中: 0, 准备打款: 0 };
+      const funnelLabels = ["新线索", "已报价", "谈判中", "准备打款", "已成交/老客户"];
+      const stageCounts = { 新线索: 0, 已报价: 0, 谈判中: 0, 准备打款: 0, "已成交/老客户": 0 };
       customers.forEach((c) => {
+        if (customerInsightsFunnelIsDealStage(c)) {
+          stageCounts["已成交/老客户"]++;
+          return;
+        }
         const s = (c.status || "").trim();
         if (Object.prototype.hasOwnProperty.call(stageCounts, s)) {
           stageCounts[s]++;
@@ -3669,8 +5102,9 @@
                 "rgba(129, 140, 248, 0.42)",
                 "rgba(244, 114, 182, 0.4)",
                 "rgba(52, 211, 153, 0.42)",
+                "rgba(250, 204, 21, 0.58)",
               ],
-              borderColor: ["#38bdf8", "#818cf8", "#f472b6", "#34d399"],
+              borderColor: ["#38bdf8", "#818cf8", "#f472b6", "#34d399", "#fbbf24"],
               borderWidth: 1,
               borderRadius: 6,
             },
@@ -3685,12 +5119,12 @@
           },
           scales: {
             x: {
-              ticks: { color: "#94a3b8" },
-              grid: { color: "rgba(148, 163, 184, 0.12)" },
+              ticks: { color: ct.ticks },
+              grid: { color: ct.grid },
               beginAtZero: true,
             },
             y: {
-              ticks: { color: "#e2e8f0" },
+              ticks: { color: ct.ticksStrong },
               grid: { display: false },
             },
           },
@@ -3739,8 +5173,8 @@
             {
               label: "跟进条数",
               data: weeklySeries,
-              borderColor: "rgb(34, 211, 238)",
-              backgroundColor: "rgba(34, 211, 238, 0.12)",
+              borderColor: ct.primary,
+              backgroundColor: ct.rgbaFromHex(ct.primary, 0.14),
               fill: true,
               tension: 0.35,
               pointRadius: 3,
@@ -3751,13 +5185,13 @@
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
-            legend: { labels: { color: "#cbd5e1" } },
+            legend: { labels: { color: ct.legend } },
           },
           scales: {
-            x: { ticks: { color: "#94a3b8" }, grid: { color: "rgba(148, 163, 184, 0.1)" } },
+            x: { ticks: { color: ct.ticks }, grid: { color: ct.grid } },
             y: {
-              ticks: { color: "#94a3b8", precision: 0 },
-              grid: { color: "rgba(148, 163, 184, 0.1)" },
+              ticks: { color: ct.ticks, precision: 0 },
+              grid: { color: ct.grid },
               beginAtZero: true,
             },
           },
@@ -3784,7 +5218,10 @@
           const matchCountry = customerCountryFilter ? countryMatches(customer.country, customerCountryFilter) : true;
           const matchSearch = privateCustomerMatchesSearchNeedle(customer, normalizedQuery);
           const matchTag = privateCustomerMatchesTagFilter(customer, tagNeedle);
-          return matchCountry && matchSearch && matchTag;
+          const st = privateListFilterStatus ? String(privateListFilterStatus).trim() : "";
+          const matchStatus = !st || String(customer.status || "").trim() === st;
+          const matchRecency = matchesPrivateFollowRecencyFilter(customer, privateListFilterFollowRecency);
+          return matchCountry && matchSearch && matchTag && matchStatus && matchRecency;
         } catch (e) {
           return false;
         }
@@ -3869,13 +5306,28 @@
         "kanban-card cursor-grab rounded-xl border border-slate-600/80 bg-slate-800/90 px-3 py-2 text-left shadow-sm transition hover:border-cyan-500/35 active:cursor-grabbing";
       card.dataset.customerId = String(customer.id);
 
+      const coKb = String(customer.company_name || "").trim();
+      const ctKb = String(customer.contact_name || "").trim();
+      const hasCoKb = Boolean(coKb);
+      const hasCtKb = Boolean(ctKb);
+      let primaryKb = "未命名";
+      if (hasCoKb) primaryKb = coKb;
+      else if (hasCtKb) primaryKb = ctKb;
+
       const title = document.createElement("div");
-      title.className = "truncate text-sm font-semibold text-white";
-      title.textContent = customer.company_name || "未命名";
+      title.className = "truncate text-sm font-semibold text-cyan-50";
+      title.textContent = primaryKb;
 
       const sub = document.createElement("div");
-      sub.className = "mt-1 truncate text-xs text-slate-400";
-      sub.textContent = (customer.contact_name || "—") + " · " + (customer.country || "—");
+      sub.className = "mt-0.5 truncate text-xs text-slate-400";
+      const ctry = String(customer.country || "").trim();
+      const ctryPart = ctry ? " · " + ctry : "";
+      let subLine = "";
+      if (hasCoKb && hasCtKb) subLine = ctKb + ctryPart;
+      else if (hasCoKb && !hasCtKb) subLine = "未知联系人" + ctryPart;
+      else if (!hasCoKb && hasCtKb) subLine = ctry || "—";
+      else subLine = ctry || "—";
+      sub.textContent = subLine;
 
       const due = document.createElement("div");
       due.className =
@@ -3887,7 +5339,7 @@
 
       const tagLine = document.createElement("div");
       tagLine.className = "mt-1.5 flex flex-wrap gap-1";
-      const fullTags = Array.isArray(customer.tags) ? customer.tags : parseCustomerTags(customer.tags);
+      const fullTags = getCustomerTagsForDisplay(customer);
       const kt = fullTags.slice(0, 2);
       if (kt.length) {
         kt.forEach((tag) => {
@@ -3989,15 +5441,8 @@
         return;
       }
 
-      const idx = privateCustomersCache.findIndex((c) => String(c.id) === String(idRaw));
-      if (idx >= 0) {
-        privateCustomersCache[idx] = { ...privateCustomersCache[idx], status: newStatus };
-      }
       showToast("状态更新成功");
-      if (dashboardPrivateViewMode === "kanban") {
-        renderKanbanBoard();
-      }
-      renderRows();
+      await refreshAllCustomerDataAndUI();
     }
 
     function setDashboardPrivateViewMode(mode) {
@@ -4026,15 +5471,115 @@
       }
     }
 
+    /**
+     * 一键背调：在新标签页同时打开 Google / LinkedIn / Facebook 搜索（基于公司名称）。
+     * @param {string} companyName
+     */
+    function startBackgroundCheck(companyName) {
+      const raw = String(companyName == null ? "" : companyName).trim();
+      if (!raw || raw.includes("未知")) {
+        showToast("请先完善公司名称再进行背调", "error");
+        return;
+      }
+      const encCompany = encodeURIComponent(raw);
+      const encGoogle = encodeURIComponent(raw + " official website");
+      const urls = [
+        "https://www.google.com/search?q=" + encGoogle,
+        "https://www.linkedin.com/search/results/all/?keywords=" + encCompany,
+        "https://www.facebook.com/search/top/?q=" + encCompany,
+      ];
+      urls.forEach((url) => {
+        try {
+          window.open(url, "_blank", "noopener,noreferrer");
+        } catch (e) {
+          console.error("open background check tab", e);
+        }
+      });
+    }
+
+    /**
+     * 客户列表「客户名」列：主行公司名（亮/主色），次行联系人；空值按业务兜底。
+     * @param {HTMLElement} cell
+     * @param {object} customer
+     * @param {{ showOverdueIcon?: boolean }} opts
+     */
+    function appendCustomerNameColumnTwoLine(cell, customer, opts) {
+      const o = opts || {};
+      const co = String((customer && customer.company_name) || "").trim();
+      const ct = String((customer && customer.contact_name) || "").trim();
+      const hasCo = Boolean(co);
+      const hasCt = Boolean(ct);
+
+      let primaryText = "-";
+      if (hasCo) primaryText = co;
+      else if (hasCt) primaryText = ct;
+
+      let subtitleMode = "omit";
+      let subtitleText = "";
+      if (hasCo && hasCt) {
+        subtitleMode = "show";
+        subtitleText = ct;
+      } else if (hasCo && !hasCt) {
+        subtitleMode = "show";
+        subtitleText = "未知联系人";
+      } else if (!hasCo && hasCt) {
+        subtitleMode = "omit";
+      }
+
+      const root = document.createElement("div");
+      root.className = "flex min-w-0 flex-col gap-1";
+
+      const row1 = document.createElement("div");
+      row1.className = "flex min-w-0 items-center gap-1.5 sm:gap-2";
+      const primaryEl = document.createElement("span");
+      primaryEl.className =
+        "min-w-0 flex-1 truncate text-[15px] font-semibold leading-snug text-cyan-50 sm:text-base";
+      primaryEl.textContent = primaryText;
+      row1.appendChild(primaryEl);
+
+      const bgCheckBtn = document.createElement("button");
+      bgCheckBtn.type = "button";
+      bgCheckBtn.className =
+        "crm-bg-check-btn shrink-0 inline-flex h-6 w-6 items-center justify-center rounded-md border border-slate-600/40 bg-slate-800/40 text-[12px] leading-none text-slate-400 shadow-sm transition hover:border-sky-400/45 hover:bg-sky-500/12 hover:text-sky-300 hover:shadow-[0_0_0_1px_rgba(56,189,248,0.15)] focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/45 active:scale-90 sm:h-6 sm:w-6 sm:text-[13px]";
+      bgCheckBtn.title = "一键启动全球背调";
+      bgCheckBtn.setAttribute("aria-label", "一键启动全球背调");
+      bgCheckBtn.textContent = "🔍";
+      bgCheckBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        startBackgroundCheck(co);
+      });
+      row1.appendChild(bgCheckBtn);
+
+      if (o.showOverdueIcon && customer && isOverdueNow(customer.next_followup_date)) {
+        const overdueIcon = document.createElement("span");
+        overdueIcon.className = "shrink-0 text-rose-400";
+        overdueIcon.title = "该客户跟进提醒已到期";
+        overdueIcon.textContent = "⏰";
+        row1.appendChild(overdueIcon);
+      }
+      root.appendChild(row1);
+
+      if (subtitleMode === "show") {
+        const subEl = document.createElement("div");
+        subEl.className = "min-w-0 truncate text-xs leading-snug text-slate-400";
+        subEl.textContent = subtitleText;
+        root.appendChild(subEl);
+      }
+
+      cell.appendChild(root);
+    }
+
     function renderRows() {
       tableBodyEl.innerHTML = "";
       const visibleCustomers = getVisiblePrivateCustomers();
 
       if (!visibleCustomers.length) {
         const emptyRow = document.createElement("tr");
-        emptyRow.innerHTML = '<td colspan="8" class="px-4 py-4 text-center text-slate-400">暂无客户数据</td>';
+        emptyRow.innerHTML = '<td colspan="9" class="px-4 py-4 text-center text-slate-400">暂无客户数据</td>';
         tableBodyEl.appendChild(emptyRow);
         syncBulkEmailCheckboxesAcrossViews();
+        updateWorkbenchBulkActionBar();
         return;
       }
 
@@ -4043,14 +5588,16 @@
         row.className = "hover:bg-slate-800/40 transition";
 
         const checkboxCell = document.createElement("td");
-        checkboxCell.className =
-          "sticky left-0 z-[1] bg-slate-950/95 px-3 py-3 align-middle backdrop-blur sm:px-4";
+        checkboxCell.className = "bg-transparent px-3 py-3 align-middle sm:px-4";
         const selector = document.createElement("input");
         selector.type = "checkbox";
         selector.className =
-          "customer-checkbox h-4 w-4 cursor-pointer rounded border-slate-700 bg-slate-800 accent-sky-500";
+          "customer-checkbox h-4 w-4 cursor-pointer rounded border-slate-700 bg-transparent accent-sky-500";
         const customerEmail = (customer.email || "").trim();
         selector.value = customerEmail;
+        if (customer.id != null) {
+          selector.dataset.customerId = String(customer.id);
+        }
         selector.checked = selectedCustomerEmails.includes(customerEmail);
         selector.addEventListener("change", () => {
           if (selector.checked) {
@@ -4066,24 +5613,10 @@
         checkboxCell.appendChild(selector);
 
         const companyCell = document.createElement("td");
-        companyCell.className = "px-3 py-3 sm:px-4";
-        const companyWrap = document.createElement("div");
-        companyWrap.className = "flex items-center gap-2";
-        const companyName = document.createElement("span");
-        companyName.textContent = customer.company_name || "-";
-        companyWrap.appendChild(companyName);
-        if (isOverdueNow(customer.next_followup_date)) {
-          const overdueIcon = document.createElement("span");
-          overdueIcon.className = "text-rose-400";
-          overdueIcon.title = "该客户跟进提醒已到期";
-          overdueIcon.textContent = "⏰";
-          companyWrap.appendChild(overdueIcon);
-        }
-        companyCell.appendChild(companyWrap);
-        const dashboardRowTags = (Array.isArray(customer.tags) ? customer.tags : parseCustomerTags(customer.tags)).slice(
-          0,
-          6,
-        );
+        companyCell.className =
+          "min-w-[11rem] max-w-[min(26rem,88vw)] px-3 py-3 sm:min-w-[13rem] sm:max-w-[24rem] sm:px-4";
+        appendCustomerNameColumnTwoLine(companyCell, customer, { showOverdueIcon: true });
+        const dashboardRowTags = getCustomerTagsForDisplay(customer).slice(0, 6);
         if (dashboardRowTags.length) {
           const tagRow = document.createElement("div");
           tagRow.className = "mt-1.5 flex flex-wrap gap-1";
@@ -4097,6 +5630,11 @@
           });
           companyCell.appendChild(tagRow);
         }
+
+        const sourceCell = document.createElement("td");
+        sourceCell.className =
+          "w-[5.5rem] max-w-[6.5rem] shrink-0 px-2 py-2 align-middle sm:w-[6.25rem] sm:px-3 sm:py-3";
+        sourceCell.appendChild(createCustomerSourceBadge(customer.source));
 
         const statusCell = document.createElement("td");
         statusCell.className = "px-2 py-2 align-middle sm:px-4 sm:py-3";
@@ -4133,98 +5671,16 @@
         countryCell.textContent = customer.country || "-";
 
         const actionCell = document.createElement("td");
-        actionCell.className = "whitespace-nowrap px-2 py-2 align-middle sm:px-4 sm:py-3";
+        actionCell.className =
+          "relative overflow-visible whitespace-nowrap px-2 py-2 align-middle sm:px-4 sm:py-3";
         const actionWrap = document.createElement("div");
-        actionWrap.className = "flex flex-nowrap items-center gap-0.5";
-
-        const detailBtn = document.createElement("button");
-        detailBtn.type = "button";
-        detailBtn.className =
-          CRM_ROW_ACTION_BTN +
-          " border border-cyan-400/40 bg-cyan-500/15 text-cyan-200 hover:bg-cyan-500/30 hover:text-white";
-        detailBtn.textContent = "详情/跟进";
-        detailBtn.addEventListener("click", () => {
-          openFollowupDrawer(customer);
-        });
-        actionWrap.appendChild(detailBtn);
-
-        const mailBtn = document.createElement("button");
-        mailBtn.type = "button";
-        mailBtn.className =
-          CRM_ROW_ACTION_BTN +
-          " border border-sky-400/40 bg-sky-500/15 text-sky-200 hover:bg-sky-500/30 hover:text-white";
-        mailBtn.textContent = "发送邮件";
-        mailBtn.addEventListener("click", async () => {
-          const email = (customer.email || "").trim();
-          if (!email) {
-            showToast("该客户没有邮箱地址。", "error");
-            return;
-          }
-          window.location.href = "mailto:" + email;
-          await touchFollowUpAfterChannelClick(customer);
-        });
-        actionWrap.appendChild(mailBtn);
-
-        const waBtn = document.createElement("button");
-        waBtn.type = "button";
-        waBtn.className = WHATSAPP_ROW_BTN_CLASS;
-        waBtn.title = "WhatsApp Web";
-        waBtn.setAttribute("aria-label", "WhatsApp");
-        waBtn.innerHTML = WHATSAPP_ICON_SVG_ROW + '<span class="hidden sm:inline">WhatsApp</span>';
-        waBtn.addEventListener("click", async () => {
-          if (!openWhatsAppWeb(customer.phone)) return;
-          await touchFollowUpAfterChannelClick(customer);
-        });
-        actionWrap.appendChild(waBtn);
-
-        const editBtn = document.createElement("button");
-        editBtn.type = "button";
-        editBtn.className =
-          CRM_ROW_ACTION_BTN +
-          " border border-violet-400/40 bg-violet-500/15 text-violet-200 hover:bg-violet-500/30 hover:text-white";
-        editBtn.textContent = "编辑";
-        editBtn.addEventListener("click", () => {
-          editCustomer(customer);
-        });
-        actionWrap.appendChild(editBtn);
-
-        const markClosedBtn = document.createElement("button");
-        markClosedBtn.type = "button";
-        markClosedBtn.className =
-          CRM_ROW_ACTION_BTN +
-          " border border-emerald-400/45 bg-emerald-500/15 text-emerald-200 hover:bg-emerald-500/30 hover:text-white";
-        markClosedBtn.textContent = "标记成交";
-        markClosedBtn.addEventListener("click", async () => {
-          await markCustomerClosed(customer.id);
-        });
-        actionWrap.appendChild(markClosedBtn);
-
-        const toPublicBtn = document.createElement("button");
-        toPublicBtn.type = "button";
-        toPublicBtn.className =
-          CRM_ROW_ACTION_BTN +
-          " border border-amber-400/40 bg-amber-500/15 text-amber-200 hover:bg-amber-500/30 hover:text-white";
-        toPublicBtn.textContent = "退回公海";
-        toPublicBtn.addEventListener("click", async () => {
-          await setCustomerPublicState(customer.id, true);
-        });
-        actionWrap.appendChild(toPublicBtn);
-
-        const deleteBtn = document.createElement("button");
-        deleteBtn.type = "button";
-        deleteBtn.className =
-          CRM_ROW_ACTION_BTN +
-          " border border-rose-400/40 bg-rose-500/15 text-rose-200 hover:bg-rose-500/30 hover:text-white";
-        deleteBtn.textContent = "删除";
-        deleteBtn.addEventListener("click", async () => {
-          await deleteCustomer(customer.id, customer.company_name || "未命名客户");
-        });
-        actionWrap.appendChild(deleteBtn);
-
+        actionWrap.className = "flex flex-nowrap items-center justify-end gap-1";
+        mountWorkbenchCustomerRowActions(actionWrap, customer);
         actionCell.appendChild(actionWrap);
 
         row.appendChild(checkboxCell);
         row.appendChild(companyCell);
+        row.appendChild(sourceCell);
         row.appendChild(statusCell);
         row.appendChild(nextFollowCell);
         row.appendChild(lastFollowCell);
@@ -4235,13 +5691,14 @@
       });
 
       syncBulkEmailCheckboxesAcrossViews();
+      updateWorkbenchBulkActionBar();
     }
 
     function renderPublicCustomers(customers) {
       publicCustomersTableBodyEl.innerHTML = "";
       if (!customers.length) {
         publicCustomersTableBodyEl.innerHTML =
-          '<tr><td colspan="6" class="px-4 py-4 text-center text-slate-400">暂无公海客户</td></tr>';
+          '<tr><td colspan="7" class="px-4 py-4 text-center text-slate-400">暂无公海客户</td></tr>';
         if (selectAllPublicCustomersEl) {
           selectAllPublicCustomersEl.checked = false;
         }
@@ -4255,11 +5712,11 @@
         row.className = "hover:bg-slate-800/40 transition";
 
         const checkboxCell = document.createElement("td");
-        checkboxCell.className = "px-3 py-3 sm:px-4";
+        checkboxCell.className = "bg-transparent px-3 py-3 sm:px-4";
         const selector = document.createElement("input");
         selector.type = "checkbox";
         selector.className =
-          "customer-checkbox h-4 w-4 cursor-pointer rounded border-slate-700 bg-slate-800 accent-sky-500";
+          "customer-checkbox h-4 w-4 cursor-pointer rounded border-slate-700 bg-transparent accent-sky-500";
         const customerEmail = (customer.email || "").trim();
         selector.value = customerEmail;
         selector.checked = Boolean(customerEmail && selectedCustomerEmails.includes(customerEmail));
@@ -4277,8 +5734,14 @@
         checkboxCell.appendChild(selector);
 
         const companyCell = document.createElement("td");
-        companyCell.className = "px-3 py-3 sm:px-4";
-        companyCell.textContent = customer.company_name || "-";
+        companyCell.className =
+          "min-w-[11rem] max-w-[min(26rem,88vw)] px-3 py-3 sm:min-w-[13rem] sm:max-w-[24rem] sm:px-4";
+        appendCustomerNameColumnTwoLine(companyCell, customer, { showOverdueIcon: false });
+
+        const sourceCell = document.createElement("td");
+        sourceCell.className =
+          "w-[5.5rem] max-w-[6.5rem] shrink-0 px-2 py-2 align-middle sm:w-[6.25rem] sm:px-3 sm:py-3";
+        sourceCell.appendChild(createCustomerSourceBadge(customer.source));
 
         const statusCell = document.createElement("td");
         statusCell.className = "px-2 py-2 align-middle sm:px-4 sm:py-3";
@@ -4302,37 +5765,16 @@
         countryCell.textContent = customer.country || "-";
 
         const actionCell = document.createElement("td");
-        actionCell.className = "whitespace-nowrap px-2 py-2 sm:px-4 sm:py-3";
+        actionCell.className =
+          "relative overflow-visible whitespace-nowrap px-2 py-2 sm:px-4 sm:py-3";
         const actionWrap = document.createElement("div");
-        actionWrap.className = "flex flex-nowrap items-center gap-0.5";
-
-        const claimBtn = document.createElement("button");
-        claimBtn.type = "button";
-        claimBtn.className =
-          CRM_ROW_ACTION_BTN +
-          " border border-emerald-400/40 bg-emerald-500/15 text-emerald-200 hover:bg-emerald-500/30 hover:text-white";
-        claimBtn.textContent = "认领";
-        claimBtn.addEventListener("click", async () => {
-          await setCustomerPublicState(customer.id, false);
-        });
-        actionWrap.appendChild(claimBtn);
-
-        const waBtn = document.createElement("button");
-        waBtn.type = "button";
-        waBtn.className = WHATSAPP_ROW_BTN_CLASS;
-        waBtn.title = "WhatsApp Web";
-        waBtn.setAttribute("aria-label", "WhatsApp");
-        waBtn.innerHTML = WHATSAPP_ICON_SVG_ROW + '<span class="hidden sm:inline">WhatsApp</span>';
-        waBtn.addEventListener("click", async () => {
-          if (!openWhatsAppWeb(customer.phone)) return;
-          await touchFollowUpAfterChannelClick(customer);
-        });
-        actionWrap.appendChild(waBtn);
-
+        actionWrap.className = "flex flex-nowrap items-center justify-end gap-1";
+        mountPublicCustomerRowActions(actionWrap, customer);
         actionCell.appendChild(actionWrap);
 
         row.appendChild(checkboxCell);
         row.appendChild(companyCell);
+        row.appendChild(sourceCell);
         row.appendChild(statusCell);
         row.appendChild(emailCell);
         row.appendChild(countryCell);
@@ -4359,36 +5801,37 @@
       }
 
       showSuccessCelebration("已标记为成交客户");
-      await Promise.all([loadCustomers(), loadClosedCustomers(), loadTodayTodoFollowupsFromDb()]);
+      await refreshAllCustomerDataAndUI();
     }
 
     function renderClosedCustomers(customers) {
+      if (!closedCustomersTableBodyEl) return;
+      const list = Array.isArray(customers) ? customers : [];
       closedCustomersTableBodyEl.innerHTML = "";
-      if (!customers.length) {
+      if (!list.length) {
         closedCustomersTableBodyEl.innerHTML =
-          '<tr><td colspan="6" class="px-4 py-4 text-center text-slate-400">暂无成交老客户</td></tr>';
+          '<tr><td colspan="8" class="px-4 py-4 text-center text-slate-400">暂无成交老客户</td></tr>';
         return;
       }
 
-      customers.forEach((customer) => {
+      list.forEach((customer) => {
+        if (!customer) return;
         const row = document.createElement("tr");
         row.className = "hover:bg-slate-800/40 transition";
 
         const companyCell = document.createElement("td");
-        companyCell.className = "px-3 py-3 sm:px-4";
-        const companyWrap = document.createElement("div");
-        companyWrap.className = "flex items-center gap-2";
-        const companyName = document.createElement("span");
-        companyName.textContent = customer.company_name || "-";
-        companyWrap.appendChild(companyName);
-        if (isOverdueNow(customer.next_followup_date)) {
-          const overdueIcon = document.createElement("span");
-          overdueIcon.className = "text-rose-400";
-          overdueIcon.title = "该客户跟进提醒已到期";
-          overdueIcon.textContent = "⏰";
-          companyWrap.appendChild(overdueIcon);
-        }
-        companyCell.appendChild(companyWrap);
+        companyCell.className =
+          "min-w-[11rem] max-w-[min(26rem,88vw)] px-3 py-3 sm:min-w-[13rem] sm:max-w-[24rem] sm:px-4";
+        appendCustomerNameColumnTwoLine(companyCell, customer, { showOverdueIcon: false });
+
+        const sourceCell = document.createElement("td");
+        sourceCell.className =
+          "w-[5.5rem] max-w-[6.5rem] shrink-0 px-2 py-2 align-middle sm:w-[6.25rem] sm:px-3 sm:py-3";
+        sourceCell.appendChild(createCustomerSourceBadge(customer.source));
+
+        const followupHealthCell = document.createElement("td");
+        followupHealthCell.className = "px-2 py-2 align-middle sm:px-4 sm:py-3";
+        followupHealthCell.appendChild(createClosedCustomerFollowupHealthBadge(customer.next_followup_date));
 
         const statusCell = document.createElement("td");
         statusCell.className = "px-2 py-2 align-middle sm:px-4 sm:py-3";
@@ -4417,75 +5860,16 @@
         countryCell.textContent = customer.country || "-";
 
         const actionCell = document.createElement("td");
-        actionCell.className = "whitespace-nowrap px-2 py-2 align-middle sm:px-4 sm:py-3";
+        actionCell.className =
+          "relative overflow-visible whitespace-nowrap px-2 py-2 align-middle sm:px-4 sm:py-3";
         const actionWrap = document.createElement("div");
-        actionWrap.className = "flex flex-nowrap items-center gap-0.5";
-
-        const detailBtn = document.createElement("button");
-        detailBtn.type = "button";
-        detailBtn.className =
-          CRM_ROW_ACTION_BTN +
-          " border border-cyan-400/40 bg-cyan-500/15 text-cyan-200 hover:bg-cyan-500/30 hover:text-white";
-        detailBtn.textContent = "详情/跟进";
-        detailBtn.addEventListener("click", () => {
-          openFollowupDrawer(customer);
-        });
-        actionWrap.appendChild(detailBtn);
-
-        const mailBtn = document.createElement("button");
-        mailBtn.type = "button";
-        mailBtn.className =
-          CRM_ROW_ACTION_BTN +
-          " border border-sky-400/40 bg-sky-500/15 text-sky-200 hover:bg-sky-500/30 hover:text-white";
-        mailBtn.textContent = "发送邮件";
-        mailBtn.addEventListener("click", async () => {
-          const email = (customer.email || "").trim();
-          if (!email) {
-            showToast("该客户没有邮箱地址。", "error");
-            return;
-          }
-          window.location.href = "mailto:" + email;
-          await touchFollowUpAfterChannelClick(customer);
-        });
-        actionWrap.appendChild(mailBtn);
-
-        const waBtn = document.createElement("button");
-        waBtn.type = "button";
-        waBtn.className = WHATSAPP_ROW_BTN_CLASS;
-        waBtn.title = "WhatsApp Web";
-        waBtn.setAttribute("aria-label", "WhatsApp");
-        waBtn.innerHTML = WHATSAPP_ICON_SVG_ROW + '<span class="hidden sm:inline">WhatsApp</span>';
-        waBtn.addEventListener("click", async () => {
-          if (!openWhatsAppWeb(customer.phone)) return;
-          await touchFollowUpAfterChannelClick(customer);
-        });
-        actionWrap.appendChild(waBtn);
-
-        const editBtn = document.createElement("button");
-        editBtn.type = "button";
-        editBtn.className =
-          CRM_ROW_ACTION_BTN +
-          " border border-violet-400/40 bg-violet-500/15 text-violet-200 hover:bg-violet-500/30 hover:text-white";
-        editBtn.textContent = "编辑";
-        editBtn.addEventListener("click", () => {
-          editCustomer(customer);
-        });
-        actionWrap.appendChild(editBtn);
-
-        const toPublicBtn = document.createElement("button");
-        toPublicBtn.type = "button";
-        toPublicBtn.className =
-          CRM_ROW_ACTION_BTN +
-          " border border-amber-400/40 bg-amber-500/15 text-amber-200 hover:bg-amber-500/30 hover:text-white";
-        toPublicBtn.textContent = "移出";
-        toPublicBtn.addEventListener("click", () => {
-          releaseClosedCustomerToPublicSea(customer);
-        });
-        actionWrap.appendChild(toPublicBtn);
-
+        actionWrap.className = "flex flex-nowrap items-center justify-end gap-1";
+        mountClosedCustomerRowActions(actionWrap, customer);
         actionCell.appendChild(actionWrap);
 
         row.appendChild(companyCell);
+        row.appendChild(sourceCell);
+        row.appendChild(followupHealthCell);
         row.appendChild(statusCell);
         row.appendChild(lastFollowCell);
         row.appendChild(emailCell);
@@ -4500,6 +5884,149 @@
       const date = new Date(value);
       if (Number.isNaN(date.getTime())) return "时间未知";
       return date.toLocaleString("zh-CN", { hour12: false });
+    }
+
+    /** 今天本地 0 点的时间戳（与跟进日「日历日」对齐比较）。 */
+    function getLocalTodayMidnightTimestamp() {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      return today.getTime();
+    }
+
+    /** 将任意 next_followup 原始值规范为「本地当天 0 点」时间戳；无效返回 NaN。 */
+    function getFollowupLocalMidnightTimestamp(raw) {
+      if (raw == null || raw === "") return NaN;
+      try {
+        const followDate = new Date(raw);
+        if (Number.isNaN(followDate.getTime())) return NaN;
+        followDate.setHours(0, 0, 0, 0);
+        return followDate.getTime();
+      } catch (e) {
+        return NaN;
+      }
+    }
+
+    /** 与「今天」的日历日差：今天为 0，明天为 1；昨天为 -1。无效/空日期返回 NaN。 */
+    function getFollowupCalendarDaysFromToday(raw) {
+      try {
+        const followTimestamp = getFollowupLocalMidnightTimestamp(raw);
+        const todayTimestamp = getLocalTodayMidnightTimestamp();
+        if (!Number.isFinite(followTimestamp)) return NaN;
+        return Math.round((followTimestamp - todayTimestamp) / 86400000);
+      } catch (e) {
+        return NaN;
+      }
+    }
+
+    /**
+     * 成交老客户「下次跟进」健康度（按本地日历日比较）。
+     * overdue：早于今天；due_soon：今天起 3 天内（含今天与第 +3 天）；healthy：更晚；idle：无日期。
+     */
+    function getClosedCustomerFollowupHealth(raw) {
+      let diff;
+      try {
+        diff = getFollowupCalendarDaysFromToday(raw);
+      } catch (e) {
+        diff = NaN;
+      }
+      if (!Number.isFinite(diff)) {
+        return {
+          tier: "idle",
+          label: "未计划",
+          daysFromToday: NaN,
+          badgeClass:
+            "inline-flex max-w-full items-center rounded-full px-2.5 py-0.5 text-xs font-semibold leading-snug bg-slate-600/90 text-slate-100 shadow-sm ring-1 ring-slate-500/50 ring-inset",
+        };
+      }
+      if (diff < 0) {
+        const n = -diff;
+        return {
+          tier: "overdue",
+          label: "逾期 " + n + " 天",
+          daysFromToday: diff,
+          badgeClass:
+            "inline-flex max-w-full items-center rounded-full px-2.5 py-0.5 text-xs font-semibold leading-snug bg-rose-600/95 text-white shadow-sm ring-1 ring-rose-950/35 ring-inset",
+        };
+      }
+      if (diff <= 3) {
+        let label = "今日";
+        if (diff === 1) label = "明日";
+        else if (diff === 2) label = "2 天内";
+        else if (diff === 3) label = "3 天内";
+        return {
+          tier: "due_soon",
+          label,
+          daysFromToday: diff,
+          badgeClass:
+            "inline-flex max-w-full items-center rounded-full px-2.5 py-0.5 text-xs font-semibold leading-snug bg-amber-500/95 text-amber-950 shadow-sm ring-1 ring-amber-800/40 ring-inset",
+        };
+      }
+      return {
+        tier: "healthy",
+        label: "剩余 " + diff + " 天",
+        daysFromToday: diff,
+        badgeClass:
+          "inline-flex max-w-full items-center rounded-full px-2.5 py-0.5 text-xs font-semibold leading-snug bg-emerald-800/95 text-emerald-50 shadow-sm ring-1 ring-emerald-950/40 ring-inset",
+      };
+    }
+
+    function createClosedCustomerFollowupHealthBadge(rawNext) {
+      let health;
+      try {
+        health = getClosedCustomerFollowupHealth(rawNext);
+      } catch (e) {
+        health = {
+          tier: "idle",
+          label: "未计划",
+          badgeClass:
+            "inline-flex max-w-full items-center rounded-full px-2.5 py-0.5 text-xs font-semibold leading-snug bg-slate-600/90 text-slate-100 shadow-sm ring-1 ring-slate-500/50 ring-inset",
+        };
+      }
+      const el = document.createElement("span");
+      el.className = health.badgeClass || "";
+      el.textContent = health.label || "未计划";
+      el.title =
+        health.tier === "idle"
+          ? "尚未设置下次跟进日期"
+          : "下次跟进（本地日历）：" + (rawNext != null && rawNext !== "" ? String(rawNext) : "—");
+      return el;
+    }
+
+    /** 老客户列表：逾期 > 无计划 > 待跟进 > 正常；同档内越早需要处理的越靠前。 */
+    function sortClosedCustomersByFollowupUrgency(list) {
+      const rankOf = (tier) => {
+        const order = { overdue: 0, idle: 1, due_soon: 2, healthy: 3 };
+        const k = typeof tier === "string" ? tier : "";
+        return order[k] !== undefined ? order[k] : 99;
+      };
+      return [...(list || [])].sort((a, b) => {
+        if (!a && !b) return 0;
+        if (!a) return 1;
+        if (!b) return -1;
+        let ha;
+        let hb;
+        try {
+          ha = getClosedCustomerFollowupHealth(a.next_followup_date);
+          hb = getClosedCustomerFollowupHealth(b.next_followup_date);
+        } catch (e) {
+          return 0;
+        }
+        const ra = rankOf(ha && ha.tier);
+        const rb = rankOf(hb && hb.tier);
+        if (ra !== rb) return ra - rb;
+        if (ha && ha.tier === "idle") {
+          const la = a.last_follow_up ? new Date(a.last_follow_up).getTime() : 0;
+          const lb = b.last_follow_up ? new Date(b.last_follow_up).getTime() : 0;
+          const lna = Number.isFinite(la) ? la : 0;
+          const lnb = Number.isFinite(lb) ? lb : 0;
+          return lna - lnb;
+        }
+        const ta = a.next_followup_date ? new Date(a.next_followup_date).getTime() : 0;
+        const tb = b.next_followup_date ? new Date(b.next_followup_date).getTime() : 0;
+        const tna = Number.isFinite(ta) ? ta : 0;
+        const tnb = Number.isFinite(tb) ? tb : 0;
+        return tna - tnb;
+      });
     }
 
     function isDueForTodayOrOverdue(value) {
@@ -4518,23 +6045,38 @@
       return dueDate <= new Date();
     }
 
+    function resolveTodayFollowupsListElement() {
+      if (todayFollowupsListEl) return todayFollowupsListEl;
+      return document.getElementById("today-followups-list") || document.getElementById("today-tasks-container");
+    }
+
     function renderTodayFollowupsPanel(dueCustomers) {
-      todayFollowupsListEl.innerHTML = "";
-      if (todayFollowupsBadgeEl) {
-        todayFollowupsBadgeEl.textContent = String(dueCustomers?.length ?? 0);
+      const listEl = resolveTodayFollowupsListElement();
+      if (!listEl) {
+        console.error(
+          "【今日待办】找不到列表容器：请在 HTML 中保留 id=\"today-followups-list\"（或 id=\"today-tasks-container\"）。",
+        );
+        return;
+      }
+      listEl.innerHTML = "";
+      const badgeEl = todayFollowupsBadgeEl || document.getElementById("today-followups-badge");
+      if (badgeEl) {
+        badgeEl.textContent = String(dueCustomers?.length ?? 0);
       }
 
       if (!dueCustomers || !dueCustomers.length) {
-        todayFollowupsListEl.innerHTML =
+        listEl.innerHTML =
           '<li class="rounded-lg bg-slate-800/70 px-3 py-2 text-slate-400">今日暂无待办跟进。</li>';
         return;
       }
 
       dueCustomers
         .sort((a, b) => {
-          const dateA = a.next_followup_date ? new Date(a.next_followup_date).getTime() : Number.MAX_SAFE_INTEGER;
-          const dateB = b.next_followup_date ? new Date(b.next_followup_date).getTime() : Number.MAX_SAFE_INTEGER;
-          return dateA - dateB;
+          const ta = getFollowupLocalMidnightTimestamp(a && a.next_followup_date);
+          const tb = getFollowupLocalMidnightTimestamp(b && b.next_followup_date);
+          const tna = Number.isFinite(ta) ? ta : Number.MAX_SAFE_INTEGER;
+          const tnb = Number.isFinite(tb) ? tb : Number.MAX_SAFE_INTEGER;
+          return tna - tnb;
         })
         .forEach((customer) => {
           const item = document.createElement("li");
@@ -4564,42 +6106,183 @@
 
           item.appendChild(left);
           item.appendChild(btn);
-          todayFollowupsListEl.appendChild(item);
+          listEl.appendChild(item);
         });
     }
 
-    /** 从数据库拉取私有客户中 next_followup_date 已在今日结束前到期的待办（含历史逾期）。 */
-    async function loadTodayTodoFollowupsFromDb() {
-      todayFollowupsListEl.innerHTML =
-        '<li class="rounded-lg bg-slate-800/70 px-3 py-2 text-slate-400">加载待办...</li>';
-      if (todayFollowupsBadgeEl) todayFollowupsBadgeEl.textContent = "…";
+    async function fetchLatestCustomersFromSupabase() {
+      const { data, error } = await supabaseClient.from("customers").select(CUSTOMERS_GLOBAL_SELECT);
+      if (error) return { ok: false, error };
+      customersGlobal = (data || []).map((c) => ({ ...c, tags: parseCustomerTags(c.tags) }));
+      return { ok: true, error: null };
+    }
 
-      const now = new Date();
-      const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    function customerRowIsClosedFlag(c) {
+      if (!c || c.is_closed == null || c.is_closed === false || c.is_closed === 0) return false;
+      return c.is_closed === true || c.is_closed === 1 || c.is_closed === "true" || c.is_closed === "t";
+    }
 
-      const { data, error } = await supabaseClient
-        .from("customers")
-        .select(
-          "id, company_name, contact_name, email, phone, country, address, source, social_media, is_public, is_closed, next_followup_date, status, last_follow_up, tags",
-        )
-        .or("is_public.is.false,is_public.is.null")
-        .not("is_closed", "eq", true)
-        .not("next_followup_date", "is", null)
-        .lte("next_followup_date", endOfToday.toISOString());
+    function customerRowIsInPublicPool(c) {
+      if (!c) return false;
+      return c.is_public === true || c.is_public === 1 || c.is_public === "true";
+    }
 
-      if (error) {
-        todayFollowupsListEl.innerHTML =
-          '<li class="rounded-lg bg-rose-500/10 px-3 py-2 text-rose-300">读取待办失败：' + error.message + "</li>";
-        if (todayFollowupsBadgeEl) todayFollowupsBadgeEl.textContent = "!";
+    function filterCustomersForWorkbench(rows) {
+      return (rows || []).filter((c) => {
+        if (!c) return false;
+        if (customerRowIsClosedFlag(c)) return false;
+        if (customerRowIsInPublicPool(c)) return false;
+        return true;
+      });
+    }
+
+    function filterCustomersForPublicPool(rows) {
+      return (rows || []).filter((c) => c && customerRowIsInPublicPool(c));
+    }
+
+    function filterCustomersForClosedDeals(rows) {
+      return (rows || []).filter((c) => c && customerRowIsClosedFlag(c));
+    }
+
+    function filterCustomersForQuotationPicker(rows) {
+      return (rows || []).filter((c) => c && !customerRowIsInPublicPool(c));
+    }
+
+    function syncQuotationCustomersFromGlobal() {
+      quotationCustomers = filterCustomersForQuotationPicker(customersGlobal)
+        .map((c) => ({ id: c.id, company_name: c.company_name, country: c.country }))
+        .sort((a, b) => String(a.company_name || "").localeCompare(String(b.company_name || ""), "zh-CN"));
+      if (!quoteCustomerSelect) return;
+      const prev = selectedQuotationCustomerId;
+      quoteCustomerSelect.innerHTML = '<option value="">请选择客户...</option>';
+      quotationCustomers.forEach((customer) => {
+        const option = document.createElement("option");
+        option.value = String(customer.id);
+        option.textContent = (customer.company_name || "Unnamed") + " (" + (customer.country || "-") + ")";
+        quoteCustomerSelect.appendChild(option);
+      });
+      if (prev && quotationCustomers.some((c) => String(c.id) === String(prev))) {
+        quoteCustomerSelect.value = String(prev);
+      }
+    }
+
+    function showCustomerModulesLoadError(message) {
+      const msg = message || "未知错误";
+      statusEl.textContent = "加载失败";
+      tableBodyEl.innerHTML =
+        '<tr><td colspan="9" class="px-4 py-4 text-center text-rose-300">读取 customers 失败：' + msg + "</td></tr>";
+      publicCustomersStatusEl.textContent = "加载失败";
+      publicCustomersTableBodyEl.innerHTML =
+        '<tr><td colspan="7" class="px-4 py-4 text-center text-rose-300">读取客户失败：' + msg + "</td></tr>";
+      closedCustomersStatusEl.textContent = "加载失败";
+      closedCustomersTableBodyEl.innerHTML =
+        '<tr><td colspan="8" class="px-4 py-4 text-center text-rose-300">读取成交客户失败：' + msg + "</td></tr>";
+      const todoListErr = resolveTodayFollowupsListElement();
+      if (todoListErr) {
+        todoListErr.innerHTML =
+          '<li class="rounded-lg bg-rose-500/10 px-3 py-2 text-rose-300">读取待办失败：' + msg + "</li>";
+      }
+      if (todayFollowupsBadgeEl) todayFollowupsBadgeEl.textContent = "!";
+    }
+
+    /**
+     * 今日待办：全量客户（含公海、成交老客户）中，next_followup_date 日历日 ≤ 今天的记录。
+     * 仅用本地零点时间戳比较；不按 stage/status/is_closed/is_public 过滤。
+     */
+    function renderTodayFollowupsFromCustomersGlobal() {
+      const customers = Array.isArray(customersGlobal) ? customersGlobal : [];
+      console.log("【调试】开始过滤待办，当前总客户数据:", customers);
+
+      const listEl = resolveTodayFollowupsListElement();
+      if (!listEl) {
+        console.error(
+          "【今日待办】DOM 未找到：期望 id 为 `today-followups-list` 或 `today-tasks-container` 的容器。",
+        );
         return;
       }
 
-      const normalizedRows = (data || []).map((c) => ({
-        ...c,
-        tags: parseCustomerTags(c.tags),
-      }));
-      const filtered = normalizedRows.filter((c) => isDueForTodayOrOverdue(c.next_followup_date));
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayTimestamp = today.getTime();
+
+      const filtered = customers.filter((customer) => {
+        if (!customer) return false;
+        console.log("【调试】客户名:", customer.name, "原始日期:", customer.next_followup_date);
+        if (!customer.next_followup_date) return false;
+        const followDate = new Date(customer.next_followup_date);
+        if (Number.isNaN(followDate.getTime())) return false;
+        followDate.setHours(0, 0, 0, 0);
+        const followTimestamp = followDate.getTime();
+        if (followTimestamp <= todayTimestamp) {
+          return true;
+        }
+        return false;
+      });
+
       renderTodayFollowupsPanel(filtered);
+    }
+
+    /** 基于 customersGlobal 重绘工作台列表、公海、老客户与今日待办（不发起网络请求）。 */
+    function renderAllCustomerModulesFromGlobalCache() {
+      privateCustomersCache = sortCustomersByLastFollowUp(filterCustomersForWorkbench(customersGlobal));
+      statusEl.textContent = "已加载";
+      renderCustomerTagFilterBar();
+      renderRows();
+      if (dashboardPrivateViewMode === "kanban") renderKanbanBoard();
+      updateBulkEmailSelectionUI();
+
+      publicCustomersStatusEl.textContent = "已加载";
+      renderPublicCustomers(sortCustomersByLastFollowUp(filterCustomersForPublicPool(customersGlobal)));
+
+      closedCustomersStatusEl.textContent = "已加载";
+      renderClosedCustomers(sortClosedCustomersByFollowupUrgency(filterCustomersForClosedDeals(customersGlobal)));
+
+      renderTodayFollowupsFromCustomersGlobal();
+
+      syncQuotationCustomersFromGlobal();
+
+      refreshOpenFollowupDrawerFromGlobalIfOpen();
+
+      populateDashboardCountryFilterOptions();
+      updateWorkbenchBulkActionBar();
+    }
+
+    /** Supabase 写入成功后调用：拉取最新 customers → 全模块重绘。 */
+    async function refreshAllCustomerDataAndUI() {
+      statusEl.textContent = "加载中...";
+      publicCustomersStatusEl.textContent = "加载中...";
+      closedCustomersStatusEl.textContent = "加载中...";
+      const todoListLoading = resolveTodayFollowupsListElement();
+      if (todoListLoading) {
+        todoListLoading.innerHTML =
+          '<li class="rounded-lg bg-slate-800/70 px-3 py-2 text-slate-400">加载待办...</li>';
+      }
+      if (todayFollowupsBadgeEl) todayFollowupsBadgeEl.textContent = "…";
+
+      const res = await fetchLatestCustomersFromSupabase();
+      if (!res.ok) {
+        showCustomerModulesLoadError(res.error && res.error.message ? res.error.message : "未知错误");
+        return;
+      }
+      renderAllCustomerModulesFromGlobalCache();
+    }
+
+    /** 与 refreshAllCustomerDataAndUI 等价别名，便于语义搜索。 */
+    const refreshCustomerUI = refreshAllCustomerDataAndUI;
+
+    /** 今日待办：仅基于全局 customers 过滤（与 loadCustomers 共用数据源）。 */
+    async function loadTodayTodoFollowupsFromDb() {
+      if (!customersGlobal.length) {
+        const todoListWait = resolveTodayFollowupsListElement();
+        if (todoListWait) {
+          todoListWait.innerHTML =
+            '<li class="rounded-lg bg-slate-800/70 px-3 py-2 text-slate-400">加载待办...</li>';
+        }
+        if (todayFollowupsBadgeEl) todayFollowupsBadgeEl.textContent = "…";
+        await refreshAllCustomerDataAndUI();
+        return;
+      }
+      renderTodayFollowupsFromCustomersGlobal();
     }
 
     function isPublicHttpUrlForScreenshot(url) {
@@ -4843,7 +6526,7 @@
       }
       showToast("删除成功");
       await loadFollowups(customerId);
-      await Promise.all([loadCustomers(), loadClosedCustomers(), loadTodayTodoFollowupsFromDb()]);
+      await refreshAllCustomerDataAndUI();
     }
 
     function openProductModal() {
@@ -4936,13 +6619,61 @@
       renderFollowups(data || []);
     }
 
+    function getCustomerRecordById(id) {
+      if (id == null) return null;
+      const sid = String(id);
+      const g = (customersGlobal || []).find((c) => String(c.id) === sid);
+      if (g) return { ...g, tags: parseCustomerTags(g.tags) };
+      const p = (privateCustomersCache || []).find((c) => String(c.id) === sid);
+      if (p) return { ...p, tags: parseCustomerTags(p.tags) };
+      return null;
+    }
+
+    function updateWhatsAppDrawerAnchorFromCustomer(cust) {
+      if (!whatsappFollowupBtn) return;
+      whatsappFollowupBtn.target = CRM_WHATSAPP_LINK_TARGET;
+      whatsappFollowupBtn.rel = "noopener noreferrer";
+      const url = buildWhatsAppWebUrl(cust && cust.phone);
+      if (!url) {
+        whatsappFollowupBtn.href = "#";
+        whatsappFollowupBtn.setAttribute("aria-disabled", "true");
+        whatsappFollowupBtn.classList.add("pointer-events-none", "opacity-50", "cursor-not-allowed");
+      } else {
+        whatsappFollowupBtn.href = url;
+        whatsappFollowupBtn.removeAttribute("aria-disabled");
+        whatsappFollowupBtn.classList.remove("pointer-events-none", "opacity-50", "cursor-not-allowed");
+      }
+    }
+
+    function refreshOpenFollowupDrawerFromGlobalIfOpen() {
+      if (!selectedCustomer || !selectedCustomer.id || !followupDrawer) return;
+      const drawerOpen = !followupDrawer.classList.contains("translate-x-[110%]");
+      if (!drawerOpen) return;
+      const fresh = getCustomerRecordById(selectedCustomer.id);
+      if (!fresh) return;
+      selectedCustomer = fresh;
+      updateWhatsAppDrawerAnchorFromCustomer(fresh);
+      fillFollowupCustomerTags(fresh);
+      followupCustomerNameEl.textContent = (fresh.company_name || "未命名客户") + " · ID " + fresh.id;
+      followupCustomerCompanyEl.textContent = fresh.company_name || "-";
+      followupCustomerContactNameEl.textContent = fresh.contact_name || "-";
+      followupCustomerEmailEl.textContent = fresh.email || "-";
+      followupCustomerPhoneEl.textContent = fresh.phone || "-";
+      followupCustomerCountryEl.textContent = fresh.country || "-";
+      followupCustomerAddressEl.textContent = fresh.address || "-";
+      followupCustomerSourceEl.textContent = fresh.source || "-";
+      followupCustomerSocialEl.textContent = fresh.social_media || "-";
+      startCustomerLocalTime(fresh.country);
+      void loadFollowups(fresh.id);
+    }
+
     function openFollowupDrawer(customer) {
-      const fromCache = privateCustomersCache.find((c) => String(c.id) === String(customer.id));
-      const merged = Object.assign({}, fromCache || {}, customer);
+      const fromGlobal = getCustomerRecordById(customer.id);
+      const merged = Object.assign({}, fromGlobal || {}, customer);
       merged.tags = parseCustomerTags(merged.tags);
       selectedCustomer = merged;
       resetFollowupScreenshotAttachment();
-      fillFollowupCustomerTags(merged.tags);
+      fillFollowupCustomerTags(merged);
       followupCustomerNameEl.textContent = (merged.company_name || "未命名客户") + " · ID " + merged.id;
       followupCustomerCompanyEl.textContent = merged.company_name || "-";
       followupCustomerContactNameEl.textContent = merged.contact_name || "-";
@@ -4956,6 +6687,7 @@
       followupFormStatusEl.textContent = "";
       followupDrawerOverlay.classList.remove("hidden");
       followupDrawer.classList.remove("translate-x-[110%]");
+      updateWhatsAppDrawerAnchorFromCustomer(merged);
       loadFollowups(merged.id);
       followupContentInput.focus();
       requestAnimationFrame(() => adjustFollowupContentTextareaHeight());
@@ -4981,85 +6713,20 @@
       followupCustomerSocialEl.textContent = "-";
       nextFollowupDatetimeInput.value = "";
       saveFollowupBtn.disabled = false;
-      fillFollowupCustomerTags("");
+      fillFollowupCustomerTags(null);
+      updateWhatsAppDrawerAnchorFromCustomer(null);
     }
 
     async function loadCustomers() {
-      statusEl.textContent = "加载中...";
-
-      const { data, error } = await supabaseClient
-        .from("customers")
-        .select(
-          "id, company_name, contact_name, email, phone, country, address, source, social_media, is_public, is_closed, next_followup_date, status, last_follow_up, tags",
-        )
-        .or("is_public.is.false,is_public.is.null")
-        .not("is_closed", "eq", true);
-
-      if (error) {
-        statusEl.textContent = "加载失败";
-        tableBodyEl.innerHTML =
-          '<tr><td colspan="8" class="px-4 py-4 text-center text-rose-300">读取 customers 失败：' +
-          error.message +
-          "</td></tr>";
-        return;
-      }
-
-      statusEl.textContent = "已加载";
-      privateCustomersCache = sortCustomersByLastFollowUp(data || []).map((c) => ({
-        ...c,
-        tags: parseCustomerTags(c.tags),
-      }));
-      renderCustomerTagFilterBar();
-      renderRows();
-      if (dashboardPrivateViewMode === "kanban") {
-        renderKanbanBoard();
-      }
-      updateBulkEmailSelectionUI();
+      await refreshAllCustomerDataAndUI();
     }
 
     async function loadPublicCustomers() {
-      publicCustomersStatusEl.textContent = "加载中...";
-      const { data, error } = await supabaseClient
-        .from("customers")
-        .select(
-          "id, company_name, contact_name, email, phone, country, address, source, social_media, is_public, status, last_follow_up",
-        )
-        .eq("is_public", true);
-
-      if (error) {
-        publicCustomersStatusEl.textContent = "加载失败";
-        publicCustomersTableBodyEl.innerHTML =
-          '<tr><td colspan="6" class="px-4 py-4 text-center text-rose-300">读取公海客户失败：' +
-          error.message +
-          "</td></tr>";
-        return;
-      }
-
-      publicCustomersStatusEl.textContent = "已加载";
-      renderPublicCustomers(sortCustomersByLastFollowUp(data || []));
+      await refreshAllCustomerDataAndUI();
     }
 
     async function loadClosedCustomers() {
-      closedCustomersStatusEl.textContent = "加载中...";
-      const { data, error } = await supabaseClient
-        .from("customers")
-        .select(
-          "id, company_name, contact_name, email, phone, country, address, source, social_media, is_public, is_closed, next_followup_date, status, last_follow_up",
-        )
-        .eq("is_closed", true);
-
-      if (error) {
-        closedCustomersStatusEl.textContent = "加载失败";
-        closedCustomersTableBodyEl.innerHTML =
-          '<tr><td colspan="6" class="px-4 py-4 text-center text-rose-300">读取成交客户失败：' +
-          error.message +
-          "</td></tr>";
-        return;
-      }
-
-      closedCustomersStatusEl.textContent = "已加载";
-      closedCustomersCache = sortCustomersByLastFollowUp(data || []);
-      renderClosedCustomers(closedCustomersCache);
+      await refreshAllCustomerDataAndUI();
     }
 
     function formatSalesReportDisplayDate(raw) {
@@ -5527,7 +7194,7 @@
       }
 
       showToast("已移出至公海", "success");
-      await Promise.all([loadCustomers(), loadPublicCustomers(), loadClosedCustomers(), loadTodayTodoFollowupsFromDb()]);
+      await refreshAllCustomerDataAndUI();
       pinClosedCustomersViewVisible();
     }
 
@@ -5542,7 +7209,7 @@
         return;
       }
 
-      await Promise.all([loadCustomers(), loadPublicCustomers(), loadClosedCustomers(), loadTodayTodoFollowupsFromDb()]);
+      await refreshAllCustomerDataAndUI();
       showToast(isPublic ? "已退回公海" : "认领成功，客户已回到私有列表", "success");
       pinClosedCustomersViewVisible();
     }
@@ -5565,7 +7232,7 @@
       }
 
       showSuccessCelebration("删除成功，客户已移除。");
-      await Promise.all([loadCustomers(), loadClosedCustomers(), loadTodayTodoFollowupsFromDb()]);
+      await refreshAllCustomerDataAndUI();
       pinClosedCustomersViewVisible();
     }
 
@@ -5607,6 +7274,7 @@
         revenueChartInstance = null;
       }
 
+      const ct = getCrmChartTheme();
       revenueChartInstance = new Chart(canvas, {
         type: "line",
         data: {
@@ -5615,8 +7283,8 @@
             {
               label: "成交金额 ($)",
               data: monthTotals,
-              borderColor: "rgb(129, 140, 248)",
-              backgroundColor: "rgba(79, 70, 229, 0.22)",
+              borderColor: ct.primary,
+              backgroundColor: ct.rgbaFromHex(ct.primary, 0.22),
               fill: true,
               tension: 0.35,
               pointRadius: 3,
@@ -5630,7 +7298,7 @@
           plugins: {
             legend: {
               labels: {
-                color: "#cbd5e1",
+                color: ct.legend,
               },
             },
             tooltip: {
@@ -5644,17 +7312,17 @@
           },
           scales: {
             x: {
-              ticks: { color: "#94a3b8" },
-              grid: { color: "rgba(148, 163, 184, 0.12)" },
+              ticks: { color: ct.ticks },
+              grid: { color: ct.grid },
             },
             y: {
               ticks: {
-                color: "#94a3b8",
+                color: ct.ticks,
                 callback(value) {
                   return "$" + value;
                 },
               },
-              grid: { color: "rgba(148, 163, 184, 0.12)" },
+              grid: { color: ct.grid },
             },
           },
         },
@@ -5699,6 +7367,550 @@
 
     async function updateCustomer(customerId, payload) {
       return supabaseClient.from("customers").update(payload).eq("id", customerId);
+    }
+
+    const bulkImportModalOverlayEl = document.getElementById("bulk-import-modal-overlay");
+    const bulkImportModalEl = document.getElementById("bulk-import-modal");
+    const closeBulkImportModalBtn = document.getElementById("close-bulk-import-modal-btn");
+    const cancelBulkImportBtn = document.getElementById("cancel-bulk-import-btn");
+    const bulkImportFileInput = document.getElementById("bulk-import-file-input");
+    const bulkImportFileLabelEl = document.getElementById("bulk-import-file-label");
+    const bulkImportParseStatusEl = document.getElementById("bulk-import-parse-status");
+    const bulkImportProgressWrapEl = document.getElementById("bulk-import-progress-wrap");
+    const bulkImportProgressBarEl = document.getElementById("bulk-import-progress-bar");
+    const bulkImportProgressTextEl = document.getElementById("bulk-import-progress-text");
+    const startBulkImportBtn = document.getElementById("start-bulk-import-btn");
+    const bulkImportDownloadTemplateEl = document.getElementById("bulk-import-download-template");
+    const bulkImportResultModalOverlayEl = document.getElementById("bulk-import-result-modal-overlay");
+    const bulkImportResultModalEl = document.getElementById("bulk-import-result-modal");
+    const bulkImportResultBodyEl = document.getElementById("bulk-import-result-body");
+    const closeBulkImportResultBtn = document.getElementById("close-bulk-import-result-btn");
+
+    const IMPORT_DEFAULT_STATUS = "潜在客户";
+    const IMPORT_DEFAULT_COUNTRY = "待定";
+    const IMPORT_FIELD_PENDING = "待补充";
+    let bulkImportSelectedFile = null;
+    let bulkImportParsedPlan = null;
+
+    function normImportHeaderCell(value) {
+      return String(value == null ? "" : value)
+        .trim()
+        .toLowerCase()
+        .replace(/[_\s]+/g, "");
+    }
+
+    function buildBulkImportHeaderAliasGroups() {
+      return {
+        company_name: ["公司名", "公司名称", "company", "companyname", "客户名", "企业名称", "单位", "客户公司"],
+        contact_name: ["联系人", "联系人名字", "contact", "contactname", "姓名", "联系人姓名"],
+        email: ["邮箱", "email", "e-mail", "电子邮件", "mail", "电子邮箱"],
+        phone: ["电话", "手机", "phone", "tel", "mobile", "座机", "联系电话"],
+        tags: ["标签", "tags", "tag", "客户标签"],
+        country: ["国家", "country", "地区", "国家地区", "国家/地区"],
+      };
+    }
+
+    function mapBulkImportHeaderRow(headerRow) {
+      const groups = buildBulkImportHeaderAliasGroups();
+      const normalizedCells = (headerRow || []).map((raw, idx) => ({
+        idx,
+        raw: String(raw == null ? "" : raw).trim(),
+        norm: normImportHeaderCell(raw),
+      }));
+      const fieldToCol = {};
+      const usedIndices = new Set();
+      const fieldOrder = ["company_name", "contact_name", "email", "phone", "country", "tags"];
+      for (const field of fieldOrder) {
+        const aliases = groups[field] || [];
+        const aliasNorms = aliases.map((a) => normImportHeaderCell(a));
+        for (const cell of normalizedCells) {
+          if (!cell.norm) continue;
+          if (usedIndices.has(cell.idx)) continue;
+          const exact = aliasNorms.some((an) => an && cell.norm === an);
+          const allowFuzzy = field !== "tags";
+          const fuzzy =
+            allowFuzzy &&
+            aliasNorms.some(
+              (an) => an && an.length >= 4 && (cell.norm.includes(an) || an.includes(cell.norm)),
+            );
+          if (exact || fuzzy) {
+            fieldToCol[field] = cell.idx;
+            usedIndices.add(cell.idx);
+            break;
+          }
+        }
+      }
+      return { fieldToCol, normalizedCells };
+    }
+
+    function bulkImportRowNonEmptyCount(row) {
+      if (!Array.isArray(row)) return 0;
+      return row.filter((c) => String(c == null ? "" : c).trim() !== "").length;
+    }
+
+    function bulkImportCellMatchesHeaderSignal(raw) {
+      const s = normImportHeaderCell(raw);
+      if (!s) return false;
+      const signals = [
+        "公司",
+        "联系",
+        "邮箱",
+        "邮件",
+        "电话",
+        "手机",
+        "标签",
+        "国家",
+        "客户名",
+        "企业",
+        "company",
+        "contact",
+        "email",
+        "mail",
+        "phone",
+        "tel",
+        "mobile",
+        "tag",
+        "country",
+      ];
+      return signals.some((sig) => {
+        const n = normImportHeaderCell(sig);
+        return n && (s === n || s.includes(n) || n.includes(s));
+      });
+    }
+
+    function bulkImportRowLooksLikeMergedTitle(row) {
+      const nec = bulkImportRowNonEmptyCount(row);
+      if (nec === 0) return true;
+      if (nec >= 2) return false;
+      const raw = String(
+        (row || []).find((c) => String(c == null ? "" : c).trim() !== "") ?? "",
+      ).trim();
+      return !bulkImportCellMatchesHeaderSignal(raw);
+    }
+
+    function findBulkImportHeaderRowIndex(matrix) {
+      const maxScan = Math.min(50, (matrix || []).length);
+      let fallbackWeak = -1;
+      let fallbackTwoCells = -1;
+      for (let i = 0; i < maxScan; i++) {
+        const row = matrix[i] || [];
+        if (bulkImportRowNonEmptyCount(row) === 0) continue;
+        if (bulkImportRowLooksLikeMergedTitle(row)) continue;
+        const { fieldToCol } = mapBulkImportHeaderRow(row);
+        const strong =
+          fieldToCol.company_name !== undefined || fieldToCol.contact_name !== undefined;
+        const mappedAny =
+          strong ||
+          fieldToCol.email !== undefined ||
+          fieldToCol.phone !== undefined ||
+          fieldToCol.tags !== undefined ||
+          fieldToCol.country !== undefined;
+        if (strong) return i;
+        if (mappedAny && fallbackWeak < 0) fallbackWeak = i;
+        if (bulkImportRowNonEmptyCount(row) >= 2 && fallbackTwoCells < 0) fallbackTwoCells = i;
+      }
+      if (fallbackWeak >= 0) return fallbackWeak;
+      if (fallbackTwoCells >= 0) return fallbackTwoCells;
+      return 0;
+    }
+
+    function trimBulkImportMatrixLeadingBlankRows(matrix) {
+      const m = (matrix || []).map((r) => (Array.isArray(r) ? r.slice() : []));
+      while (m.length && bulkImportRowNonEmptyCount(m[0]) === 0) m.shift();
+      return m;
+    }
+
+    function normImportDisplayNameForDedupe(value) {
+      return String(value == null ? "" : value)
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, "")
+        .replace(/[，,、;；]/g, "");
+    }
+
+    function isBulkImportPlaceholderName(value) {
+      const t = String(value == null ? "" : value).trim();
+      if (!t) return true;
+      if (t === IMPORT_FIELD_PENDING) return true;
+      if (t === "未命名客户" || t === "未填写" || t === "-" || t === "—") return true;
+      return false;
+    }
+
+    /** 与库中比对的主键：优先公司名（库内主展示字段），否则用联系人。 */
+    function importPrimaryNameDedupeKey(company_name, contact_name) {
+      if (!isBulkImportPlaceholderName(company_name)) return normImportDisplayNameForDedupe(company_name);
+      if (!isBulkImportPlaceholderName(contact_name)) return normImportDisplayNameForDedupe(contact_name);
+      return "";
+    }
+
+    function buildBulkImportExistingNameKeySet(rows) {
+      const set = new Set();
+      (rows || []).forEach((row) => {
+        const co = normImportDisplayNameForDedupe(row.company_name);
+        const ct = normImportDisplayNameForDedupe(row.contact_name);
+        if (co) set.add(co);
+        if (ct) set.add(ct);
+      });
+      return set;
+    }
+
+    function makeBulkImportPlaceholderEmail(seq) {
+      const part = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      return "import-pending-" + seq + "-" + part + "@placeholder.crm";
+    }
+
+    function parseSpreadsheetFileToMatrix(file) {
+      return new Promise((resolve, reject) => {
+        if (typeof XLSX === "undefined" || !XLSX.read) {
+          reject(new Error("表格解析库未加载，请刷新页面后重试。"));
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const buf = event.target && event.target.result;
+            const lowerName = String(file.name || "").toLowerCase();
+            let workbook;
+            if (lowerName.endsWith(".csv")) {
+              const text = new TextDecoder("utf-8").decode(new Uint8Array(buf));
+              workbook = XLSX.read(text.replace(/^\uFEFF/, ""), { type: "string" });
+            } else {
+              workbook = XLSX.read(new Uint8Array(buf), { type: "array" });
+            }
+            const firstName = workbook.SheetNames[0];
+            if (!firstName) {
+              reject(new Error("文件中没有工作表。"));
+              return;
+            }
+            const sheet = workbook.Sheets[firstName];
+            const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", blankrows: false });
+            resolve(matrix);
+          } catch (err) {
+            reject(err instanceof Error ? err : new Error(String(err)));
+          }
+        };
+        reader.onerror = () => reject(new Error("读取文件失败。"));
+        reader.readAsArrayBuffer(file);
+      });
+    }
+
+    function matrixRowToValues(matrix, rowIdx, colCount) {
+      const row = matrix[rowIdx] || [];
+      const out = [];
+      for (let c = 0; c < colCount; c++) {
+        const v = row[c];
+        out.push(v == null ? "" : String(v).trim());
+      }
+      return out;
+    }
+
+    function buildBulkImportPlanFromMatrix(matrix) {
+      if (!matrix || !matrix.length) {
+        return { error: "文件为空或无法解析出数据。" };
+      }
+      const trimmed = trimBulkImportMatrixLeadingBlankRows(matrix);
+      if (!trimmed.length) {
+        return { error: "文件为空或无法解析出数据。" };
+      }
+      const headerRowIndex = findBulkImportHeaderRowIndex(trimmed);
+      const headerRow = trimmed[headerRowIndex] || [];
+      const { fieldToCol, normalizedCells } = mapBulkImportHeaderRow(headerRow);
+      const detected = normalizedCells.map((c) => c.raw).filter(Boolean);
+      const colFromMap = Object.values(fieldToCol)
+        .filter((x) => typeof x === "number" && x >= 0)
+        .map((x) => x + 1);
+      const colCount = Math.max(1, headerRow.length, ...trimmed.map((r) => (Array.isArray(r) ? r.length : 0)), ...(colFromMap.length ? colFromMap : [1]));
+      return {
+        matrix: trimmed,
+        headerRowIndex,
+        fieldToCol,
+        colCount,
+        headerLabels: detected,
+      };
+    }
+
+    function extractCustomerRowFromMatrix(matrix, fieldToCol, colCount, rowIdx) {
+      const vals = matrixRowToValues(matrix, rowIdx, colCount);
+      const g = (field) => (fieldToCol[field] !== undefined ? vals[fieldToCol[field]] || "" : "");
+      let company_name = g("company_name").trim();
+      let contact_name = g("contact_name").trim();
+      const email = g("email").trim();
+      const phone = g("phone").trim();
+      const tagsRaw = g("tags");
+      let country = g("country").trim();
+      if (!company_name) company_name = IMPORT_FIELD_PENDING;
+      if (!contact_name) contact_name = "";
+      if (!country) country = IMPORT_DEFAULT_COUNTRY;
+      return { company_name, contact_name, email, phone, tagsRaw, country };
+    }
+
+    function openBulkImportModal() {
+      if (!bulkImportModalEl || !bulkImportModalOverlayEl) return;
+      bulkImportSelectedFile = null;
+      bulkImportParsedPlan = null;
+      if (bulkImportFileInput) bulkImportFileInput.value = "";
+      if (bulkImportFileLabelEl) bulkImportFileLabelEl.textContent = "未选择文件";
+      if (bulkImportParseStatusEl) {
+        bulkImportParseStatusEl.textContent = "";
+        bulkImportParseStatusEl.className = "mt-3 min-h-[1.25rem] text-sm text-slate-400";
+      }
+      if (bulkImportProgressWrapEl) bulkImportProgressWrapEl.classList.add("hidden");
+      if (bulkImportProgressBarEl) bulkImportProgressBarEl.style.width = "0%";
+      if (startBulkImportBtn) startBulkImportBtn.disabled = true;
+      bulkImportModalOverlayEl.classList.remove("hidden");
+      bulkImportModalEl.classList.remove("hidden");
+      bulkImportModalEl.classList.add("flex");
+    }
+
+    function closeBulkImportModal() {
+      if (!bulkImportModalEl || !bulkImportModalOverlayEl) return;
+      bulkImportModalOverlayEl.classList.add("hidden");
+      bulkImportModalEl.classList.add("hidden");
+      bulkImportModalEl.classList.remove("flex");
+    }
+
+    function openBulkImportResultModal(text) {
+      if (!bulkImportResultModalEl || !bulkImportResultModalOverlayEl || !bulkImportResultBodyEl) return;
+      bulkImportResultBodyEl.textContent = text;
+      bulkImportResultModalOverlayEl.classList.remove("hidden");
+      bulkImportResultModalEl.classList.remove("hidden");
+      bulkImportResultModalEl.classList.add("flex");
+    }
+
+    function closeBulkImportResultModal() {
+      if (!bulkImportResultModalEl || !bulkImportResultModalOverlayEl) return;
+      bulkImportResultModalOverlayEl.classList.add("hidden");
+      bulkImportResultModalEl.classList.add("hidden");
+      bulkImportResultModalEl.classList.remove("flex");
+    }
+
+    function setBulkImportProgress(percent, label) {
+      if (!bulkImportProgressWrapEl || !bulkImportProgressBarEl) return;
+      bulkImportProgressWrapEl.classList.remove("hidden");
+      const p = Math.max(0, Math.min(100, percent));
+      bulkImportProgressBarEl.style.width = p + "%";
+      if (bulkImportProgressTextEl) bulkImportProgressTextEl.textContent = label || "";
+    }
+
+    function downloadCustomerImportTemplateCsv() {
+      const header = "公司名,联系人,邮箱,电话,标签";
+      const example = '示例科技,张三,zhang@example.com,+86-13800138000,"展会,高意向"';
+      const blob = new Blob(["\uFEFF" + header + "\n" + example + "\n"], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "客户导入模板.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    async function refreshCustomerViewsAfterImport() {
+      await Promise.all([refreshAllCustomerDataAndUI(), loadDashboardMetrics()]);
+      pinClosedCustomersViewVisible();
+    }
+
+    async function runBulkCustomerImportJob() {
+      if (!bulkImportParsedPlan || !bulkImportSelectedFile) {
+        showToast("请先选择并解析有效的表格文件。", "error");
+        return;
+      }
+      const { matrix, fieldToCol, colCount, headerRowIndex } = bulkImportParsedPlan;
+      const headerIdx = typeof headerRowIndex === "number" ? headerRowIndex : 0;
+      if (startBulkImportBtn) startBulkImportBtn.disabled = true;
+      if (bulkImportParseStatusEl) {
+        bulkImportParseStatusEl.textContent = "正在导入…";
+        bulkImportParseStatusEl.className = "mt-3 min-h-[1.25rem] text-sm text-slate-400";
+      }
+      setBulkImportProgress(5, "准备数据");
+
+      const stats = {
+        inserted: 0,
+        skippedEmptyRow: 0,
+        skippedFileDupName: 0,
+        skippedDbDupName: 0,
+        dbErrors: 0,
+      };
+
+      const seenNameKeys = new Set();
+      const prepared = [];
+      let placeholderSeq = 0;
+
+      for (let r = headerIdx + 1; r < matrix.length; r++) {
+        const row = extractCustomerRowFromMatrix(matrix, fieldToCol, colCount, r);
+        const tagsStr = String(row.tagsRaw == null ? "" : row.tagsRaw).trim();
+        if (
+          !tagsStr &&
+          isBulkImportPlaceholderName(row.company_name) &&
+          !row.contact_name.trim() &&
+          !row.email.trim() &&
+          !row.phone.trim()
+        ) {
+          stats.skippedEmptyRow++;
+          continue;
+        }
+        const nameKey = importPrimaryNameDedupeKey(row.company_name, row.contact_name);
+        if (!nameKey) {
+          stats.skippedEmptyRow++;
+          continue;
+        }
+        if (seenNameKeys.has(nameKey)) {
+          stats.skippedFileDupName++;
+          continue;
+        }
+        seenNameKeys.add(nameKey);
+        let emailOut = row.email.trim();
+        if (!emailOut) {
+          placeholderSeq += 1;
+          emailOut = makeBulkImportPlaceholderEmail(placeholderSeq);
+        }
+        prepared.push({
+          company_name: row.company_name,
+          contact_name: row.contact_name,
+          email: emailOut,
+          phone: row.phone || "",
+          country: row.country || IMPORT_DEFAULT_COUNTRY,
+          tags: bulkImportTagsStorageValue(fieldToCol, row.tagsRaw),
+          status: IMPORT_DEFAULT_STATUS,
+        });
+      }
+
+      setBulkImportProgress(15, "查询已有客户（公司名 / 联系人）");
+      const { data: existingRows, error: existingErr } = await supabaseClient
+        .from("customers")
+        .select("company_name, contact_name");
+      if (existingErr) {
+        if (bulkImportParseStatusEl) {
+          bulkImportParseStatusEl.textContent = "导入失败：" + existingErr.message;
+          bulkImportParseStatusEl.className = "mt-3 min-h-[1.25rem] text-sm text-rose-300";
+        }
+        if (startBulkImportBtn) startBulkImportBtn.disabled = false;
+        setBulkImportProgress(0, "");
+        showToast("无法读取已有客户：" + existingErr.message, "error");
+        return;
+      }
+
+      const existingNameKeys = buildBulkImportExistingNameKeySet(existingRows);
+      const toInsert = [];
+      prepared.forEach((p) => {
+        const nk = importPrimaryNameDedupeKey(p.company_name, p.contact_name);
+        if (!nk) return;
+        if (existingNameKeys.has(nk)) {
+          stats.skippedDbDupName++;
+          return;
+        }
+        existingNameKeys.add(nk);
+        toInsert.push({
+          company_name: p.company_name,
+          contact_name: p.contact_name,
+          email: p.email,
+          phone: p.phone,
+          tags: p.tags,
+          country: p.country,
+          status: p.status,
+          is_public: false,
+          is_closed: false,
+          address: "",
+          source: "",
+          social_media: "",
+        });
+      });
+
+      const totalOps = toInsert.length;
+      let doneOps = 0;
+      const bumpProgress = (delta = 1) => {
+        doneOps += delta;
+        const ratio = totalOps ? doneOps / totalOps : 1;
+        setBulkImportProgress(15 + Math.round(80 * ratio), "写入数据库…");
+      };
+
+      const INSERT_CHUNK = 60;
+      for (let i = 0; i < toInsert.length; i += INSERT_CHUNK) {
+        const chunk = toInsert.slice(i, i + INSERT_CHUNK);
+        const { error } = await supabaseClient.from("customers").insert(chunk);
+        if (error) {
+          stats.dbErrors += chunk.length;
+          showToast("批量插入失败：" + error.message, "error");
+        } else {
+          stats.inserted += chunk.length;
+        }
+        bumpProgress(chunk.length);
+      }
+
+      setBulkImportProgress(100, "完成");
+      if (bulkImportParseStatusEl) {
+        bulkImportParseStatusEl.textContent = "导入完成";
+        bulkImportParseStatusEl.className = "mt-3 min-h-[1.25rem] text-sm text-emerald-300";
+      }
+      if (startBulkImportBtn) startBulkImportBtn.disabled = false;
+
+      const skippedNames = stats.skippedFileDupName + stats.skippedDbDupName;
+      const summaryLines = [
+        "成功导入 " + stats.inserted + " 条新客户。",
+        skippedNames
+          ? "跳过 " +
+              skippedNames +
+              " 条名字重复的记录（文件内 " +
+              stats.skippedFileDupName +
+              "，与库中公司名/联系人重名 " +
+              stats.skippedDbDupName +
+              "）。"
+          : "",
+        stats.skippedEmptyRow ? "另有 " + stats.skippedEmptyRow + " 行因无有效公司名/联系人被忽略。" : "",
+        "缺失字段可在系统内手动补全。",
+      ];
+      if (stats.dbErrors) summaryLines.push("数据库写入失败约 " + stats.dbErrors + " 行，请检查必填约束或权限。");
+      closeBulkImportModal();
+      openBulkImportResultModal(summaryLines.filter(Boolean).join("\n"));
+      await refreshCustomerViewsAfterImport();
+    }
+
+    async function handleBulkImportFileChosen(file) {
+      bulkImportSelectedFile = file;
+      bulkImportParsedPlan = null;
+      if (bulkImportFileLabelEl) bulkImportFileLabelEl.textContent = file ? file.name : "未选择文件";
+      if (startBulkImportBtn) startBulkImportBtn.disabled = true;
+      if (!file) return;
+      if (bulkImportParseStatusEl) {
+        bulkImportParseStatusEl.textContent = "正在解析…";
+        bulkImportParseStatusEl.className = "mt-3 min-h-[1.25rem] text-sm text-slate-400";
+      }
+      try {
+        const matrix = await parseSpreadsheetFileToMatrix(file);
+        const plan = buildBulkImportPlanFromMatrix(matrix);
+        if (plan.error) {
+          bulkImportParsedPlan = null;
+          if (bulkImportParseStatusEl) {
+            bulkImportParseStatusEl.textContent = plan.error;
+            bulkImportParseStatusEl.className = "mt-3 min-h-[1.25rem] text-sm text-amber-300 whitespace-pre-wrap";
+          }
+          return;
+        }
+        bulkImportParsedPlan = plan;
+        if (bulkImportParseStatusEl) {
+          const hdr = typeof plan.headerRowIndex === "number" ? plan.headerRowIndex : 0;
+          const dataRows = Math.max(0, plan.matrix.length - hdr - 1);
+          bulkImportParseStatusEl.textContent =
+            "已从第 " +
+            (hdr + 1) +
+            " 行识别表头，约 " +
+            dataRows +
+            " 行数据；缺失列将按「待补充」或占位邮箱处理。可点击「开始导入」。";
+          bulkImportParseStatusEl.className = "mt-3 min-h-[1.25rem] text-sm text-emerald-300";
+          if (dataRows === 0) {
+            bulkImportParseStatusEl.textContent =
+              "已从第 " + (hdr + 1) + " 行识别表头，但未发现表头以下的数据行。请检查表格或表头位置。";
+            bulkImportParseStatusEl.className = "mt-3 min-h-[1.25rem] text-sm text-amber-300";
+          }
+        }
+        if (startBulkImportBtn) startBulkImportBtn.disabled = Math.max(0, plan.matrix.length - (plan.headerRowIndex ?? 0) - 1) === 0;
+      } catch (e) {
+        bulkImportParsedPlan = null;
+        const msg = e instanceof Error ? e.message : String(e);
+        if (bulkImportParseStatusEl) {
+          bulkImportParseStatusEl.textContent = "解析失败：" + msg;
+          bulkImportParseStatusEl.className = "mt-3 min-h-[1.25rem] text-sm text-rose-300";
+        }
+      }
     }
 
     async function handleCustomerSubmit(event) {
@@ -5749,7 +7961,7 @@
       }
 
       closeCustomerModal();
-      await Promise.all([loadCustomers(), loadClosedCustomers(), loadTodayTodoFollowupsFromDb()]);
+      await refreshAllCustomerDataAndUI();
       pinClosedCustomersViewVisible();
     }
 
@@ -5820,7 +8032,7 @@
           followupFormStatusEl.className = "min-h-5 text-sm text-amber-300";
           saveFollowupBtn.disabled = false;
           await loadFollowups(customerId);
-          await Promise.all([loadCustomers(), loadClosedCustomers(), loadTodayTodoFollowupsFromDb()]);
+          await refreshAllCustomerDataAndUI();
           return;
         }
       }
@@ -5833,38 +8045,7 @@
       saveFollowupBtn.disabled = false;
       showToast("保存成功", "success");
       await loadFollowups(customerId);
-      await Promise.all([loadCustomers(), loadClosedCustomers(), loadTodayTodoFollowupsFromDb()]);
-    }
-
-    async function insertAutoEmailFollowup() {
-      if (!selectedCustomer || !selectedCustomer.id) return;
-      const customerId = Number.parseInt(selectedCustomer.id, 10);
-      if (!Number.isInteger(customerId) || customerId <= 0) return;
-
-      const { error } = await supabaseClient.from(FOLLOWUPS_TABLE).insert([
-        {
-          customer_id: customerId,
-          type: "邮件",
-          content: "通过系统发起了邮件联系",
-        },
-      ]);
-
-      if (error) {
-        showToast("自动写入跟进失败：" + error.message, "error");
-        return;
-      }
-      await updateLastFollowUp(customerId);
-      await loadFollowups(customerId);
-      await Promise.all([loadCustomers(), loadClosedCustomers(), loadTodayTodoFollowupsFromDb()]);
-    }
-
-    async function handleWhatsAppFromDrawer() {
-      if (!selectedCustomer) {
-        showToast("请先在客户列表中选择一个客户。", "error");
-        return;
-      }
-      if (!openWhatsAppWeb(selectedCustomer.phone)) return;
-      await touchFollowUpAfterChannelClick(selectedCustomer);
+      await refreshAllCustomerDataAndUI();
     }
 
     async function handleSendEmail() {
@@ -5880,19 +8061,7 @@
       }
 
       window.location.href = "mailto:" + email;
-
-      const mailCid = Number.parseInt(selectedCustomer.id, 10);
-      if (Number.isInteger(mailCid)) {
-        await updateLastFollowUp(mailCid);
-        await Promise.all([loadCustomers(), loadClosedCustomers(), loadTodayTodoFollowupsFromDb()]);
-      }
-
-      const shouldAutoFollowup = await showConfirm(
-        "写入跟进记录",
-        "是否自动生成一条「已发邮件」的跟进记录？",
-      );
-      if (!shouldAutoFollowup) return;
-      await insertAutoEmailFollowup();
+      scheduleAutoFollowupAfterChannel(selectedCustomer, "email");
     }
 
     async function handleProductSubmit(event) {
@@ -5928,34 +8097,49 @@
       await loadProducts();
     }
 
-    navDashboard.addEventListener("click", (event) => {
+    try {
+    if (navDashboard) {
+      navDashboard.addEventListener("click", (event) => {
       event.preventDefault();
       switchView("dashboard");
     });
-    navPublicPool.addEventListener("click", (event) => {
+    }
+    if (navPublicPool) {
+      navPublicPool.addEventListener("click", (event) => {
       event.preventDefault();
       switchView("publicPool");
     });
-    navClosedCustomers.addEventListener("click", (event) => {
+    }
+    if (navClosedCustomers) {
+      navClosedCustomers.addEventListener("click", (event) => {
       event.preventDefault();
       switchView("closedCustomers");
     });
-    navSalesReport.addEventListener("click", (event) => {
+    }
+    if (navSalesReport) {
+      navSalesReport.addEventListener("click", (event) => {
       event.preventDefault();
       switchView("salesReport");
     });
-    navProducts.addEventListener("click", (event) => {
+    }
+    if (navProducts) {
+      navProducts.addEventListener("click", (event) => {
       event.preventDefault();
       switchView("products");
     });
-    navQuotations.addEventListener("click", (event) => {
+    }
+    if (navQuotations) {
+      navQuotations.addEventListener("click", (event) => {
       event.preventDefault();
       switchView("quotations");
     });
-    navHolidays.addEventListener("click", (event) => {
+    }
+    if (navHolidays) {
+      navHolidays.addEventListener("click", (event) => {
       event.preventDefault();
       switchView("holidays");
     });
+    }
     if (navInsightsBtn) {
       navInsightsBtn.addEventListener("click", () => {
         void openInsightsModal();
@@ -5971,9 +8155,48 @@
         debouncedRefreshPrivateCustomerViews();
       });
     }
-    clearCustomerCountryFilterBtn.addEventListener("click", () => {
-      setCustomerCountryFilter("");
-    });
+    if (clearCustomerCountryFilterBtn) {
+      clearCustomerCountryFilterBtn.addEventListener("click", () => {
+        setCustomerCountryFilter("");
+      });
+    }
+    if (dashboardFilterCountryEl) {
+      dashboardFilterCountryEl.addEventListener("change", () => {
+        setCustomerCountryFilter(dashboardFilterCountryEl.value || "");
+      });
+    }
+    if (dashboardFilterStatusEl) {
+      dashboardFilterStatusEl.addEventListener("change", () => {
+        privateListFilterStatus = (dashboardFilterStatusEl.value || "").trim();
+        refreshPrivateCustomerViewsNow();
+      });
+    }
+    if (dashboardFilterFollowRecencyEl) {
+      dashboardFilterFollowRecencyEl.addEventListener("change", () => {
+        privateListFilterFollowRecency = (dashboardFilterFollowRecencyEl.value || "").trim();
+        refreshPrivateCustomerViewsNow();
+      });
+    }
+    if (bulkToPublicBtn) {
+      bulkToPublicBtn.addEventListener("click", () => {
+        void handleBulkReturnToPublicPool();
+      });
+    }
+    if (bulkMarkWonBtn) {
+      bulkMarkWonBtn.addEventListener("click", () => {
+        void handleBulkMarkWon();
+      });
+    }
+    if (bulkDeletePrivateBtn) {
+      bulkDeletePrivateBtn.addEventListener("click", () => {
+        void handleBulkDeletePrivateCustomers();
+      });
+    }
+    if (bulkClearSelectionBtn) {
+      bulkClearSelectionBtn.addEventListener("click", () => {
+        clearWorkbenchBulkSelection();
+      });
+    }
     bindPrivateCustomerSearchInput(globalCustomerSearchInput);
     bindPrivateCustomerSearchInput(customerSearchInput);
     if (btnDashboardViewList) {
@@ -5982,7 +8205,8 @@
     if (btnDashboardViewKanban) {
       btnDashboardViewKanban.addEventListener("click", () => setDashboardPrivateViewMode("kanban"));
     }
-    selectAllCustomersEl.addEventListener("change", () => {
+    if (selectAllCustomersEl) {
+      selectAllCustomersEl.addEventListener("change", () => {
       const allVisible = Array.from(tableBodyEl.querySelectorAll(".customer-checkbox"));
       if (!allVisible.length) return;
       if (selectAllCustomersEl.checked) {
@@ -6000,9 +8224,12 @@
       }
       syncBulkEmailCheckboxesAcrossViews();
       updateBulkEmailSelectionUI();
+      updateWorkbenchBulkActionBar();
     });
+    }
 
-    selectAllPublicCustomersEl.addEventListener("change", () => {
+    if (selectAllPublicCustomersEl) {
+      selectAllPublicCustomersEl.addEventListener("change", () => {
       const allVisible = Array.from(publicCustomersTableBodyEl.querySelectorAll(".customer-checkbox"));
       if (!allVisible.length) return;
       if (selectAllPublicCustomersEl.checked) {
@@ -6021,6 +8248,7 @@
       syncBulkEmailCheckboxesAcrossViews();
       updateBulkEmailSelectionUI();
     });
+    }
 
     copyCustomerEmailBtn.addEventListener("click", () => {
       copyFieldTextWithFeedback(followupCustomerEmailEl.textContent, copyCustomerEmailBtn);
@@ -6032,6 +8260,62 @@
       copyFieldTextWithFeedback(followupCustomerSocialEl.textContent, copyCustomerSocialBtn);
     });
     openModalBtn.addEventListener("click", openCustomerModal);
+    if (openBulkImportBtn) {
+      openBulkImportBtn.addEventListener("click", () => openBulkImportModal());
+    }
+    if (openPublicBulkImportBtn) {
+      openPublicBulkImportBtn.addEventListener("click", () => openBulkImportModal());
+    }
+    if (closeBulkImportModalBtn) {
+      closeBulkImportModalBtn.addEventListener("click", closeBulkImportModal);
+    }
+    if (cancelBulkImportBtn) {
+      cancelBulkImportBtn.addEventListener("click", closeBulkImportModal);
+    }
+    if (bulkImportModalOverlayEl) {
+      bulkImportModalOverlayEl.addEventListener("click", closeBulkImportModal);
+    }
+    if (bulkImportDownloadTemplateEl) {
+      bulkImportDownloadTemplateEl.addEventListener("click", (e) => {
+        e.preventDefault();
+        downloadCustomerImportTemplateCsv();
+      });
+    }
+    if (bulkImportFileInput) {
+      bulkImportFileInput.addEventListener("change", () => {
+        const f = bulkImportFileInput.files && bulkImportFileInput.files[0];
+        void handleBulkImportFileChosen(f || null);
+      });
+    }
+    if (bulkImportModalEl) {
+      bulkImportModalEl.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      });
+      bulkImportModalEl.addEventListener("drop", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+        if (!f) return;
+        const name = f.name.toLowerCase();
+        if (!name.endsWith(".csv") && !name.endsWith(".xlsx") && !name.endsWith(".xls")) {
+          showToast("仅支持 .xlsx、.xls、.csv 文件。", "error");
+          return;
+        }
+        void handleBulkImportFileChosen(f);
+      });
+    }
+    if (startBulkImportBtn) {
+      startBulkImportBtn.addEventListener("click", () => {
+        void runBulkCustomerImportJob();
+      });
+    }
+    if (closeBulkImportResultBtn) {
+      closeBulkImportResultBtn.addEventListener("click", closeBulkImportResultModal);
+    }
+    if (bulkImportResultModalOverlayEl) {
+      bulkImportResultModalOverlayEl.addEventListener("click", closeBulkImportResultModal);
+    }
     openBulkEmailBtn.addEventListener("click", handleDirectBulkEmail);
     openPublicBulkEmailBtn.addEventListener("click", handleDirectBulkEmail);
     closeModalBtn.addEventListener("click", closeCustomerModal);
@@ -6055,7 +8339,24 @@
     }
     sendEmailBtn.addEventListener("click", handleSendEmail);
     if (whatsappFollowupBtn) {
-      whatsappFollowupBtn.addEventListener("click", handleWhatsAppFromDrawer);
+      whatsappFollowupBtn.addEventListener("click", (e) => {
+        console.log("WhatsApp Clicked", { scope: "followup-drawer" });
+        if (!selectedCustomer) {
+          e.preventDefault();
+          showToast("请先在客户列表中选择一个客户。", "error");
+          return;
+        }
+        const url = buildWhatsAppWebUrl(selectedCustomer.phone);
+        if (!url) {
+          e.preventDefault();
+          showToast("未录入手机号", "error");
+          return;
+        }
+        if (crmShouldBlockWhatsAppDoubleClick(e)) return;
+        e.preventDefault();
+        openWhatsAppInNamedPortal(url);
+        scheduleAutoFollowupAfterChannel(selectedCustomer, "whatsapp");
+      });
     }
     openProductModalBtn.addEventListener("click", openProductModal);
     closeProductModalBtn.addEventListener("click", closeProductModal);
@@ -6071,6 +8372,14 @@
     exportPdfBtn.addEventListener("click", exportQuotationPdf);
     document.addEventListener("keydown", (event) => {
       if (event.key !== "Escape") return;
+      if (bulkImportResultModalEl && !bulkImportResultModalEl.classList.contains("hidden")) {
+        closeBulkImportResultModal();
+        return;
+      }
+      if (bulkImportModalEl && !bulkImportModalEl.classList.contains("hidden")) {
+        closeBulkImportModal();
+        return;
+      }
       if (insightsModalEl && !insightsModalEl.classList.contains("hidden")) {
         closeInsightsModal();
         return;
@@ -6092,14 +8401,18 @@
       }
     });
 
-    initSalesReportYearSelect();
-    salesReportYearSelect.addEventListener("change", () => {
-      const y = Number.parseInt(salesReportYearSelect.value, 10);
-      if (currentView === "salesReport") {
-        loadSalesReport(Number.isFinite(y) ? y : 2026);
-      }
-    });
-    exportSalesReportCsvBtn.addEventListener("click", exportSalesReportToCSV);
+    if (salesReportYearSelect) {
+      initSalesReportYearSelect();
+      salesReportYearSelect.addEventListener("change", () => {
+        const y = Number.parseInt(salesReportYearSelect.value, 10);
+        if (currentView === "salesReport") {
+          loadSalesReport(Number.isFinite(y) ? y : 2026);
+        }
+      });
+    }
+    if (exportSalesReportCsvBtn) {
+      exportSalesReportCsvBtn.addEventListener("click", exportSalesReportToCSV);
+    }
     openSalesRecordModalBtn.addEventListener("click", openSalesRecordModal);
     closeSalesRecordModalBtn.addEventListener("click", closeSalesRecordModal);
     cancelSalesRecordBtn.addEventListener("click", closeSalesRecordModal);
@@ -6112,72 +8425,12 @@
         el.addEventListener("change", updateSalesComputedPreview);
       }
     });
-
-    let crmAppBootstrapped = false;
-
-    function bootstrapCrmApp() {
-      if (crmAppBootstrapped) return;
-      crmAppBootstrapped = true;
-      initFxToolbar();
-      loadCustomers();
-      loadPublicCustomers();
-      loadClosedCustomers();
-      loadTodayTodoFollowupsFromDb();
-      loadDashboardMetrics();
-      initCountryDatalist();
-      updateQuotationDocumentMeta();
-      renderQuotationItemsBuilderTable();
-      setNavActive("dashboard");
+    } catch (crmDomBindErr) {
+      console.error(
+        "CRM: 主界面事件绑定异常（登录与 Auth 已在脚本前段注册，通常仍可正常登录）",
+        crmDomBindErr,
+      );
     }
-
-    function syncAuthUi(session) {
-      if (!loginViewEl || !appContainerEl) return;
-      if (session) {
-        loginViewEl.classList.add("hidden");
-        appContainerEl.classList.remove("hidden");
-        bootstrapCrmApp();
-      } else {
-        loginViewEl.classList.remove("hidden");
-        appContainerEl.classList.add("hidden");
-        crmAppBootstrapped = false;
-        if (loginErrorEl) loginErrorEl.textContent = "";
-      }
-    }
-
-    if (loginBtnEl) {
-      loginBtnEl.addEventListener("click", async () => {
-        if (!loginErrorEl || !loginEmailEl || !loginPasswordEl) return;
-        loginErrorEl.textContent = "";
-        const email = loginEmailEl.value.trim();
-        const password = loginPasswordEl.value;
-        if (!email || !password) {
-          loginErrorEl.textContent = "请输入邮箱和密码。";
-          return;
-        }
-        loginBtnEl.disabled = true;
-        const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-        loginBtnEl.disabled = false;
-        if (error) {
-          loginErrorEl.textContent = error.message;
-          return;
-        }
-      });
-    }
-
-    if (logoutBtnEl) {
-      logoutBtnEl.addEventListener("click", async () => {
-        await supabaseClient.auth.signOut();
-        window.location.reload();
-      });
-    }
-
-    supabaseClient.auth.onAuthStateChange((_event, session) => {
-      syncAuthUi(session);
-    });
-
-    supabaseClient.auth.getSession().then(({ data: { session } }) => {
-      syncAuthUi(session);
-    });
   </script>
 </body>
 </html>
