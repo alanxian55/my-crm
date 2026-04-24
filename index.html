@@ -270,70 +270,328 @@
         0 0 0 4px rgba(241, 245, 249, 0.96);
     }
 
-    #holidays-view .holiday-glass {
-      background: rgba(15, 23, 42, 0.45);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.08), 0 10px 30px rgba(2, 6, 23, 0.45);
-      backdrop-filter: blur(12px);
+    /* Global Holiday Explorer — 百科 / 数据终端风格 */
+    #holiday-explorer-view .ghex-shell {
+      background: linear-gradient(165deg, rgba(15, 23, 42, 0.92) 0%, rgba(2, 6, 23, 0.98) 100%);
+      border: 1px solid rgba(51, 65, 85, 0.55);
+      box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.03), 0 24px 64px rgba(0, 0, 0, 0.35);
+      min-height: min(70vh, 820px);
     }
-    #holiday-calendar .fc {
-      height: 100%;
-      color: #e2e8f0;
+    #holiday-explorer-view .ghex-sidebar {
+      background: rgba(15, 23, 42, 0.55);
+      border-color: rgba(51, 65, 85, 0.45);
     }
-    #holiday-calendar .fc .fc-toolbar-title {
-      color: #f8fafc;
+    #holiday-explorer-view .ghex-radar-btn {
+      width: 100%;
+      text-align: left;
+      padding: 0.65rem 0.75rem;
+      border-radius: 0.65rem;
+      font-size: 13px;
       font-weight: 700;
-      letter-spacing: 0.02em;
+      color: #e2e8f0;
+      border: 1px solid rgba(45, 212, 191, 0.4);
+      background: linear-gradient(135deg, rgba(13, 148, 136, 0.25), rgba(15, 23, 42, 0.88));
+      cursor: pointer;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.12s ease;
     }
-    #holiday-calendar .fc .fc-button {
-      background: rgba(15, 23, 42, 0.65);
-      border: 1px solid rgba(148, 163, 184, 0.35);
+    #holiday-explorer-view .ghex-radar-btn:hover {
+      border-color: rgba(45, 212, 191, 0.6);
+      box-shadow: 0 0 0 1px rgba(45, 212, 191, 0.12), 0 8px 24px rgba(2, 6, 23, 0.35);
     }
-    #holiday-calendar .fc .fc-button:hover {
-      background: rgba(30, 41, 59, 0.85);
+    #holiday-explorer-view .ghex-radar-btn--active {
+      border-color: rgba(34, 211, 238, 0.55);
+      background: linear-gradient(135deg, rgba(6, 182, 212, 0.32), rgba(15, 23, 42, 0.95));
+      box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.2), 0 10px 28px rgba(8, 47, 73, 0.38);
+      color: #f0fdfa;
     }
-    #holiday-calendar .fc .fc-daygrid-day-frame {
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-      border-radius: 10px;
+    #holiday-explorer-view .ghex-radar-country-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      max-width: 11rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 0.35rem;
+      font-size: 11px;
+      font-weight: 500;
+      color: #cbd5e1;
+      border: 1px solid rgba(71, 85, 105, 0.55);
+      background: rgba(15, 23, 42, 0.55);
     }
-    #holiday-calendar .fc .fc-daygrid-day:hover .fc-daygrid-day-frame {
-      transform: scale(1.02);
-      box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.35), 0 8px 20px rgba(30, 64, 175, 0.2);
+    #holiday-explorer-view .ghex-radar-chip-flag {
+      font-size: 1.125rem;
+      line-height: 1;
+      flex-shrink: 0;
     }
-    #holiday-calendar .fc .fc-day-today {
-      background: rgba(37, 99, 235, 0.15) !important;
-      box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.95);
-      animation: todayPulse 2s ease-in-out infinite;
+    #holiday-explorer-view .ghex-radar-card--today {
+      border-color: rgba(56, 189, 248, 0.42) !important;
+      box-shadow:
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.03),
+        0 0 0 1px rgba(56, 189, 248, 0.22),
+        0 4px 22px rgba(8, 47, 73, 0.28);
+      animation: ghex-radar-today-pulse 3.2s ease-in-out infinite;
     }
-    @keyframes todayPulse {
-      0% { box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.95), 0 0 0 0 rgba(59, 130, 246, 0.3); }
-      70% { box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.95), 0 0 0 12px rgba(59, 130, 246, 0); }
-      100% { box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.95), 0 0 0 0 rgba(59, 130, 246, 0); }
+    @keyframes ghex-radar-today-pulse {
+      0%,
+      100% {
+        box-shadow:
+          inset 0 1px 0 0 rgba(255, 255, 255, 0.03),
+          0 0 0 1px rgba(56, 189, 248, 0.18),
+          0 3px 16px rgba(8, 47, 73, 0.18);
+      }
+      50% {
+        box-shadow:
+          inset 0 1px 0 0 rgba(255, 255, 255, 0.04),
+          0 0 0 1px rgba(56, 189, 248, 0.38),
+          0 6px 28px rgba(14, 116, 144, 0.32);
+      }
     }
-    #holiday-calendar .fc .fc-event {
-      border: none !important;
-      background: transparent !important;
+    #holiday-explorer-view .ghex-trade-bulb {
+      display: inline-block;
+      font-size: 1rem;
+      line-height: 1;
+      vertical-align: -0.1em;
     }
-    #holiday-calendar .fc .fc-daygrid-day-events {
+    #holiday-explorer-view .ghex-trade-bulb--solemn {
+      color: #fb7185;
+      filter: drop-shadow(0 0 5px rgba(251, 113, 133, 0.45));
+    }
+    #holiday-explorer-view .ghex-trade-bulb--festive {
+      color: #4ade80;
+      filter: drop-shadow(0 0 5px rgba(74, 222, 128, 0.35));
+    }
+    #holiday-explorer-view .ghex-trade-bulb--neutral {
+      color: #fbbf24;
+      filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.25));
+    }
+    #holiday-explorer-view .ghex-radar-impact {
+      border-radius: 0.65rem;
+      background: rgba(15, 23, 42, 0.45);
+      padding: 0.65rem 0.75rem 0.75rem;
+    }
+    #holiday-explorer-view .ghex-radar-impact-names {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.35rem 0.5rem;
+    }
+    #holiday-explorer-view .ghex-radar-greet-btn {
+      font-size: 0.65rem;
+      padding: 0.1rem 0.35rem;
+      border-radius: 0.35rem;
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: #7dd3fc;
+      background: rgba(8, 47, 73, 0.35);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: border-color 0.15s, background 0.15s, color 0.15s;
+    }
+    #holiday-explorer-view .ghex-radar-greet-btn:hover {
+      border-color: rgba(125, 211, 252, 0.55);
+      color: #e0f2fe;
+      background: rgba(14, 116, 144, 0.35);
+    }
+    #holiday-explorer-view .ghex-radar-view-all-btn {
+      margin-top: 0.5rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 0.25rem 0.55rem;
+      border-radius: 0.4rem;
+      border: 1px solid rgba(251, 191, 36, 0.35);
+      color: #fcd34d;
+      background: rgba(69, 26, 3, 0.25);
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    #holiday-explorer-view .ghex-radar-view-all-btn:hover {
+      border-color: rgba(252, 211, 77, 0.55);
+      background: rgba(120, 53, 15, 0.35);
+    }
+    #ghex-impact-modal .ghex-impact-modal-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.72);
+      backdrop-filter: blur(4px);
+    }
+    #ghex-impact-modal .ghex-impact-modal-panel {
+      position: relative;
+      margin: 4vh auto;
+      max-width: 26rem;
+      width: calc(100% - 2rem);
+      max-height: 82vh;
+      overflow: hidden;
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      border-radius: 1rem;
+      border: 1px solid rgba(51, 65, 85, 0.85);
+      background: rgba(15, 23, 42, 0.96);
+      box-shadow: 0 22px 50px rgba(0, 0, 0, 0.55);
     }
-    #holiday-calendar .holiday-event-tag {
-      border-radius: 8px;
-      padding: 2px 6px;
+    #ghex-impact-modal .ghex-impact-modal-scroll {
+      overflow-y: auto;
+      padding: 0.75rem 1rem 1rem;
+    }
+    #ghex-impact-modal .ghex-impact-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.35rem 0.5rem;
+      padding: 0.55rem 0;
+      border-bottom: 1px solid rgba(51, 65, 85, 0.55);
+      font-size: 0.8125rem;
+    }
+    #ghex-impact-modal .ghex-impact-row:last-child {
+      border-bottom: 0;
+    }
+    #dashboard-holiday-marketing-card .dashboard-holiday-jump {
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 0.2rem 0.5rem;
+      border-radius: 0.4rem;
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      color: #7dd3fc;
+      background: rgba(8, 47, 73, 0.3);
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    #dashboard-holiday-marketing-card .dashboard-holiday-jump:hover {
+      border-color: rgba(125, 211, 252, 0.6);
+      background: rgba(14, 116, 144, 0.35);
+    }
+    #dashboard-holiday-marketing-test-row .dashboard-holiday-sim-btn {
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 0.3rem 0.65rem;
+      border-radius: 0.45rem;
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      color: #cbd5e1;
+      background: rgba(30, 41, 59, 0.55);
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+    }
+    #dashboard-holiday-marketing-test-row .dashboard-holiday-sim-btn:hover {
+      border-color: rgba(251, 191, 36, 0.45);
+      color: #fde68a;
+      background: rgba(69, 26, 3, 0.25);
+    }
+    #dashboard-holiday-marketing-test-row .dashboard-holiday-sim-btn--clear {
+      border-color: rgba(248, 113, 113, 0.35);
+      color: #fecaca;
+      background: rgba(69, 10, 10, 0.25);
+    }
+    #holiday-explorer-view .ghex-country-search {
+      border: 1px solid rgba(51, 65, 85, 0.85);
+      background: rgba(2, 6, 23, 0.45);
+      color: #f8fafc;
+    }
+    #holiday-explorer-view .ghex-country-search::placeholder {
+      color: #64748b;
+    }
+    #holiday-explorer-view .ghex-country-search:focus {
+      border-color: rgba(56, 189, 248, 0.35);
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.12);
+    }
+    #holiday-explorer-view .ghex-region-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #64748b;
+      padding: 0.5rem 0.75rem 0.25rem;
+    }
+    #holiday-explorer-view .ghex-country-row {
       display: flex;
       align-items: center;
-      gap: 6px;
-      min-height: 20px;
+      gap: 0.5rem;
+      width: 100%;
+      text-align: left;
+      padding: 0.55rem 0.75rem;
+      border-radius: 0.5rem;
+      font-size: 13px;
+      color: #cbd5e1;
+      border: 1px solid transparent;
+      background: transparent;
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
     }
-    #holiday-calendar .holiday-event-dim .holiday-event-tag {
-      opacity: 0.45;
-      filter: grayscale(0.2);
+    #holiday-explorer-view .ghex-country-row:hover {
+      background: rgba(30, 41, 59, 0.65);
+      color: #f1f5f9;
     }
-    #holiday-calendar .holiday-event-focus .holiday-event-tag {
-      opacity: 1;
-      box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.35), 0 4px 10px rgba(56, 189, 248, 0.2);
+    #holiday-explorer-view .ghex-country-row--active {
+      background: rgba(56, 189, 248, 0.12) !important;
+      border-color: rgba(56, 189, 248, 0.22) !important;
+      color: #f8fafc !important;
+    }
+    #holiday-explorer-view .ghex-main {
+      background: rgba(2, 6, 23, 0.25);
+    }
+    #holiday-explorer-view .ghex-timeline-line {
+      position: absolute;
+      left: 1.15rem;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      background: linear-gradient(180deg, rgba(56, 189, 248, 0.25), rgba(51, 65, 85, 0.35), rgba(51, 65, 85, 0.2));
+    }
+    #holiday-explorer-view .ghex-card {
+      background: #1e293b;
+      border: 1px solid rgba(51, 65, 85, 0.5);
+      box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.025);
+    }
+    #holiday-explorer-view .ghex-tag {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      padding: 0.2rem 0.45rem;
+      border-radius: 0.25rem;
+      border: 1px solid rgba(71, 85, 105, 0.65);
+      color: #94a3b8;
+      background: rgba(15, 23, 42, 0.5);
+    }
+    #holiday-explorer-view .ghex-tag--nation {
+      border-color: rgba(52, 211, 153, 0.25);
+      color: #6ee7b7;
+      background: rgba(6, 78, 59, 0.12);
+    }
+    #holiday-explorer-view .ghex-tag--region {
+      border-color: rgba(251, 191, 36, 0.22);
+      color: #fcd34d;
+      background: rgba(120, 53, 15, 0.12);
+    }
+    #holiday-explorer-view .ghex-tag--faith {
+      border-color: rgba(167, 139, 250, 0.25);
+      color: #c4b5fd;
+      background: rgba(76, 29, 149, 0.12);
+    }
+    #holiday-explorer-view .ghex-trade-details summary {
+      cursor: pointer;
+      list-style: none;
+      user-select: none;
+    }
+    #holiday-explorer-view .ghex-trade-details summary::-webkit-details-marker {
+      display: none;
+    }
+    #holiday-explorer-view .ghex-month-pill {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #64748b;
+    }
+    #holiday-explorer-view .ghex-month-filter {
+      min-width: 7.5rem;
+      border-radius: 0.5rem;
+      border: 1px solid rgba(51, 65, 85, 0.85);
+      background: rgba(2, 6, 23, 0.55);
+      color: #e2e8f0;
+      font-size: 12px;
+      padding: 0.35rem 0.6rem;
+      outline: none;
+    }
+    #holiday-explorer-view .ghex-month-filter:focus {
+      border-color: rgba(56, 189, 248, 0.4);
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.12);
     }
     #followup-list {
       scrollbar-width: thin;
@@ -358,6 +616,52 @@
     tr.crm-row-has-open-actions-menu {
       position: relative;
       z-index: 50;
+    }
+    /* 客户列表：国家时区红绿灯（微型） */
+    .crm-client-tz-badge {
+      max-width: 4.75rem;
+      letter-spacing: 0.02em;
+      border: 1px solid rgba(51, 65, 85, 0.45);
+      background: rgba(15, 23, 42, 0.35);
+    }
+    @media (min-width: 640px) {
+      .crm-client-tz-badge {
+        max-width: 5.25rem;
+      }
+    }
+    /* 最后跟进：体温指示灯（圆点） */
+    .crm-last-follow-dot {
+      display: inline-block;
+      width: 0.5rem;
+      height: 0.5rem;
+      border-radius: 9999px;
+      flex-shrink: 0;
+    }
+    .crm-last-follow-dot--hot {
+      background: #34d399;
+      box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.35), 0 0 10px rgba(52, 211, 153, 0.55);
+    }
+    .crm-last-follow-dot--warm {
+      background: #fbbf24;
+      box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.35), 0 0 8px rgba(251, 191, 36, 0.45);
+    }
+    .crm-last-follow-dot--cold {
+      background: #fb7185;
+      box-shadow: 0 0 0 1px rgba(244, 63, 94, 0.4), 0 0 8px rgba(251, 113, 133, 0.45);
+      animation: crm-last-follow-breathe 2.4s ease-in-out infinite;
+    }
+    @keyframes crm-last-follow-breathe {
+      0%,
+      100% {
+        opacity: 1;
+        transform: scale(1);
+        box-shadow: 0 0 0 1px rgba(244, 63, 94, 0.35), 0 0 8px rgba(251, 113, 133, 0.4);
+      }
+      50% {
+        opacity: 0.65;
+        transform: scale(1.12);
+        box-shadow: 0 0 0 1px rgba(244, 63, 94, 0.25), 0 0 12px rgba(251, 113, 133, 0.28);
+      }
     }
   </style>
 </head>
@@ -486,9 +790,9 @@
           <span class="h-2.5 w-2.5 rounded-full bg-violet-300"></span>
           <span class="font-medium">产品管理</span>
         </a>
-        <a id="nav-holidays" href="#" class="crm-nav-link flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm md:gap-3 md:px-4 md:py-3 md:text-base">
-          <span class="h-2.5 w-2.5 rounded-full bg-sky-300"></span>
-          <span class="font-medium">全球节日</span>
+        <a id="nav-holiday-explorer" href="#" class="crm-nav-link flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm md:gap-3 md:px-4 md:py-3 md:text-base">
+          <span class="h-2.5 w-2.5 rounded-full bg-teal-300/90"></span>
+          <span class="font-medium">全球文化节日</span>
         </a>
       </nav>
 
@@ -573,69 +877,121 @@
         </div>
         <div id="fx-widget-mobile" class="flex min-w-0 w-full items-center justify-end sm:hidden sm:w-auto">
           <div
-            class="flex max-w-full items-center gap-x-2 gap-y-1 overflow-x-auto rounded-xl border border-slate-600/35 bg-slate-800/50 px-3 py-2 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] [scrollbar-width:thin]"
+            class="flex max-w-full flex-col gap-2 overflow-x-auto rounded-xl border border-slate-600/35 bg-slate-800/50 px-3 py-2 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] [scrollbar-width:thin]"
           >
-            <span class="shrink-0 text-xs font-medium tracking-wide text-slate-500">USD→CNY</span>
-            <label class="flex shrink-0 items-center gap-1.5 whitespace-nowrap">
-              <span class="text-xs text-slate-500/90">Rate:</span>
+            <div class="flex max-w-full flex-wrap items-center justify-end gap-x-2 gap-y-1">
+              <span class="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-slate-500">Live</span>
+              <span class="shrink-0 font-mono text-xs tabular-nums text-cyan-300/95"
+                >USD<span class="text-slate-500">/</span>CNY <strong id="fx-live-usd-cny-mobile" class="text-cyan-200">--</strong></span
+              >
+              <span class="shrink-0 font-mono text-xs tabular-nums text-emerald-300/95"
+                >EUR<span class="text-slate-500">/</span>CNY <strong id="fx-live-eur-cny-mobile" class="text-emerald-200">--</strong></span
+              >
+              <span
+                id="fx-stale-indicator-mobile"
+                class="hidden shrink-0 cursor-default select-none text-[11px] leading-none text-slate-500 opacity-85 hover:opacity-100"
+                title="网络异常，当前使用缓存汇率"
+                role="img"
+                aria-label="网络异常，当前使用缓存汇率"
+                >❕</span>
+              <span id="fx-rate-meta-mobile" class="max-w-[min(42vw,11rem)] truncate text-[9px] leading-tight text-slate-500"></span>
+              <button
+                id="fx-refresh-btn-mobile"
+                type="button"
+                data-crm-fx-refresh="1"
+                class="shrink-0 rounded-lg border border-slate-600/80 bg-slate-900/70 px-2 py-1 text-[10px] font-medium text-slate-300 transition hover:border-sky-500/45 hover:text-sky-200 disabled:pointer-events-none disabled:opacity-45"
+                title="从接口重新拉取最新汇率"
+              >
+                ↻
+              </button>
+            </div>
+            <div
+              data-fx-calc-wrap="1"
+              class="flex w-full flex-wrap items-center justify-end gap-1.5 border-t border-slate-700/45 pt-2 text-[10px] text-slate-400"
+            >
+              <span class="shrink-0 font-semibold uppercase tracking-wide text-slate-500">换算</span>
               <input
-                id="rate-input-mobile"
                 type="number"
-                step="0.01"
+                inputmode="decimal"
                 min="0"
-                value="7.15"
-                class="h-9 w-[4.25rem] shrink-0 rounded-lg border border-slate-600 bg-slate-900/85 px-2 py-2 text-center font-mono text-sm text-slate-100 outline-none transition focus:border-sky-500/55 focus:ring-2 focus:ring-sky-500/25"
+                step="any"
+                class="fx-calc-amount w-[4.5rem] rounded-md border border-slate-600/80 bg-slate-900/80 px-1.5 py-0.5 font-mono text-[11px] text-slate-100 outline-none placeholder:text-slate-600 focus:border-cyan-500/50"
+                placeholder="金额"
+                aria-label="折算金额"
               />
-            </label>
-            <label class="flex shrink-0 items-center gap-1.5 whitespace-nowrap">
-              <span class="text-xs text-slate-500/90">USD:</span>
-              <input
-                id="usd-input-mobile"
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="0"
-                class="h-9 w-[5.25rem] shrink-0 rounded-lg border border-slate-600 bg-slate-900/85 px-2 py-2 font-mono text-sm text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-sky-500/55 focus:ring-2 focus:ring-sky-500/25"
-              />
-            </label>
-            <span
-              id="cny-result-mobile"
-              class="shrink-0 whitespace-nowrap pl-1 text-base font-bold tabular-nums tracking-tight text-emerald-300"
-              >¥0.00</span>
+              <select
+                class="fx-calc-mode max-w-[9.5rem] rounded-md border border-slate-600/80 bg-slate-900/80 py-0.5 pl-1 pr-0.5 text-[10px] text-slate-200 outline-none focus:border-cyan-500/50"
+                aria-label="折算方向"
+              >
+                <option value="usd_cny">USD→CNY</option>
+                <option value="eur_cny">EUR→CNY</option>
+                <option value="cny_usd">CNY→USD</option>
+                <option value="cny_eur">CNY→EUR</option>
+                <option value="usd_eur">USD→EUR</option>
+                <option value="eur_usd">EUR→USD</option>
+              </select>
+              <span class="shrink-0 font-mono text-[11px] tabular-nums text-cyan-100/95">=<span class="fx-calc-out">--</span></span>
+            </div>
           </div>
         </div>
 
         <div id="fx-widget-desktop" class="hidden w-full min-w-0 shrink-0 justify-end sm:flex sm:w-auto">
           <div
-            class="flex w-full flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-slate-600/35 bg-slate-800/50 px-4 py-2.5 text-base text-slate-200 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] sm:w-auto sm:flex-nowrap"
+            class="flex w-full flex-col gap-2 rounded-xl border border-slate-600/35 bg-slate-800/50 px-4 py-2.5 text-sm text-slate-200 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] sm:w-auto sm:max-w-[min(100vw-12rem,42rem)]"
           >
-            <span class="shrink-0 font-medium tracking-wide text-slate-400">USD→CNY</span>
-            <label class="flex min-w-0 items-center gap-2 whitespace-nowrap">
-              <span class="shrink-0 text-sm text-slate-500/90">Rate:</span>
+            <div class="flex w-full flex-wrap items-center justify-end gap-x-3 gap-y-2">
+              <span class="shrink-0 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">Live</span>
+              <span class="shrink-0 font-mono text-sm tabular-nums text-cyan-300/95 drop-shadow-[0_0_8px_rgba(34,211,238,0.12)]"
+                >USD<span class="text-slate-500">/</span>CNY <strong id="fx-live-usd-cny" class="text-base text-cyan-100">--</strong></span
+              >
+              <span class="shrink-0 font-mono text-sm tabular-nums text-emerald-300/95 drop-shadow-[0_0_8px_rgba(52,211,153,0.1)]"
+                >EUR<span class="text-slate-500">/</span>CNY <strong id="fx-live-eur-cny" class="text-base text-emerald-100">--</strong></span
+              >
+              <span
+                id="fx-stale-indicator-desktop"
+                class="hidden shrink-0 cursor-default select-none text-xs leading-none text-slate-500 opacity-85 hover:opacity-100"
+                title="网络异常，当前使用缓存汇率"
+                role="img"
+                aria-label="网络异常，当前使用缓存汇率"
+                >❕</span>
+              <span id="fx-rate-meta-desktop" class="max-w-[14rem] truncate text-[10px] leading-tight text-slate-500 lg:max-w-[20rem]"></span>
+              <button
+                id="fx-refresh-btn"
+                type="button"
+                data-crm-fx-refresh="1"
+                class="shrink-0 rounded-lg border border-slate-600/80 bg-slate-900/70 px-2.5 py-1 text-xs font-medium text-slate-300 transition hover:border-sky-500/45 hover:text-sky-200 disabled:pointer-events-none disabled:opacity-45"
+                title="从接口重新拉取最新汇率"
+              >
+                ↻ 刷新
+              </button>
+            </div>
+            <div
+              data-fx-calc-wrap="1"
+              class="flex w-full flex-wrap items-center justify-end gap-2 border-t border-slate-700/45 pt-2 text-xs text-slate-400"
+            >
+              <span class="shrink-0 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">换算</span>
               <input
-                id="rate-input"
                 type="number"
-                step="0.01"
+                inputmode="decimal"
                 min="0"
-                value="7.15"
-                class="h-10 w-[5.25rem] shrink-0 rounded-lg border border-slate-600 bg-slate-900/85 px-3 py-2 text-right font-mono text-base text-slate-100 outline-none transition focus:border-sky-500/55 focus:ring-2 focus:ring-sky-500/25"
+                step="any"
+                class="fx-calc-amount w-28 rounded-lg border border-slate-600/80 bg-slate-900/80 px-2 py-1 font-mono text-xs text-slate-100 outline-none placeholder:text-slate-600 focus:border-cyan-500/50"
+                placeholder="输入金额"
+                aria-label="折算金额"
               />
-            </label>
-            <label class="flex min-w-0 items-center gap-2 whitespace-nowrap">
-              <span class="shrink-0 text-sm text-slate-500/90">USD:</span>
-              <input
-                id="usd-input"
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="0"
-                class="h-10 w-[6.5rem] shrink-0 rounded-lg border border-slate-600 bg-slate-900/85 px-3 py-2 font-mono text-base text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-sky-500/55 focus:ring-2 focus:ring-sky-500/25"
-              />
-            </label>
-            <span
-              id="cny-result"
-              class="min-w-[5.5rem] shrink-0 whitespace-nowrap text-lg font-bold tabular-nums tracking-tight text-emerald-300"
-              >¥0.00</span>
+              <select
+                class="fx-calc-mode rounded-lg border border-slate-600/80 bg-slate-900/80 px-2 py-1 text-xs text-slate-200 outline-none focus:border-cyan-500/50"
+                aria-label="折算方向"
+              >
+                <option value="usd_cny">USD → CNY</option>
+                <option value="eur_cny">EUR → CNY</option>
+                <option value="cny_usd">CNY → USD</option>
+                <option value="cny_eur">CNY → EUR</option>
+                <option value="usd_eur">USD → EUR</option>
+                <option value="eur_usd">EUR → USD</option>
+              </select>
+              <span class="shrink-0 font-mono text-sm tabular-nums text-cyan-100/95">=<span class="fx-calc-out">--</span></span>
+            </div>
           </div>
         </div>
       </header>
@@ -648,6 +1004,32 @@
           业务数据看板
         </h2>
       </header>
+
+      <section
+        id="dashboard-holiday-marketing-card"
+        class="mb-5 rounded-2xl border border-amber-400/25 bg-gradient-to-br from-amber-950/35 via-slate-900/70 to-sky-950/30 p-4 shadow-glow sm:mb-6 sm:p-5"
+      >
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div class="min-w-0 flex-1">
+            <h3 class="text-base font-semibold text-amber-100 sm:text-lg">今日节日营销机会</h3>
+            <p id="dashboard-holiday-marketing-line" class="mt-2 text-sm leading-relaxed text-slate-300">
+              正在同步全球节日雷达与客户库…
+            </p>
+            <p id="dashboard-holiday-marketing-sub" class="mt-1 text-xs text-slate-500">
+              全库客户（工作台私海、公海、成交老客户）按国家与雷达对碰；支持中文/英文/缩写等模糊解析为 ISO2。数据来自 Nager.Date 雷达缓存。
+            </p>
+          </div>
+        </div>
+        <div id="dashboard-holiday-marketing-actions" class="mt-3 flex flex-wrap gap-2"></div>
+        <div id="dashboard-holiday-marketing-test-row" class="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-700/40 pt-3">
+          <button type="button" id="dashboard-holiday-simulate-de-btn" class="dashboard-holiday-sim-btn">
+            【模拟今日德国节日】
+          </button>
+          <button type="button" id="dashboard-holiday-simulate-clear-btn" class="dashboard-holiday-sim-btn dashboard-holiday-sim-btn--clear hidden">
+            清除模拟
+          </button>
+        </div>
+      </section>
 
       <section class="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-3">
         <article class="relative overflow-hidden rounded-2xl border border-indigo-400/30 bg-slate-900/60 p-4 shadow-glow backdrop-blur transition-all hover:border-blue-500/50 md:p-6">
@@ -1181,31 +1563,79 @@
         </section>
       </div>
 
-      <div id="holidays-view" class="hidden h-full">
-        <header class="mb-8">
-          <p class="text-sm text-slate-400">Global Holiday Calendar</p>
-          <h2 class="mt-2 text-3xl lg:text-4xl font-bold tracking-tight">智能节日社交看板</h2>
+      <div id="holiday-explorer-view" class="hidden h-full min-h-0 flex flex-col">
+        <header class="mb-5 shrink-0">
+          <p class="text-xs font-medium uppercase tracking-[0.2em] text-slate-500">Nager.Date · Public API</p>
+          <h2 class="mt-1.5 text-2xl font-bold tracking-tight text-slate-50 md:text-3xl">全球文化与节日大屏</h2>
+          <p class="mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">
+            Global Holiday Explorer — 按国家检索官方公共假日，数据来自开源
+            <a
+              class="text-sky-400/90 underline decoration-sky-500/30 underline-offset-2 hover:text-sky-300"
+              href="https://date.nager.at"
+              target="_blank"
+              rel="noopener noreferrer"
+              >Nager.Date</a
+            >
+            ，适合外贸团队做触达节奏与礼仪参考。
+          </p>
         </header>
-        <section class="rounded-2xl border border-slate-800 p-4 lg:p-6" style="background: linear-gradient(145deg, #0f172a 0%, #020617 100%);">
-          <div class="flex flex-col lg:flex-row gap-5" style="display: flex; flex-direction: row; gap: 20px;">
-            <div class="holiday-glass rounded-2xl p-4 lg:p-5" style="width: 65%;">
-              <div id="holiday-calendar" class="h-full"></div>
+        <section class="ghex-shell flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl lg:flex-row">
+          <aside class="ghex-sidebar flex max-h-[42vh] shrink-0 flex-col border-b border-slate-700/50 lg:max-h-none lg:w-[min(18rem,34vw)] lg:border-b-0 lg:border-r">
+            <div class="shrink-0 border-b border-slate-700/45 p-2.5">
+              <button id="ghex-radar-btn" type="button" class="ghex-radar-btn" aria-pressed="false">
+                <span aria-hidden="true">📡</span>
+                今日全球雷达
+                <span class="ml-1 text-[10px] font-normal text-slate-400">Global Radar</span>
+              </button>
+              <p class="mt-2 px-0.5 text-[10px] leading-snug text-slate-500">以下为「国家深度百科」，可搜索后点选单一国家查看全年牌价。</p>
             </div>
-            <div class="holiday-glass rounded-2xl p-4" style="width: 35%; position: sticky; top: 20px; align-self: flex-start;">
-              <h3 class="text-base font-semibold text-white">近期节日提醒</h3>
-              <p class="mt-1 text-xs text-slate-300">未来 7 天内的重要节日与快速祝福入口</p>
-              <div id="upcoming-holidays-list" class="mt-4 space-y-3 overflow-y-auto max-h-56">
-                <div class="rounded-xl border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-400">正在加载节日提醒...</div>
-              </div>
-              <div id="holiday-intel-panel" class="mt-4 rounded-2xl border border-slate-700 bg-slate-900/65 p-4 overflow-y-auto max-h-[58vh] transition-all duration-300 ease-out opacity-100">
-                <p class="text-sm text-slate-300">请点击左侧日历上的节日查看社交情报。</p>
+            <div class="shrink-0 border-b border-slate-700/40 p-3">
+              <label class="sr-only" for="ghex-country-search">搜索国家或地区</label>
+              <input
+                id="ghex-country-search"
+                type="search"
+                autocomplete="off"
+                placeholder="输入国家或地区名称..."
+                class="ghex-country-search w-full rounded-lg px-3 py-2 text-sm"
+              />
+            </div>
+            <div id="ghex-country-list" class="min-h-0 flex-1 overflow-y-auto px-2 pb-3 pt-1" role="listbox" aria-label="国家与地区索引"></div>
+          </aside>
+          <main class="ghex-main flex min-h-0 min-w-0 flex-1 flex-col">
+            <div id="ghex-main-header" class="shrink-0 border-b border-slate-700/45 px-5 py-4">
+              <p class="text-xs text-slate-500">请选择左侧国家</p>
+            </div>
+            <div id="ghex-timeline" class="min-h-0 flex-1 overflow-y-auto px-4 py-5 md:px-8">
+              <div class="ghex-card mx-auto max-w-3xl rounded-xl p-8 text-center text-sm text-slate-400">
+                从左侧索引选择国家，将加载该国全年公共假日时间轴。
               </div>
             </div>
-          </div>
+          </main>
         </section>
       </div>
       </div>
     </main>
+  </div>
+
+  <div id="ghex-impact-modal" class="fixed inset-0 z-[70] hidden">
+    <div class="ghex-impact-modal-backdrop" data-ghex-impact-close="1" aria-hidden="true"></div>
+    <div class="ghex-impact-modal-panel">
+      <div class="flex shrink-0 items-start justify-between gap-2 border-b border-slate-700/60 px-4 py-3">
+        <div class="min-w-0">
+          <h3 id="ghex-impact-modal-title" class="text-base font-semibold text-slate-50">受影响客户</h3>
+          <p id="ghex-impact-modal-sub" class="mt-0.5 text-xs text-slate-500"></p>
+        </div>
+        <button
+          type="button"
+          class="shrink-0 rounded-lg px-2 py-1 text-sm text-slate-400 transition hover:bg-slate-800 hover:text-white"
+          data-ghex-impact-close="1"
+          aria-label="关闭"
+        >
+          ✕
+        </button>
+      </div>
+      <div id="ghex-impact-modal-body" class="ghex-impact-modal-scroll text-slate-200"></div>
+    </div>
   </div>
 
   <div id="customer-modal-overlay" class="crm-theme-modal-overlay fixed inset-0 z-40 hidden backdrop-blur-sm"></div>
@@ -1362,6 +1792,61 @@
           </div>
         </article>
       </div>
+    </div>
+  </div>
+
+  <div
+    id="holiday-followup-modal-overlay"
+    class="crm-theme-modal-overlay fixed inset-0 z-[985] hidden backdrop-blur-md"
+    aria-hidden="true"
+  ></div>
+  <div
+    id="holiday-followup-modal"
+    class="fixed inset-0 z-[986] hidden items-center justify-center p-4"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="holiday-followup-modal-title"
+  >
+    <div
+      class="crm-theme-modal-card relative w-full max-w-xl max-h-[min(90vh,720px)] overflow-y-auto rounded-2xl border border-slate-600/80 bg-slate-900/95 p-5 shadow-2xl shadow-slate-950/50 md:p-6"
+    >
+      <div class="flex items-start justify-between gap-3">
+        <h3 id="holiday-followup-modal-title" class="pr-6 text-lg font-semibold leading-snug text-slate-50 md:text-xl"></h3>
+        <button
+          id="holiday-followup-modal-close"
+          type="button"
+          class="shrink-0 rounded-lg px-2 py-1 text-slate-400 transition hover:bg-slate-800 hover:text-white"
+          aria-label="关闭"
+        >
+          ✕
+        </button>
+      </div>
+      <p class="mt-1 text-xs text-slate-500">智能话术 · 英文模板可直接发送（请将 [Customer Name] 替换为收件人称呼）</p>
+      <div class="mt-5 space-y-5">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">选项 A · 纯问候破冰</p>
+          <pre
+            id="holiday-followup-opt-a"
+            class="mt-2 max-h-48 overflow-y-auto whitespace-pre-wrap rounded-xl border border-slate-600/50 bg-slate-200/95 p-3.5 text-[13px] leading-relaxed text-slate-800 shadow-inner"
+            readonly
+          ></pre>
+        </div>
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">选项 B · 祝福 + 气动按摩 / 康复设备</p>
+          <pre
+            id="holiday-followup-opt-b"
+            class="mt-2 max-h-52 overflow-y-auto whitespace-pre-wrap rounded-xl border border-slate-600/50 bg-slate-200/95 p-3.5 text-[13px] leading-relaxed text-slate-800 shadow-inner"
+            readonly
+          ></pre>
+        </div>
+      </div>
+      <button
+        id="holiday-followup-copy-all-btn"
+        type="button"
+        class="mt-6 w-full rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-950/40 transition hover:from-sky-400 hover:to-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/80"
+      >
+        一键复制
+      </button>
     </div>
   </div>
 
@@ -1706,6 +2191,139 @@
     const SUPABASE_URL = "https://msurrijrfyepjzfydrwb.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1zdXJyaWpyZnllcGp6ZnlkcndiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2MzM4OTcsImV4cCI6MjA5MjIwOTg5N30.0AQbAXEh2vi49xLJ2GgUzAAqZVFPBpmrc-rDE4UxHTg";
 
+    /** 登录与 Auth 必须最先就绪：不依赖后续节日/日历等大段脚本的执行结果。 */
+    const loginViewEl = document.getElementById("login-view");
+    const appContainerEl = document.getElementById("app-container");
+    const loginEmailEl = document.getElementById("login-email");
+    const loginPasswordEl = document.getElementById("login-password");
+    const loginErrorEl = document.getElementById("login-error");
+    const loginBtnEl = document.getElementById("login-btn");
+    const logoutBtnEl = document.getElementById("logout-btn");
+    let supabaseClient = null;
+    try {
+      if (typeof supabase !== "undefined" && supabase && typeof supabase.createClient === "function") {
+        supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      } else {
+        console.error("MyCRM: Supabase SDK 未加载，无法登录。");
+      }
+    } catch (crmSupabaseInitErr) {
+      console.error("MyCRM: Supabase 初始化失败", crmSupabaseInitErr);
+    }
+
+    let crmAppBootstrapped = false;
+
+    function bootstrapCrmApp() {
+      if (crmAppBootstrapped) return;
+      crmAppBootstrapped = true;
+      try {
+        initFxToolbar();
+      } catch (e) {
+        console.error("bootstrapCrmApp: initFxToolbar", e);
+      }
+      void Promise.all([refreshAllCustomerDataAndUI(), loadDashboardMetrics()]).catch((e) => {
+        console.error("bootstrapCrmApp: 初始数据加载", e);
+      });
+      try {
+        initCountryDatalist();
+      } catch (e) {
+        console.error("bootstrapCrmApp: initCountryDatalist", e);
+      }
+      try {
+        updateQuotationDocumentMeta();
+      } catch (e) {
+        console.error("bootstrapCrmApp: updateQuotationDocumentMeta", e);
+      }
+      try {
+        renderQuotationItemsBuilderTable();
+      } catch (e) {
+        console.error("bootstrapCrmApp: renderQuotationItemsBuilderTable", e);
+      }
+      try {
+        wireHolidayFollowupModal();
+      } catch (e) {
+        console.error("bootstrapCrmApp: wireHolidayFollowupModal", e);
+      }
+      try {
+        setNavActive("dashboard");
+      } catch (e) {
+        console.error("bootstrapCrmApp: setNavActive", e);
+      }
+    }
+
+    function syncAuthUi(session) {
+      if (!loginViewEl || !appContainerEl) return;
+      if (session) {
+        loginViewEl.classList.add("hidden");
+        appContainerEl.classList.remove("hidden");
+        bootstrapCrmApp();
+      } else {
+        loginViewEl.classList.remove("hidden");
+        appContainerEl.classList.add("hidden");
+        crmAppBootstrapped = false;
+        if (loginErrorEl) loginErrorEl.textContent = "";
+      }
+    }
+
+    if (loginBtnEl && supabaseClient) {
+      loginBtnEl.addEventListener("click", async () => {
+        if (!loginErrorEl || !loginEmailEl || !loginPasswordEl) return;
+        loginErrorEl.textContent = "";
+        const email = loginEmailEl.value.trim();
+        const password = loginPasswordEl.value;
+        if (!email || !password) {
+          loginErrorEl.textContent = "请输入邮箱和密码。";
+          return;
+        }
+        loginBtnEl.disabled = true;
+        try {
+          const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+          if (error) {
+            loginErrorEl.textContent = error.message;
+            return;
+          }
+        } catch (loginErr) {
+          console.error("登录请求异常", loginErr);
+          loginErrorEl.textContent =
+            loginErr && loginErr.message ? String(loginErr.message) : "登录失败，请稍后重试。";
+        } finally {
+          loginBtnEl.disabled = false;
+        }
+      });
+    } else if (loginBtnEl && !supabaseClient) {
+      loginBtnEl.addEventListener("click", () => {
+        if (loginErrorEl) loginErrorEl.textContent = "系统初始化异常：无法连接认证服务，请刷新页面。";
+      });
+    }
+
+    if (logoutBtnEl && supabaseClient) {
+      logoutBtnEl.addEventListener("click", async () => {
+        try {
+          await supabaseClient.auth.signOut();
+        } catch (e) {
+          console.error("signOut 异常", e);
+        }
+        window.location.reload();
+      });
+    }
+
+    if (supabaseClient) {
+      supabaseClient.auth.onAuthStateChange((_event, session) => {
+        syncAuthUi(session);
+      });
+      supabaseClient.auth
+        .getSession()
+        .then((res) => {
+          const session = res && res.data ? res.data.session : null;
+          syncAuthUi(session);
+        })
+        .catch((sessionErr) => {
+          console.error("getSession 失败", sessionErr);
+          syncAuthUi(null);
+        });
+    } else {
+      syncAuthUi(null);
+    }
+
     const CRM_THEME_STORAGE_KEY = "mycrm-theme-v1";
     const CRM_THEME_IDS = ["geek-dark", "midnight-blue", "graphite", "soft-sand"];
     const CRM_THEME_LEGACY_MAP = {
@@ -1895,35 +2513,31 @@
     window.changeTheme = changeTheme;
 
     (function initCrmThemeSwitcher() {
-      let saved = "geek-dark";
       try {
-        const v = localStorage.getItem(CRM_THEME_STORAGE_KEY);
-        if (v && CRM_THEME_LEGACY_MAP[v]) {
-          saved = CRM_THEME_LEGACY_MAP[v];
-        } else if (v && CRM_THEME_IDS.includes(v)) {
-          saved = v;
+        let saved = "geek-dark";
+        try {
+          const v = localStorage.getItem(CRM_THEME_STORAGE_KEY);
+          if (v && CRM_THEME_LEGACY_MAP[v]) {
+            saved = CRM_THEME_LEGACY_MAP[v];
+          } else if (v && CRM_THEME_IDS.includes(v)) {
+            saved = v;
+          }
+        } catch (_) {
+          /* ignore */
         }
-      } catch (_) {
-        /* ignore */
-      }
-      changeTheme(saved);
-      const sw = document.getElementById("crm-theme-switcher");
-      if (sw) {
-        sw.addEventListener("click", (e) => {
-          const btn = e.target.closest("[data-crm-theme-dot]");
-          if (!btn) return;
-          changeTheme(btn.getAttribute("data-crm-theme-dot") || "geek-dark");
-        });
+        changeTheme(saved);
+        const sw = document.getElementById("crm-theme-switcher");
+        if (sw) {
+          sw.addEventListener("click", (e) => {
+            const btn = e.target.closest("[data-crm-theme-dot]");
+            if (!btn) return;
+            changeTheme(btn.getAttribute("data-crm-theme-dot") || "geek-dark");
+          });
+        }
+      } catch (themeInitErr) {
+        console.error("MyCRM: 主题初始化失败（不影响登录）", themeInitErr);
       }
     })();
-
-    const loginViewEl = document.getElementById("login-view");
-    const appContainerEl = document.getElementById("app-container");
-    const loginEmailEl = document.getElementById("login-email");
-    const loginPasswordEl = document.getElementById("login-password");
-    const loginErrorEl = document.getElementById("login-error");
-    const loginBtnEl = document.getElementById("login-btn");
-    const logoutBtnEl = document.getElementById("logout-btn");
 
     const statusEl = document.getElementById("customers-status");
     const kpiCustomersTotalEl = document.getElementById("kpi-customers-total");
@@ -1995,14 +2609,18 @@
     const navSalesReport = document.getElementById("nav-sales-report");
     const navProducts = document.getElementById("nav-products");
     const navQuotations = document.getElementById("nav-quotations");
-    const navHolidays = document.getElementById("nav-holidays");
     const dashboardView = document.getElementById("dashboard-view");
     const publicPoolView = document.getElementById("public-pool-view");
     const closedCustomersView = document.getElementById("closed-customers-view");
     const productsView = document.getElementById("products-view");
     const quotationsView = document.getElementById("quotations-view");
     const salesReportView = document.getElementById("sales-report-view");
-    const holidaysView = document.getElementById("holidays-view");
+    const holidayExplorerView = document.getElementById("holiday-explorer-view");
+    const navHolidayExplorer = document.getElementById("nav-holiday-explorer");
+    const ghexCountrySearchEl = document.getElementById("ghex-country-search");
+    const ghexCountryListEl = document.getElementById("ghex-country-list");
+    const ghexMainHeaderEl = document.getElementById("ghex-main-header");
+    const ghexTimelineEl = document.getElementById("ghex-timeline");
     const salesReportYearSelect = document.getElementById("sales-report-year-select");
     const salesReportTableBody = document.getElementById("sales-report-table-body");
     const salesReportStatusEl = document.getElementById("sales-report-status");
@@ -2085,92 +2703,20 @@
     const holidayCalendarEl = document.getElementById("holiday-calendar");
     const upcomingHolidaysListEl = document.getElementById("upcoming-holidays-list");
     const holidayIntelPanelEl = document.getElementById("holiday-intel-panel");
+    const holidayFollowupModalOverlayEl = document.getElementById("holiday-followup-modal-overlay");
+    const holidayFollowupModalEl = document.getElementById("holiday-followup-modal");
+    const holidayFollowupModalTitleEl = document.getElementById("holiday-followup-modal-title");
+    const holidayFollowupOptAEl = document.getElementById("holiday-followup-opt-a");
+    const holidayFollowupOptBEl = document.getElementById("holiday-followup-opt-b");
+    const holidayFollowupCopyAllBtn = document.getElementById("holiday-followup-copy-all-btn");
+    const holidayFollowupModalCloseBtn = document.getElementById("holiday-followup-modal-close");
+    let holidayFollowupCopyBundle = "";
+    let holidayFollowupModalBound = false;
     const FOLLOWUPS_TABLE = "customer_followups";
     const FOLLOWUP_SCREENSHOT_BUCKET = "followup-screenshots";
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const CUSTOMERS_GLOBAL_SELECT =
       "id, company_name, contact_name, email, phone, country, address, source, social_media, is_public, is_closed, next_followup_date, status, last_follow_up, tags";
-
-    /** 先于其余 CRM 事件绑定，避免后面初始化报错导致无法登录。 */
-    let crmAppBootstrapped = false;
-
-    function bootstrapCrmApp() {
-      if (crmAppBootstrapped) return;
-      crmAppBootstrapped = true;
-      initFxToolbar();
-      void Promise.all([refreshAllCustomerDataAndUI(), loadDashboardMetrics()]);
-      initCountryDatalist();
-      updateQuotationDocumentMeta();
-      renderQuotationItemsBuilderTable();
-      setNavActive("dashboard");
-    }
-
-    function syncAuthUi(session) {
-      if (!loginViewEl || !appContainerEl) return;
-      if (session) {
-        loginViewEl.classList.add("hidden");
-        appContainerEl.classList.remove("hidden");
-        bootstrapCrmApp();
-      } else {
-        loginViewEl.classList.remove("hidden");
-        appContainerEl.classList.add("hidden");
-        crmAppBootstrapped = false;
-        if (loginErrorEl) loginErrorEl.textContent = "";
-      }
-    }
-
-    if (loginBtnEl) {
-      loginBtnEl.addEventListener("click", async () => {
-        if (!loginErrorEl || !loginEmailEl || !loginPasswordEl) return;
-        loginErrorEl.textContent = "";
-        const email = loginEmailEl.value.trim();
-        const password = loginPasswordEl.value;
-        if (!email || !password) {
-          loginErrorEl.textContent = "请输入邮箱和密码。";
-          return;
-        }
-        loginBtnEl.disabled = true;
-        try {
-          const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-          if (error) {
-            loginErrorEl.textContent = error.message;
-            return;
-          }
-        } catch (loginErr) {
-          console.error("登录请求异常", loginErr);
-          loginErrorEl.textContent =
-            loginErr && loginErr.message ? String(loginErr.message) : "登录失败，请稍后重试。";
-        } finally {
-          loginBtnEl.disabled = false;
-        }
-      });
-    }
-
-    if (logoutBtnEl) {
-      logoutBtnEl.addEventListener("click", async () => {
-        try {
-          await supabaseClient.auth.signOut();
-        } catch (e) {
-          console.error("signOut 异常", e);
-        }
-        window.location.reload();
-      });
-    }
-
-    supabaseClient.auth.onAuthStateChange((_event, session) => {
-      syncAuthUi(session);
-    });
-
-    supabaseClient.auth
-      .getSession()
-      .then(({ data: { session } }) => {
-        syncAuthUi(session);
-      })
-      .catch((sessionErr) => {
-        console.error("getSession 失败", sessionErr);
-        syncAuthUi(null);
-      });
 
     let selectedCustomer = null;
     let followupScreenshotPublicUrl = null;
@@ -2532,7 +3078,121 @@
       fiji: "Pacific/Fiji",
       "巴布亚新几内亚": "Pacific/Port_Moresby",
       "papua new guinea": "Pacific/Port_Moresby",
+      "卢森堡": "Europe/Luxembourg",
+      luxembourg: "Europe/Luxembourg",
+      "冰岛": "Atlantic/Reykjavik",
+      iceland: "Atlantic/Reykjavik",
     };
+
+    function resolveIanaTimezoneForCountry(countryString) {
+      const raw = (countryString || "").trim();
+      if (!raw) return null;
+      const countryStr = raw.toLowerCase();
+      const keys = Object.keys(COUNTRY_TO_TZ);
+      for (let i = 0; i < keys.length; i++) {
+        const key = keys[i];
+        if (countryStr.includes(key) || key.includes(countryStr)) {
+          return COUNTRY_TO_TZ[key];
+        }
+      }
+      return null;
+    }
+
+    /**
+     * 根据客户国家文本解析 IANA 时区并计算当地时间与工作/休息/睡眠状态（纯前端）。
+     * @returns {{ ok: boolean, icon: string, timeStr: string, stateZh: string, title: string, tz: string|null }}
+     */
+    function getClientLocalTime(country) {
+      const tz = resolveIanaTimezoneForCountry(country);
+      if (!tz) {
+        return {
+          ok: false,
+          icon: "⚪",
+          timeStr: "—",
+          stateZh: "未知",
+          title: "未识别国家或时区，无法显示客户当地时间（请完善国家名称）",
+          tz: null,
+        };
+      }
+      const now = new Date();
+      let hour = 0;
+      let minute = 0;
+      try {
+        const parts = new Intl.DateTimeFormat("en-US", {
+          timeZone: tz,
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+          hourCycle: "h23",
+        }).formatToParts(now);
+        parts.forEach((p) => {
+          if (p.type === "hour") hour = Number.parseInt(p.value, 10) || 0;
+          if (p.type === "minute") minute = Number.parseInt(p.value, 10) || 0;
+        });
+      } catch (_) {
+        return {
+          ok: false,
+          icon: "⚪",
+          timeStr: "—",
+          stateZh: "未知",
+          title: "时区计算异常，无法显示客户当地时间",
+          tz: tz,
+        };
+      }
+      const timeStr = String(hour).padStart(2, "0") + ":" + String(minute).padStart(2, "0");
+      let icon = "🌙";
+      let stateZh = "睡眠";
+      if (hour >= 9 && hour <= 17) {
+        icon = "🟢";
+        stateZh = "工作";
+      } else if (hour >= 18 && hour <= 22) {
+        icon = "🟡";
+        stateZh = "休息";
+      }
+      return {
+        ok: true,
+        icon,
+        timeStr,
+        stateZh,
+        title: "客户当地时间 " + timeStr + "，目前处于" + stateZh + "状态",
+        tz,
+      };
+    }
+
+    let customerListTzRefreshIntervalId = null;
+
+    function refreshAllCustomerTzBadges() {
+      document.querySelectorAll("[data-crm-customer-tz]").forEach((el) => {
+        let raw = "";
+        try {
+          raw = decodeURIComponent(el.getAttribute("data-crm-country") || "");
+        } catch (_) {
+          raw = el.getAttribute("data-crm-country") || "";
+        }
+        const st = getClientLocalTime(raw);
+        el.textContent = st.icon + " " + st.timeStr;
+        el.title = st.title;
+      });
+    }
+
+    function ensureCustomerListTzClock() {
+      if (customerListTzRefreshIntervalId != null) return;
+      customerListTzRefreshIntervalId = window.setInterval(refreshAllCustomerTzBadges, 60 * 1000);
+    }
+
+    function createCustomerLocalTimeBadge(country) {
+      const span = document.createElement("span");
+      const raw = country == null ? "" : String(country);
+      span.setAttribute("data-crm-customer-tz", "1");
+      span.setAttribute("data-crm-country", encodeURIComponent(raw));
+      span.className =
+        "crm-client-tz-badge inline-flex shrink-0 items-center gap-0.5 rounded px-1 py-px text-[10px] font-medium tabular-nums leading-tight text-slate-500 sm:text-[11px]";
+      const st = getClientLocalTime(raw);
+      span.textContent = st.icon + " " + st.timeStr;
+      span.title = st.title;
+      ensureCustomerListTzClock();
+      return span;
+    }
 
     function resetFollowupLocalTimeUI() {
       if (liveTimeInterval !== null) {
@@ -2556,19 +3216,7 @@
         liveTimeInterval = null;
       }
 
-      let tz = null;
-      const raw = (countryString || "").trim();
-      if (raw) {
-        const countryStr = raw.toLowerCase();
-        const keys = Object.keys(COUNTRY_TO_TZ);
-        for (let i = 0; i < keys.length; i++) {
-          const key = keys[i];
-          if (countryStr.includes(key) || key.includes(countryStr)) {
-            tz = COUNTRY_TO_TZ[key];
-            break;
-          }
-        }
-      }
+      const tz = resolveIanaTimezoneForCountry(countryString);
 
       function tick() {
         if (!followupCustomerLocalTimeEl || !followupCustomerTimeWarningEl) return;
@@ -2657,6 +3305,7 @@
       "南非 (South Africa)",
       "尼日利亚 (Nigeria)",
       "肯尼亚 (Kenya)",
+      "索马里 (Somalia)",
       "摩洛哥 (Morocco)",
       "日本 (Japan)",
       "韩国 (South Korea)",
@@ -2684,7 +3333,7 @@
         navSalesReport,
         navProducts,
         navQuotations,
-        navHolidays,
+        navHolidayExplorer,
       ];
       navEls.forEach((nav) => {
         if (!nav) return;
@@ -2697,12 +3346,13 @@
       else if (activeTab === "salesReport") target = navSalesReport;
       else if (activeTab === "products") target = navProducts;
       else if (activeTab === "quotations") target = navQuotations;
-      else if (activeTab === "holidays") target = navHolidays;
+      else if (activeTab === "holidayExplorer") target = navHolidayExplorer;
       if (target) target.classList.add("crm-nav-link-active");
     }
 
     function switchView(viewName) {
       currentView = viewName;
+      if (holidayExplorerView) holidayExplorerView.classList.add("hidden");
       if (viewName === "products") {
         dashboardView.classList.add("hidden");
         publicPoolView.classList.add("hidden");
@@ -2710,7 +3360,6 @@
         salesReportView.classList.add("hidden");
         productsView.classList.remove("hidden");
         quotationsView.classList.add("hidden");
-        holidaysView.classList.add("hidden");
         setNavActive("products");
         loadProducts();
       } else if (viewName === "publicPool") {
@@ -2720,7 +3369,6 @@
         salesReportView.classList.add("hidden");
         productsView.classList.add("hidden");
         quotationsView.classList.add("hidden");
-        holidaysView.classList.add("hidden");
         setNavActive("publicPool");
         loadPublicCustomers();
       } else if (viewName === "closedCustomers") {
@@ -2730,7 +3378,6 @@
         salesReportView.classList.add("hidden");
         productsView.classList.add("hidden");
         quotationsView.classList.add("hidden");
-        holidaysView.classList.add("hidden");
         setNavActive("closedCustomers");
         loadClosedCustomers();
       } else if (viewName === "salesReport") {
@@ -2740,7 +3387,6 @@
         salesReportView.classList.remove("hidden");
         productsView.classList.add("hidden");
         quotationsView.classList.add("hidden");
-        holidaysView.classList.add("hidden");
         setNavActive("salesReport");
         const y = Number.parseInt(salesReportYearSelect.value, 10);
         loadSalesReport(Number.isFinite(y) ? y : 2026);
@@ -2751,31 +3397,32 @@
         salesReportView.classList.add("hidden");
         productsView.classList.add("hidden");
         quotationsView.classList.remove("hidden");
-        holidaysView.classList.add("hidden");
         setNavActive("quotations");
         loadQuotationOptions();
-      } else if (viewName === "holidays") {
+      } else if (viewName === "holidayExplorer") {
         dashboardView.classList.add("hidden");
         publicPoolView.classList.add("hidden");
         closedCustomersView.classList.add("hidden");
         salesReportView.classList.add("hidden");
         productsView.classList.add("hidden");
         quotationsView.classList.add("hidden");
-        holidaysView.classList.remove("hidden");
-        setNavActive("holidays");
-        renderHolidayCalendar();
+        if (holidayExplorerView) holidayExplorerView.classList.remove("hidden");
+        setNavActive("holidayExplorer");
+        void Promise.resolve()
+          .then(() => initHolidayExplorerView())
+          .catch((e) => console.error("initHolidayExplorerView", e));
       } else {
         publicPoolView.classList.add("hidden");
         closedCustomersView.classList.add("hidden");
         salesReportView.classList.add("hidden");
         quotationsView.classList.add("hidden");
         productsView.classList.add("hidden");
-        holidaysView.classList.add("hidden");
         dashboardView.classList.remove("hidden");
         setNavActive("dashboard");
         if (dashboardPrivateViewMode === "kanban") {
           renderKanbanBoard();
         }
+        void refreshDashboardHolidayMarketingCard();
       }
     }
 
@@ -2788,11 +3435,15 @@
       salesReportView.classList.add("hidden");
       productsView.classList.add("hidden");
       quotationsView.classList.add("hidden");
-      holidaysView.classList.add("hidden");
+      if (holidayExplorerView) holidayExplorerView.classList.add("hidden");
       setNavActive("closedCustomers");
     }
 
-    const HOLIDAY_COUNTRIES = ["CN", "US", "GB", "DE", "FR", "IT", "ES", "NL", "PL", "RU", "TR", "BR", "MX", "CA", "AU", "JP", "KR", "IN", "VN", "TH", "MY", "SG", "ID", "AE", "SA", "ZA", "EG", "NG", "CL"];
+    const HOLIDAY_COUNTRIES = ["CN", "US", "GB", "DE", "FR", "IT", "ES", "NL", "PL", "RU", "TR", "BR", "MX", "CA", "AU", "JP", "KR", "IN", "VN", "TH", "MY", "SG", "ID", "AE", "SA", "ZA", "EG", "NG", "CL", "SO"];
+    /** 日历「目标市场」筛选：与当前 HOLIDAY_COUNTRIES 子集对齐 */
+    const HOLIDAY_MARKET_EU_CODES = new Set(["GB", "DE", "FR", "IT", "ES", "NL", "PL", "RU", "TR"]);
+    const HOLIDAY_MARKET_NA_CODES = new Set(["US", "CA", "MX"]);
+    let holidayMarketRegionFilter = "global";
     const HOLIDAY_COUNTRY_META = {
       CN: { nameZh: "中国", nameEn: "China", flag: "🇨🇳", palette: "#f97316" },
       US: { nameZh: "美国", nameEn: "United States", flag: "🇺🇸", palette: "#60a5fa" },
@@ -2823,6 +3474,34 @@
       EG: { nameZh: "埃及", nameEn: "Egypt", flag: "🇪🇬", palette: "#fdba74" },
       NG: { nameZh: "尼日利亚", nameEn: "Nigeria", flag: "🇳🇬", palette: "#4ade80" },
       CL: { nameZh: "智利", nameEn: "Chile", flag: "🇨🇱", palette: "#60a5fa" },
+      SO: { nameZh: "索马里", nameEn: "Somalia", flag: "🇸🇴", palette: "#38bdf8" },
+    };
+    /** Nager.Date 未覆盖索马里：以下为常用公共假日参考（伊斯兰历节日以当地公布为准，或±1天）。 */
+    const SO_PUBLIC_FALLBACK = {
+      2025: [
+        { date: "2025-01-01", name: "New Year's Day", localName: "新年" },
+        { date: "2025-01-27", name: "Isra and Mi'raj", localName: "登霄节（伊斯兰历，以官方公布为准）" },
+        { date: "2025-03-30", name: "Eid al-Fitr", localName: "开斋节（伊斯兰历，以官方公布为准）" },
+        { date: "2025-05-01", name: "Labour Day", localName: "劳动节" },
+        { date: "2025-06-07", name: "Eid al-Adha", localName: "宰牲节（伊斯兰历，以官方公布为准）" },
+        { date: "2025-06-26", name: "Independence Day", localName: "独立日" },
+        { date: "2025-06-27", name: "Ashura", localName: "阿舒拉节（伊斯兰历，以官方公布为准）" },
+        { date: "2025-07-01", name: "Republic Day", localName: "共和国日" },
+        { date: "2025-09-04", name: "The Prophet's Birthday", localName: "圣纪节（伊斯兰历，以官方公布为准）" },
+      ],
+      2026: [
+        { date: "2026-01-01", name: "New Year's Day", localName: "新年" },
+        { date: "2026-01-16", name: "Isra and Mi'raj", localName: "登霄节（伊斯兰历，以官方公布为准）" },
+        { date: "2026-03-21", name: "Eid al-Fitr", localName: "开斋节（伊斯兰历，以官方公布为准）" },
+        { date: "2026-05-01", name: "Labour Day", localName: "劳动节" },
+        { date: "2026-05-18", name: "Somaliland Sovereignty Day", localName: "索马里兰主权恢复日（部分地区）", global: false },
+        { date: "2026-05-28", name: "Eid al-Adha", localName: "宰牲节（伊斯兰历，以官方公布为准）" },
+        { date: "2026-06-17", name: "Islamic New Year", localName: "伊斯兰新年" },
+        { date: "2026-06-26", name: "Independence Day", localName: "独立日" },
+        { date: "2026-06-26", name: "Ashura", localName: "阿舒拉节（伊斯兰历，以官方公布为准）" },
+        { date: "2026-07-01", name: "Republic Day", localName: "共和国日" },
+        { date: "2026-08-26", name: "The Prophet's Birthday", localName: "圣纪节（伊斯兰历，以官方公布为准）" },
+      ],
     };
     const CN_STATUTORY_FALLBACK = {
       2026: [
@@ -2856,6 +3535,12 @@
       "Corpus Christi": "基督圣体节",
       "Eid al-Fitr": "开斋节",
       "Eid al-Adha": "宰牲节",
+      "Isra and Mi'raj": "登霄节",
+      "Islamic New Year": "伊斯兰新年",
+      Ashura: "阿舒拉节",
+      "Republic Day": "共和国日",
+      "The Prophet's Birthday": "圣纪节",
+      "Somaliland Sovereignty Day": "索马里兰主权恢复日",
     };
     const COUNTRY_CODE_ALIASES = {
       cn: "CN", china: "CN", 中国: "CN",
@@ -2870,7 +3555,927 @@
       in: "IN", india: "IN", 印度: "IN",
       br: "BR", brazil: "BR", 巴西: "BR",
       ae: "AE", uae: "AE", emirates: "AE", 阿联酋: "AE",
+      so: "SO", somalia: "SO", 索马里: "SO",
+      au: "AU", australia: "AU", 澳大利亚: "AU",
+      nz: "NZ", newzealand: "NZ", 新西兰: "NZ",
+      ch: "CH", switzerland: "CH", schweiz: "CH", 瑞士: "CH",
+      at: "AT", austria: "AT", 奥地利: "AT",
+      se: "SE", sweden: "SE", 瑞典: "SE",
+      no: "NO", norway: "NO", 挪威: "NO",
+      dk: "DK", denmark: "DK", 丹麦: "DK",
+      fi: "FI", finland: "FI", 芬兰: "FI",
+      pt: "PT", portugal: "PT", 葡萄牙: "PT",
+      ie: "IE", ireland: "IE", 爱尔兰: "IE",
+      be: "BE", belgium: "BE", 比利时: "BE",
+      gr: "GR", greece: "GR", 希腊: "GR",
+      cz: "CZ", czechia: "CZ", czechrepublic: "CZ", 捷克: "CZ",
+      hu: "HU", hungary: "HU", 匈牙利: "HU",
+      ro: "RO", romania: "RO", 罗马尼亚: "RO",
     };
+
+    /** 客户国家「英文/拉丁连写」模糊 → ISO2（补充 parseCountryCodeFromFilter）。 */
+    const COUNTRY_LATIN_FUZZY_TO_ISO = {
+      usa: "US",
+      us: "US",
+      america: "US",
+      unitedstates: "US",
+      unitedstatesofamerica: "US",
+      deutschland: "DE",
+      germany: "DE",
+      federalrepublicofgermany: "DE",
+      uk: "GB",
+      britain: "GB",
+      england: "GB",
+      greatbritain: "GB",
+      unitedkingdom: "GB",
+      france: "FR",
+      italia: "IT",
+      italy: "IT",
+      espana: "ES",
+      spain: "ES",
+      netherlands: "NL",
+      holland: "NL",
+      brasil: "BR",
+      brazil: "BR",
+      vietnam: "VN",
+      thailand: "TH",
+      malaysia: "MY",
+      singapore: "SG",
+      indonesia: "ID",
+      philippines: "PH",
+      pakistan: "PK",
+      bangladesh: "BD",
+      mexico: "MX",
+      canada: "CA",
+      japan: "JP",
+      southkorea: "KR",
+      korea: "KR",
+      india: "IN",
+      china: "CN",
+      russia: "RU",
+      ukraine: "UA",
+      poland: "PL",
+      turkey: "TR",
+      egypt: "EG",
+      southafrica: "ZA",
+      nigeria: "NG",
+      chile: "CL",
+      argentina: "AR",
+      colombia: "CO",
+      peru: "PE",
+      australien: "AU",
+      australia: "AU",
+      newzealand: "NZ",
+    };
+
+    /** 全球文化与节日大屏 — Nager.Date v3 */
+    const GHEX_API_YEAR = 2026;
+    const GHEX_NAGER_BASE = "https://date.nager.at/api/v3";
+    const GHEX_EU = new Set(
+      "AD AL AT AX BA BE BG BY CH CY CZ DE DK EE ES FI FO FR GB GG GI GR HR HU IE IM IS IT JE LI LT LU LV MC MD ME MK MT NL NO PL PT RO RS RU SI SJ SK SM UA VA".split(
+        " ",
+      ),
+    );
+    const GHEX_AS = new Set("AM BD CN GE HK ID JP KR KZ MN PH SG TR VN".split(" "));
+    const GHEX_NA = new Set("BB BS BZ CA CR CU DO GD GL GT HN HT JM MS MX NI PA PR SV US".split(" "));
+    const GHEX_SA = new Set("AR BO BR CL CO EC GY PE PY SR UY VE".split(" "));
+    const GHEX_AF = new Set("BJ BW CD CG EG GA GH GM KE LS MG MA MZ NA NE NG SC SO TN UG ZA ZW".split(" "));
+    const GHEX_OC = new Set("AU NZ PG".split(" "));
+    const GHEX_CONTINENT_ORDER = ["asia", "europe", "northamerica", "latinamerica", "africa", "oceania", "other"];
+    const GHEX_CONTINENT_LABEL = {
+      asia: "亚洲",
+      europe: "欧洲",
+      northamerica: "北美洲",
+      latinamerica: "拉丁美洲",
+      africa: "非洲",
+      oceania: "大洋洲",
+      other: "其他",
+    };
+    const GHEX_EXTRA_ZH = {
+      AD: "安道尔",
+      AL: "阿尔巴尼亚",
+      AM: "亚美尼亚",
+      AT: "奥地利",
+      AX: "奥兰群岛",
+      BA: "波黑",
+      BB: "巴巴多斯",
+      BD: "孟加拉国",
+      BE: "比利时",
+      BG: "保加利亚",
+      BJ: "贝宁",
+      BS: "巴哈马",
+      BW: "博茨瓦纳",
+      BY: "白俄罗斯",
+      BZ: "伯利兹",
+      CD: "刚果（金）",
+      CG: "刚果（布）",
+      CR: "哥斯达黎加",
+      CY: "塞浦路斯",
+      CZ: "捷克",
+      DK: "丹麦",
+      DO: "多米尼加",
+      EC: "厄瓜多尔",
+      EE: "爱沙尼亚",
+      FO: "法罗群岛",
+      GA: "加蓬",
+      GD: "格林纳达",
+      GE: "格鲁吉亚",
+      GG: "根西岛",
+      GH: "加纳",
+      GI: "直布罗陀",
+      GL: "格陵兰",
+      GM: "冈比亚",
+      GR: "希腊",
+      GT: "危地马拉",
+      GY: "圭亚那",
+      HK: "中国香港",
+      HN: "洪都拉斯",
+      HR: "克罗地亚",
+      HT: "海地",
+      HU: "匈牙利",
+      IE: "爱尔兰",
+      IM: "马恩岛",
+      IS: "冰岛",
+      JE: "泽西岛",
+      JM: "牙买加",
+      KZ: "哈萨克斯坦",
+      LI: "列支敦士登",
+      LS: "莱索托",
+      LT: "立陶宛",
+      LU: "卢森堡",
+      LV: "拉脱维亚",
+      MA: "摩洛哥",
+      MC: "摩纳哥",
+      MD: "摩尔多瓦",
+      ME: "黑山",
+      MG: "马达加斯加",
+      MK: "北马其顿",
+      MN: "蒙古",
+      MS: "蒙特塞拉特",
+      MT: "马耳他",
+      MZ: "莫桑比克",
+      NA: "纳米比亚",
+      NE: "尼日尔",
+      NI: "尼加拉瓜",
+      NO: "挪威",
+      NZ: "新西兰",
+      PA: "巴拿马",
+      PE: "秘鲁",
+      PG: "巴布亚新几内亚",
+      PR: "波多黎各",
+      PT: "葡萄牙",
+      PY: "巴拉圭",
+      RO: "罗马尼亚",
+      RS: "塞尔维亚",
+      SC: "塞舌尔",
+      SI: "斯洛文尼亚",
+      SJ: "斯瓦尔巴和扬马延",
+      SK: "斯洛伐克",
+      SM: "圣马力诺",
+      SR: "苏里南",
+      SV: "萨尔瓦多",
+      TN: "突尼斯",
+      UA: "乌克兰",
+      UG: "乌干达",
+      UY: "乌拉圭",
+      VA: "梵蒂冈",
+      VE: "委内瑞拉",
+      ZW: "津巴布韦",
+      SO: "索马里",
+    };
+    let ghexCountriesCache = null;
+    let ghexSelectedCode = "DE";
+    /** "radar" = 今日全球雷达（默认）； "country" = 单一国家深度百科 */
+    let ghexExplorerMode = "radar";
+    let ghexSearchQuery = "";
+    let ghexHolidaysByCode = Object.create(null);
+    /** 0 = 全年；1–12 = 仅该月（公历，按节日 date 字段）。 */
+    let ghexMonthFilter = 0;
+    let ghexLoadingList = false;
+    let ghexLoadingHolidays = false;
+    let ghexExplorerWired = false;
+    /** 最近一次全球雷达聚合结果（供工作台「今日节日营销」与对碰逻辑复用）。 */
+    let ghexLastRadarAgg = [];
+    /** 雷达卡片「查看全部」弹窗：按渲染序号索引 payload。 */
+    const ghexRadarImpactMetaByIdx = [];
+    let ghexRadarTimelineClickWired = false;
+
+    function ghexLocalTodayIsoDate() {
+      const n = new Date();
+      const y = n.getFullYear();
+      const m = String(n.getMonth() + 1).padStart(2, "0");
+      const d = String(n.getDate()).padStart(2, "0");
+      return y + "-" + m + "-" + d;
+    }
+
+    function ghexBuildSyntheticGermanyTodayGroup() {
+      return {
+        date: ghexLocalTodayIsoDate(),
+        name: "模拟：德国公共假日（测试）",
+        localName: "Synthetic Germany public holiday (CRM test)",
+        countries: [{ code: "DE", apiName: "Germany" }],
+        __ghexSimulateDe: true,
+      };
+    }
+
+    function ghexApplyMarketingSimulateToAgg(agg) {
+      const base = Array.isArray(agg) ? agg.slice() : [];
+      if (!window.__ghexMarketingSimulateDe) return base;
+      const cleaned = base.filter((g) => g && !g.__ghexSimulateDe);
+      return cleaned.concat([ghexBuildSyntheticGermanyTodayGroup()]);
+    }
+
+    function ghexContinentKey(code) {
+      if (GHEX_AS.has(code)) return "asia";
+      if (GHEX_EU.has(code)) return "europe";
+      if (GHEX_NA.has(code)) return "northamerica";
+      if (GHEX_SA.has(code)) return "latinamerica";
+      if (GHEX_AF.has(code)) return "africa";
+      if (GHEX_OC.has(code)) return "oceania";
+      return "other";
+    }
+
+    function ghexFlagEmoji(code) {
+      if (!code || code.length !== 2) return "🌍";
+      const A = 127397;
+      const u = code.toUpperCase();
+      return String.fromCodePoint(A + u.charCodeAt(0), A + u.charCodeAt(1));
+    }
+
+    function ghexCountryLabelZh(code, apiName) {
+      const m = HOLIDAY_COUNTRY_META[code];
+      if (m && m.nameZh) return m.nameZh;
+      return GHEX_EXTRA_ZH[code] || apiName || code;
+    }
+
+    function ghexReligiousHint(name, localName) {
+      const t = ((name || "") + " " + (localName || "")).toLowerCase();
+      return (
+        /christmas|easter|good friday|epiphany|pentecost|ascension|corpus christi|all saints|assumption|ash wednesday|maundy|palm sunday|ramadan|eid|passover|hanukkah|purim|yom kippur|rosh hashanah|diwali|vesak|orthodox|immaculate|holy week|trinity sunday|whit\s|st\. stephen|st stephen|reformation|repentance/i.test(
+          t,
+        )
+      );
+    }
+
+    function ghexHolidayTags(h) {
+      const tags = [];
+      const hasCounties = Array.isArray(h.counties) && h.counties.length > 0;
+      const nationwide = h.global === true && !hasCounties;
+      const regional = hasCounties || h.global === false;
+      if (nationwide) tags.push({ key: "nation", label: "全国性假日" });
+      else if (regional) tags.push({ key: "region", label: "部分地区假日" });
+      else tags.push({ key: "nation", label: "公共假日" });
+      if (ghexReligiousHint(h.name, h.localName)) tags.push({ key: "faith", label: "宗教节日" });
+      return tags;
+    }
+
+    function ghexTradeSuggestionLines(name, localName) {
+      const hay = (name || "") + " " + (localName || "");
+      const lower = hay.toLowerCase();
+      const lines = [];
+      if (/(^|\b)(new\s+year|christmas|easter)(\b|$)/i.test(lower) || /新年|圣诞|复活/.test(hay)) {
+        lines.push("建议提前发送节日问候邮件或即时消息，语气真诚、简短，避免夹带强促销。");
+      }
+      if (
+        /\bmemorial\b|\bindependence\b|\bveterans?\b|\bremembrance\b|\bnational day of mourning\b|国殇|阵亡/i.test(hay)
+      ) {
+        lines.push("建议保持敬意，避免硬性推销与轻浮的营销话术。");
+      }
+      if (!lines.length) lines.push("可简短确认客户休假安排后再推进商务；语气专业、克制即可。");
+      return lines;
+    }
+
+    async function ghexFetchAvailableCountries() {
+      const res = await fetch(GHEX_NAGER_BASE + "/AvailableCountries", { method: "GET" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      if (!Array.isArray(data)) throw new Error("无效响应");
+      return data.map((row) => ({
+        code: row.countryCode,
+        apiName: row.name || row.countryCode,
+      }));
+    }
+
+    function ghexEscapeHtml(s) {
+      return String(s == null ? "" : s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    async function ghexFetchNextPublicHolidaysWorldwide() {
+      const res = await fetch(GHEX_NAGER_BASE + "/NextPublicHolidaysWorldwide", { method: "GET", cache: "no-store" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
+    }
+
+    function ghexFormatRadarDateHeading(isoDate) {
+      const ds = String(isoDate || "").trim();
+      const d = new Date(ds + "T12:00:00");
+      if (Number.isNaN(d.getTime())) return ds || "—";
+      const ws = ["日", "一", "二", "三", "四", "五", "六"];
+      const md = d.toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" });
+      return md + " - 本周" + ws[d.getDay()];
+    }
+
+    function ghexNormalizeHolidayNameKey(nameRaw) {
+      return String(nameRaw || "")
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, " ");
+    }
+
+    function ghexAggregateWorldwideRadar(rows) {
+      if (!Array.isArray(rows) || !rows.length) return [];
+      const map = new Map();
+      rows.forEach((row) => {
+        const date = String(row && row.date ? row.date : "").trim();
+        const nameRaw = String(row && row.name ? row.name : "").trim() || "Holiday";
+        if (!date) return;
+        const nameKey = ghexNormalizeHolidayNameKey(nameRaw);
+        const key = date + "\x1f" + nameKey;
+        if (!map.has(key)) {
+          map.set(key, { date, name: nameRaw, localName: String(row.localName || "").trim(), countries: [] });
+        }
+        const g = map.get(key);
+        const code = String(row.countryCode || "").toUpperCase().trim();
+        if (!code) return;
+        if (!g.countries.some((c) => c.code === code)) {
+          const found = ghexCountriesCache && ghexCountriesCache.find((r) => r.code === code);
+          g.countries.push({ code, apiName: found ? found.apiName : code });
+        }
+        const ln = String(row.localName || "").trim();
+        if (ln && !g.localName) g.localName = ln;
+        if (nameRaw !== g.name) {
+          const capScore = (s) => (String(s).match(/[A-Z]/g) || []).length;
+          if (capScore(nameRaw) > capScore(g.name) || (capScore(nameRaw) === capScore(g.name) && nameRaw.length > g.name.length)) {
+            g.name = nameRaw;
+          }
+        }
+      });
+      return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date));
+    }
+
+    function ghexIsRadarDateToday(isoDate) {
+      const ds = String(isoDate || "").trim();
+      const d = new Date(ds + "T12:00:00");
+      if (Number.isNaN(d.getTime())) return false;
+      const n = new Date();
+      return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth() && d.getDate() === n.getDate();
+    }
+
+    function ghexRadarTradeBulbClass(holidayName) {
+      const t = String(holidayName || "");
+      if (
+        /\bremembrance\b|\bgenocide\b|\bmemorial\b|\bmourn\b|\bmourning\b|\btragedy\b|\batrocity\b/i.test(t)
+      ) {
+        return "ghex-trade-bulb--solemn";
+      }
+      if (/\bnational\b|\bindependence\b|\bnew\s+year\b|\bnewyear\b/i.test(t)) {
+        return "ghex-trade-bulb--festive";
+      }
+      return "ghex-trade-bulb--neutral";
+    }
+
+    function ghexRadarCardAnchorId(g) {
+      const nk = ghexNormalizeHolidayNameKey(g.name)
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "")
+        .slice(0, 48);
+      return "ghex-radar-" + String(g.date || "").replace(/-/g, "") + "-" + (nk || "holiday");
+    }
+
+    function renderGhexRadarMainHeader() {
+      if (!ghexMainHeaderEl) return;
+      ghexMainHeaderEl.innerHTML =
+        '<div class="flex flex-wrap items-end justify-between gap-3">' +
+        '<div class="min-w-0 flex-1">' +
+        '<h3 class="text-xl font-semibold tracking-tight text-slate-50 md:text-2xl">' +
+        '<span class="mr-2" aria-hidden="true">📡</span>今日全球雷达 ' +
+        '<span class="font-normal text-slate-400 md:text-xl">Global Radar</span></h3></div></div>' +
+        '<p class="mt-2 text-xs text-slate-500">数据来源：Nager.Date <span class="font-mono">/NextPublicHolidaysWorldwide</span> · 按「日期 + 英文名」聚合多国 · 附外贸社交建议</p>';
+    }
+
+    function renderGhexRadarTimelineLoading() {
+      if (!ghexTimelineEl) return;
+      ghexTimelineEl.innerHTML =
+        '<div class="ghex-card mx-auto max-w-4xl rounded-xl p-10 text-center text-sm text-slate-400">正在拉取全球近期公共假日雷达…</div>';
+    }
+
+    function ghexSyncRadarNavButton() {
+      const rb = document.getElementById("ghex-radar-btn");
+      if (!rb) return;
+      const on = ghexExplorerMode === "radar";
+      rb.classList.toggle("ghex-radar-btn--active", on);
+      rb.setAttribute("aria-pressed", on ? "true" : "false");
+    }
+
+    function renderGhexWorldwideRadar(groups) {
+      if (!ghexTimelineEl) return;
+      ghexRadarImpactMetaByIdx.length = 0;
+      if (!Array.isArray(groups) || !groups.length) {
+        ghexTimelineEl.innerHTML =
+          '<div class="ghex-card mx-auto max-w-4xl rounded-xl p-8 text-center text-sm text-slate-400">当前未获取到近期全球公共假日数据，请稍后重试。</div>';
+        void refreshDashboardHolidayMarketingCard();
+        return;
+      }
+      const wrap = document.createElement("div");
+      wrap.className = "relative mx-auto max-w-4xl pl-10";
+      const line = document.createElement("div");
+      line.className = "ghex-timeline-line";
+      line.setAttribute("aria-hidden", "true");
+      wrap.appendChild(line);
+      groups.forEach((g) => {
+        const tips = ghexTradeSuggestionLines(g.name, g.localName || g.name);
+        const openDetails = tips.some((line) => /提前发送|保持敬意/.test(line));
+        const tipsHtml =
+          "<ul class=\"mt-2 list-disc space-y-1 pl-4 text-xs leading-relaxed text-slate-400\">" +
+          tips.map((line) => "<li>" + ghexEscapeHtml(line) + "</li>").join("") +
+          "</ul>";
+        g.countries.sort((a, b) =>
+          ghexCountryLabelZh(a.code, a.apiName).localeCompare(ghexCountryLabelZh(b.code, b.apiName), "zh-CN"),
+        );
+        const chips = g.countries
+          .map((c) => {
+            const flag = ghexFlagEmoji(c.code);
+            const lab = ghexEscapeHtml(ghexCountryLabelZh(c.code, c.apiName));
+            const codeEsc = ghexEscapeHtml(c.code);
+            const tip = codeEsc + " " + lab;
+            return (
+              '<span class="ghex-radar-country-chip max-w-[min(100%,11rem)]" title="' +
+              tip +
+              '"><span class="ghex-radar-chip-flag" aria-hidden="true">' +
+              flag +
+              '</span><span class="min-w-0 flex-1 truncate"><span class="font-mono text-[10px] text-slate-500">' +
+              codeEsc +
+              '</span> <span class="text-slate-200">' +
+              lab +
+              "</span></span></span>"
+            );
+          })
+          .join("");
+        const zhSub = getHolidayZh(g.name);
+        const subLine = zhSub !== g.name ? ghexEscapeHtml(zhSub) : "";
+        const bulbClass = ghexRadarTradeBulbClass(g.name);
+        const impacted = ghexCollectImpactedForRadarGroup(g);
+        const anchorId = ghexRadarCardAnchorId(g);
+        let impactBlock = "";
+        if (impacted.length) {
+          const idx = ghexRadarImpactMetaByIdx.length;
+          ghexRadarImpactMetaByIdx.push({ holiday: g.name, date: g.date, items: impacted });
+          const prevParts = impacted.slice(0, 3).map(
+            (row) =>
+              '<span class="inline-flex max-w-full items-center gap-1 text-sm">' +
+              '<span class="truncate text-slate-200">' +
+              ghexEscapeHtml(row.name) +
+              '</span><button type="button" class="ghex-radar-greet-btn" data-ghex-greeting-id="' +
+              ghexEscapeHtml(String(row.id)) +
+              '" title="发送节日祝福">📧</button></span>',
+          );
+          impactBlock =
+            '<div class="ghex-radar-impact mt-4">' +
+            '<p class="text-xs font-semibold text-amber-200/90">受影响客户（工作台 / 公海 / 老客户）</p>' +
+            '<div class="ghex-radar-impact-names mt-2">' +
+            prevParts.join('<span class="text-slate-600">·</span>') +
+            "</div>" +
+            '<button type="button" class="ghex-radar-view-all-btn" data-ghex-view-all-idx="' +
+            idx +
+            '">查看全部（' +
+            impacted.length +
+            "名）</button></div>";
+        }
+        const card = document.createElement("article");
+        card.id = anchorId;
+        card.className =
+          "ghex-card relative z-[1] mb-4 rounded-xl p-4 md:p-5" + (ghexIsRadarDateToday(g.date) ? " ghex-radar-card--today" : "");
+        card.innerHTML =
+          '<p class="text-sm font-semibold text-sky-200/95">' +
+          ghexEscapeHtml(ghexFormatRadarDateHeading(g.date)) +
+          '</p><p class="mt-1 font-mono text-[11px] text-slate-500">' +
+          ghexEscapeHtml(g.date) +
+          "</p>" +
+          '<h4 class="mt-3 text-lg font-semibold leading-snug text-slate-50">' +
+          ghexEscapeHtml(g.name) +
+          "</h4>" +
+          (subLine ? '<p class="mt-1 text-sm text-slate-400">' + subLine + "</p>" : "") +
+          '<div class="mt-3 flex flex-wrap items-center gap-1.5">' +
+          chips +
+          "</div>" +
+          impactBlock +
+          '<details class="ghex-trade-details mt-4 border-t border-slate-700/50 pt-3"' +
+          (openDetails ? " open" : "") +
+          ">" +
+          '<summary class="text-xs font-semibold text-slate-300"><span class="ghex-trade-bulb mr-1.5 ' +
+          bulbClass +
+          '" aria-hidden="true">💡</span>外贸社交建议</summary>' +
+          tipsHtml +
+          "</details>";
+        wrap.appendChild(card);
+      });
+      ghexTimelineEl.innerHTML = "";
+      ghexTimelineEl.appendChild(wrap);
+      void refreshDashboardHolidayMarketingCard();
+    }
+
+    async function ghexSelectRadar() {
+      ghexExplorerMode = "radar";
+      renderGhexSidebar();
+      renderGhexRadarMainHeader();
+      renderGhexRadarTimelineLoading();
+      try {
+        const raw = await ghexFetchNextPublicHolidaysWorldwide();
+        const agg = ghexAggregateWorldwideRadar(raw);
+        ghexLastRadarAgg = agg;
+        renderGhexWorldwideRadar(ghexApplyMarketingSimulateToAgg(agg));
+      } catch (e) {
+        console.error("ghexFetchNextPublicHolidaysWorldwide", e);
+        ghexLastRadarAgg = [];
+        renderGhexTimelineError("全球雷达拉取失败：" + (e && e.message ? e.message : String(e)));
+        void refreshDashboardHolidayMarketingCard();
+      }
+    }
+
+    function wireGhexRadarTimelineClicks() {
+      if (ghexRadarTimelineClickWired || !ghexTimelineEl) return;
+      ghexRadarTimelineClickWired = true;
+      ghexTimelineEl.addEventListener("click", (ev) => {
+        const vw = ev.target.closest("[data-ghex-view-all-idx]");
+        if (vw && ghexTimelineEl.contains(vw)) {
+          const idx = Number.parseInt(vw.getAttribute("data-ghex-view-all-idx"), 10);
+          if (Number.isFinite(idx)) openGhexImpactModalFromIdx(idx);
+          return;
+        }
+        const gr = ev.target.closest("[data-ghex-greeting-id]");
+        if (gr && ghexTimelineEl.contains(gr)) {
+          const cid = gr.getAttribute("data-ghex-greeting-id");
+          const cust = (customersGlobal || []).find((x) => String(x.id) === String(cid));
+          const em = cust && String(cust.email || "").trim();
+          if (em) {
+            const subj = encodeURIComponent("节日问候 / Holiday greetings");
+            window.location.href = "mailto:" + em + "?subject=" + subj;
+          } else {
+            showToast("该客户未填写邮箱", "error");
+          }
+        }
+      });
+    }
+
+    function wireGhexImpactModalClicks() {
+      const modal = document.getElementById("ghex-impact-modal");
+      if (!modal || modal.dataset.ghexImpactWired) return;
+      modal.dataset.ghexImpactWired = "1";
+      modal.addEventListener("click", (ev) => {
+        if (ev.target.closest("[data-ghex-impact-close]")) {
+          closeGhexImpactModal();
+          return;
+        }
+        const gr = ev.target.closest("[data-ghex-greeting-id]");
+        if (gr && modal.contains(gr)) {
+          const cid = gr.getAttribute("data-ghex-greeting-id");
+          const cust = (customersGlobal || []).find((x) => String(x.id) === String(cid));
+          const em = cust && String(cust.email || "").trim();
+          if (em) {
+            const subj = encodeURIComponent("节日问候 / Holiday greetings");
+            window.location.href = "mailto:" + em + "?subject=" + subj;
+          } else {
+            showToast("该客户未填写邮箱", "error");
+          }
+        }
+      });
+    }
+
+    async function ghexFetchPublicHolidays(countryCode) {
+      if (countryCode === "SO") {
+        return getSomaliaFallbackRows(GHEX_API_YEAR).map(somaliaRowToNagerShape);
+      }
+      const res = await fetch(GHEX_NAGER_BASE + "/PublicHolidays/" + GHEX_API_YEAR + "/" + encodeURIComponent(countryCode), {
+        method: "GET",
+      });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.json();
+    }
+
+    function ghexSortCountries(rows) {
+      return rows.slice().sort((a, b) => {
+        const la = ghexCountryLabelZh(a.code, a.apiName);
+        const lb = ghexCountryLabelZh(b.code, b.apiName);
+        return la.localeCompare(lb, "zh-CN");
+      });
+    }
+
+    function ghexMatchesSearch(row, q) {
+      if (!q) return true;
+      const t = q.trim().toLowerCase();
+      if (!t) return true;
+      const zh = ghexCountryLabelZh(row.code, row.apiName).toLowerCase();
+      const en = (row.apiName || "").toLowerCase();
+      const code = row.code.toLowerCase();
+      return zh.includes(t) || en.includes(t) || code.includes(t);
+    }
+
+    function renderGhexSidebar() {
+      if (!ghexCountryListEl) return;
+      if (!ghexCountriesCache || !ghexCountriesCache.length) {
+        ghexCountryListEl.innerHTML = ghexLoadingList
+          ? '<p class="px-3 py-4 text-center text-xs text-slate-500">正在加载国家索引…</p>'
+          : '<p class="px-3 py-4 text-center text-xs text-rose-400/90">无法加载国家列表，请稍后重试。</p>';
+        ghexSyncRadarNavButton();
+        return;
+      }
+      const filtered = ghexCountriesCache.filter((r) => ghexMatchesSearch(r, ghexSearchQuery));
+      const byCont = Object.create(null);
+      GHEX_CONTINENT_ORDER.forEach((k) => {
+        byCont[k] = [];
+      });
+      filtered.forEach((row) => {
+        const k = ghexContinentKey(row.code);
+        (byCont[k] || byCont.other).push(row);
+      });
+      const frag = document.createDocumentFragment();
+      GHEX_CONTINENT_ORDER.forEach((ck) => {
+        const list = byCont[ck];
+        if (!list || !list.length) return;
+        const cap = document.createElement("div");
+        cap.className = "ghex-region-label";
+        cap.textContent = GHEX_CONTINENT_LABEL[ck] || ck;
+        frag.appendChild(cap);
+        list.forEach((row) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.setAttribute("role", "option");
+          btn.dataset.ghexCountry = row.code;
+          btn.className =
+            "ghex-country-row" +
+            (row.code === ghexSelectedCode && ghexExplorerMode === "country" ? " ghex-country-row--active" : "");
+          const flag = HOLIDAY_COUNTRY_META[row.code]?.flag || ghexFlagEmoji(row.code);
+          const zh = ghexCountryLabelZh(row.code, row.apiName);
+          btn.innerHTML =
+            '<span class="text-lg leading-none" aria-hidden="true">' +
+            flag +
+            '</span><span class="min-w-0 flex-1 truncate">' +
+            zh +
+            '</span><span class="shrink-0 font-mono text-[10px] text-slate-500">' +
+            row.code +
+            "</span>";
+          frag.appendChild(btn);
+        });
+      });
+      if (!frag.childNodes.length) {
+        ghexCountryListEl.innerHTML = '<p class="px-3 py-6 text-center text-xs text-slate-500">无匹配国家，请调整搜索词。</p>';
+        ghexSyncRadarNavButton();
+        return;
+      }
+      ghexCountryListEl.innerHTML = "";
+      ghexCountryListEl.appendChild(frag);
+      ghexSyncRadarNavButton();
+    }
+
+    function ghexMonthFilterSelectHtml() {
+      let opts = '<option value="0"' + (ghexMonthFilter === 0 ? " selected" : "") + ">全年</option>";
+      for (let m = 1; m <= 12; m++) {
+        opts +=
+          '<option value="' +
+          m +
+          '"' +
+          (ghexMonthFilter === m ? " selected" : "") +
+          ">" +
+          m +
+          "月</option>";
+      }
+      return (
+        '<div class="flex flex-col gap-1 sm:items-end">' +
+        '<label for="ghex-month-filter" class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">筛选月份</label>' +
+        '<select id="ghex-month-filter" class="ghex-month-filter" aria-label="按公历月份筛选公共假日">' +
+        opts +
+        "</select></div>"
+      );
+    }
+
+    function renderGhexMainHeader(row) {
+      if (!ghexMainHeaderEl) return;
+      if (!row) {
+        ghexMainHeaderEl.innerHTML = '<p class="text-xs text-slate-500">请选择左侧国家</p>';
+        return;
+      }
+      const flag = HOLIDAY_COUNTRY_META[row.code]?.flag || ghexFlagEmoji(row.code);
+      const zh = ghexCountryLabelZh(row.code, row.apiName);
+      ghexMainHeaderEl.innerHTML =
+        '<div class="flex flex-wrap items-end justify-between gap-3">' +
+        '<div class="min-w-0 flex-1">' +
+        '<h3 class="text-xl font-semibold tracking-tight text-slate-50 md:text-2xl"><span class="mr-2" aria-hidden="true">' +
+        flag +
+        "</span>" +
+        zh +
+        " <span class=\"font-normal text-slate-400\">" +
+        GHEX_API_YEAR +
+        '年节日与庆典</span></h3></div>' +
+        ghexMonthFilterSelectHtml() +
+        '</div><p class="mt-2 text-xs text-slate-500">公共假日数据 · Nager.Date · ISO 3166-1 alpha-2 · <span class="font-mono">' +
+        row.code +
+        "</span></p>";
+    }
+
+    function renderGhexTimelineLoading() {
+      if (!ghexTimelineEl) return;
+      ghexTimelineEl.innerHTML =
+        '<div class="ghex-card mx-auto max-w-3xl rounded-xl p-10 text-center text-sm text-slate-400">正在拉取 ' +
+        GHEX_API_YEAR +
+        " 年公共假日…</div>";
+    }
+
+    function renderGhexTimelineError(msg) {
+      if (!ghexTimelineEl) return;
+      ghexTimelineEl.innerHTML =
+        '<div class="ghex-card mx-auto max-w-3xl rounded-xl border border-rose-500/25 bg-rose-950/20 p-6 text-sm text-rose-200/90">' +
+        (msg || "加载失败") +
+        "</div>";
+    }
+
+    function ghexFilterHolidaysForDisplay(holidays) {
+      const arr = Array.isArray(holidays) ? holidays.slice() : [];
+      if (ghexMonthFilter < 1 || ghexMonthFilter > 12) return arr;
+      return arr.filter((h) => {
+        const ds = String(h && h.date ? h.date : "");
+        if (ds.length < 7) return false;
+        const mm = Number.parseInt(ds.slice(5, 7), 10);
+        return mm === ghexMonthFilter;
+      });
+    }
+
+    function renderGhexTimeline(holidays) {
+      if (!ghexTimelineEl) return;
+      if (!Array.isArray(holidays) || !holidays.length) {
+        ghexTimelineEl.innerHTML =
+          '<div class="ghex-card mx-auto max-w-3xl rounded-xl p-8 text-center text-sm text-slate-400">该年在 Nager.Date 库中暂无公共假日记录，或接口暂不可用。</div>';
+        return;
+      }
+      const filtered = ghexFilterHolidaysForDisplay(holidays);
+      if (!filtered.length) {
+        ghexTimelineEl.innerHTML =
+          '<div class="ghex-card mx-auto max-w-3xl rounded-xl border border-slate-600/40 p-8 text-center text-sm text-slate-400">' +
+          "当前国家在 <span class=\"font-semibold text-slate-300\">" +
+          ghexMonthFilter +
+          " 月</span>暂无公共假日记录。可将上方筛选改为「全年」查看其他月份。</div>";
+        return;
+      }
+      const sorted = filtered.sort((a, b) => String(a.date).localeCompare(String(b.date)));
+      let lastMonth = -1;
+      const wrap = document.createElement("div");
+      wrap.className = "relative mx-auto max-w-3xl pl-10";
+      const line = document.createElement("div");
+      line.className = "ghex-timeline-line";
+      line.setAttribute("aria-hidden", "true");
+      wrap.appendChild(line);
+      sorted.forEach((h) => {
+        const d = new Date(h.date + "T12:00:00");
+        const m = d.getMonth();
+        if (m !== lastMonth) {
+          lastMonth = m;
+          const mh = document.createElement("div");
+          mh.className = "relative z-[1] mb-4 mt-2 first:mt-0";
+          mh.innerHTML =
+            '<span class="ghex-month-pill">' +
+            d.toLocaleDateString("zh-CN", { year: "numeric", month: "long" }) +
+            "</span>";
+          wrap.appendChild(mh);
+        }
+        const tags = ghexHolidayTags(h);
+        const tips = ghexTradeSuggestionLines(h.name, h.localName);
+        const openDetails = tips.some((line) => /提前发送|保持敬意/.test(line));
+        const card = document.createElement("article");
+        card.className = "ghex-card relative z-[1] mb-4 rounded-xl p-4 md:p-5";
+        const dayStr = d.toLocaleDateString("zh-CN", { month: "numeric", day: "numeric", weekday: "short" });
+        const dayBig = String(d.getDate()).padStart(2, "0");
+        const monShort = d.toLocaleDateString("zh-CN", { month: "short" });
+        const tagHtml = tags
+          .map((t) => '<span class="ghex-tag ghex-tag--' + t.key + '">' + ghexEscapeHtml(t.label) + "</span>")
+          .join("");
+        const tipsHtml =
+          "<ul class=\"mt-2 list-disc space-y-1 pl-4 text-xs leading-relaxed text-slate-400\">" +
+          tips.map((line) => "<li>" + ghexEscapeHtml(line) + "</li>").join("") +
+          "</ul>";
+        const localDisp = h.localName || h.name || "—";
+        const enSecond = h.name && h.name !== h.localName ? h.name : "";
+        card.innerHTML =
+          '<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">' +
+          '<div class="flex gap-4">' +
+          '<div class="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-lg border border-slate-600/50 bg-slate-900/60">' +
+          '<span class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">' +
+          ghexEscapeHtml(monShort) +
+          '</span><span class="text-xl font-bold tabular-nums text-slate-100">' +
+          dayBig +
+          "</span></div>" +
+          '<div class="min-w-0 flex-1">' +
+          '<p class="text-xs text-slate-500">' +
+          ghexEscapeHtml(dayStr) +
+          " · " +
+          ghexEscapeHtml(String(h.date)) +
+          "</p>" +
+          '<h4 class="mt-1 text-base font-semibold leading-snug text-slate-50">' +
+          ghexEscapeHtml(localDisp) +
+          '</h4><p class="mt-0.5 text-sm text-slate-400">' +
+          ghexEscapeHtml(enSecond) +
+          "</p>" +
+          '<div class="mt-2 flex flex-wrap gap-1.5">' +
+          tagHtml +
+          "</div></div></div></div>" +
+          '<details class="ghex-trade-details mt-4 border-t border-slate-700/50 pt-3"' +
+          (openDetails ? " open" : "") +
+          ">" +
+          '<summary class="text-xs font-semibold text-slate-300"><span class="mr-1.5" aria-hidden="true">💡</span>外贸社交建议</summary>' +
+          tipsHtml +
+          "</details>";
+        wrap.appendChild(card);
+      });
+      ghexTimelineEl.innerHTML = "";
+      ghexTimelineEl.appendChild(wrap);
+    }
+
+    async function ghexSelectCountry(code) {
+      if (!code) return;
+      ghexExplorerMode = "country";
+      ghexSelectedCode = code;
+      renderGhexSidebar();
+      const row = ghexCountriesCache && ghexCountriesCache.find((r) => r.code === code);
+      renderGhexMainHeader(row || { code, apiName: code });
+      if (ghexHolidaysByCode[code]) {
+        renderGhexTimeline(ghexHolidaysByCode[code]);
+        return;
+      }
+      ghexLoadingHolidays = true;
+      renderGhexTimelineLoading();
+      try {
+        const data = await ghexFetchPublicHolidays(code);
+        ghexHolidaysByCode[code] = Array.isArray(data) ? data : [];
+        renderGhexTimeline(ghexHolidaysByCode[code]);
+      } catch (e) {
+        console.error("ghexFetchPublicHolidays", e);
+        renderGhexTimelineError("加载节日数据失败：" + (e && e.message ? e.message : String(e)));
+      } finally {
+        ghexLoadingHolidays = false;
+      }
+    }
+
+    async function initHolidayExplorerView() {
+      if (!holidayExplorerView || !ghexCountryListEl) return;
+      if (!ghexExplorerWired) {
+        ghexExplorerWired = true;
+        ghexCountryListEl.addEventListener("click", (ev) => {
+          const btn = ev.target.closest("[data-ghex-country]");
+          if (!btn || !ghexCountryListEl.contains(btn)) return;
+          const code = btn.getAttribute("data-ghex-country");
+          if (code) void ghexSelectCountry(code);
+        });
+        if (ghexCountrySearchEl) {
+          ghexCountrySearchEl.addEventListener("input", () => {
+            ghexSearchQuery = ghexCountrySearchEl.value || "";
+            renderGhexSidebar();
+          });
+        }
+        holidayExplorerView.addEventListener("change", (ev) => {
+          const t = ev.target;
+          if (!t || t.id !== "ghex-month-filter") return;
+          if (ghexExplorerMode !== "country") return;
+          const v = Number.parseInt(String(t.value), 10);
+          ghexMonthFilter = Number.isFinite(v) && v >= 0 && v <= 12 ? v : 0;
+          const list = ghexHolidaysByCode[ghexSelectedCode];
+          if (list != null) {
+            renderGhexTimeline(list);
+          }
+        });
+        const radarNavBtn = document.getElementById("ghex-radar-btn");
+        if (radarNavBtn) {
+          radarNavBtn.addEventListener("click", () => {
+            void ghexSelectRadar();
+          });
+        }
+      }
+      if (!ghexCountriesCache) {
+        ghexLoadingList = true;
+        renderGhexSidebar();
+        try {
+          const raw = await ghexFetchAvailableCountries();
+          ghexCountriesCache = ghexSortCountries(raw);
+          if (!ghexCountriesCache.some((r) => r.code === "SO")) {
+            ghexCountriesCache.push({ code: "SO", apiName: "Somalia" });
+            ghexCountriesCache = ghexSortCountries(ghexCountriesCache);
+          }
+        } catch (e) {
+          console.error("ghexFetchAvailableCountries", e);
+          ghexCountriesCache = [];
+        } finally {
+          ghexLoadingList = false;
+        }
+        renderGhexSidebar();
+      }
+      if (!ghexCountriesCache || !ghexCountriesCache.length) {
+        renderGhexMainHeader(null);
+      }
+      renderGhexSidebar();
+      await ghexSelectRadar();
+    }
 
     function normalizeCountry(value) {
       return (value || "").trim().toLowerCase();
@@ -2916,6 +4521,47 @@
       return events.concat(additions);
     }
 
+    function getSomaliaFallbackRows(year) {
+      const y = Number(year);
+      if (!Number.isFinite(y)) return [];
+      const listed = SO_PUBLIC_FALLBACK[y];
+      if (listed && listed.length) return listed;
+      return [
+        { date: y + "-01-01", name: "New Year's Day", localName: "新年" },
+        { date: y + "-05-01", name: "Labour Day", localName: "劳动节" },
+        { date: y + "-06-26", name: "Independence Day", localName: "独立日" },
+        { date: y + "-07-01", name: "Republic Day", localName: "共和国日" },
+      ];
+    }
+
+    function ensureSomaliaPublicHolidays(events, year) {
+      const required = getSomaliaFallbackRows(year);
+      if (!required.length) return events;
+      const exists = new Set(
+        events.filter((e) => e && e.extendedProps && e.extendedProps.countryCode === "SO").map((e) => e.start + ":" + e.extendedProps.holidayEn),
+      );
+      const additions = required
+        .filter((item) => !exists.has(item.date + ":" + item.name))
+        .map((item) => toHolidayEvent(item, "SO"));
+      return events.concat(additions);
+    }
+
+    function somaliaRowToNagerShape(row) {
+      const hasCounties = Array.isArray(row.counties) && row.counties.length > 0;
+      const global = row.global === false || hasCounties ? false : true;
+      return {
+        date: row.date,
+        localName: row.localName || row.name,
+        name: row.name,
+        countryCode: "SO",
+        fixed: false,
+        global,
+        counties: row.counties || null,
+        launchYear: null,
+        types: ["Public"],
+      };
+    }
+
     function parseCountryCodeFromFilter(raw) {
       const value = normalizeCountry(raw).replace(/\s+/g, "");
       if (!value) return null;
@@ -2930,6 +4576,71 @@
       return byMeta ? byMeta[0] : null;
     }
 
+    /** 拆分「美国/USA」「德国 (Germany)」等多段国家写法，便于逐段解析。 */
+    function expandCountryInputStrings(raw) {
+      const s = String(raw || "").trim();
+      if (!s) return [];
+      const out = [];
+      const push = (x) => {
+        const v = String(x || "").trim();
+        if (v && out.indexOf(v) === -1) out.push(v);
+      };
+      push(s);
+      const noParen = s
+        .replace(/\([^)]*\)/g, " ")
+        .replace(/（[^）]*）/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (noParen && noParen !== s) push(noParen);
+      s.split(/[/|、,，;；\n]+/).forEach((p) => {
+        push(p.trim());
+      });
+      return out;
+    }
+
+    function fuzzyLatinCountryTokenToIso(compact) {
+      const t = String(compact || "")
+        .toLowerCase()
+        .replace(/[^a-z]/g, "");
+      if (!t) return null;
+      if (COUNTRY_LATIN_FUZZY_TO_ISO[t]) return COUNTRY_LATIN_FUZZY_TO_ISO[t];
+      if (COUNTRY_CODE_ALIASES[t]) return COUNTRY_CODE_ALIASES[t];
+      return null;
+    }
+
+    /** 将客户表中的国家字段解析为 ISO 3166-1 alpha-2（与节日雷达 countryCode 对齐）。 */
+    function resolveCustomerCountryIso2(customer) {
+      if (!customer) return null;
+      const direct = String(customer.country_code || customer.countryCode || "").trim().toUpperCase();
+      if (/^[A-Z]{2}$/.test(direct)) return direct;
+      const raw = String(customer.country || "").trim();
+      if (!raw) return null;
+      const variants = expandCountryInputStrings(raw);
+      for (let i = 0; i < variants.length; i++) {
+        const fromMeta = parseCountryCodeFromFilter(variants[i]);
+        if (fromMeta) return fromMeta;
+        const lat = fuzzyLatinCountryTokenToIso(variants[i]);
+        if (lat) return lat;
+      }
+      const norm = normalizeCountry(raw);
+      for (const [code, zh] of Object.entries(GHEX_EXTRA_ZH)) {
+        const zhn = normalizeCountry(zh);
+        if (!zhn) continue;
+        if (zhn === norm || norm.includes(zhn) || zhn.includes(norm)) return code;
+      }
+      const cc = ghexCountriesCache;
+      if (cc && Array.isArray(cc)) {
+        const cand = norm.replace(/\s+/g, "");
+        const hit = cc.find((r) => {
+          const en = normalizeCountry(r.apiName || "").replace(/\s+/g, "");
+          if (!en) return false;
+          return en === cand || cand.includes(en) || en.includes(cand);
+        });
+        if (hit) return String(hit.code).toUpperCase();
+      }
+      return null;
+    }
+
     function getHolidayFocusCountryCodes() {
       const fromFilter = parseCountryCodeFromFilter(customerCountryFilter);
       return fromFilter ? [fromFilter] : HOLIDAY_COUNTRIES;
@@ -2937,6 +4648,7 @@
 
     async function fetchGlobalHolidays(year) {
       const requests = HOLIDAY_COUNTRIES.map(async (countryCode) => {
+        if (countryCode === "SO") return [];
         const url = "https://date.nager.at/api/v3/PublicHolidays/" + year + "/" + countryCode;
         try {
           const response = await fetch(url);
@@ -2950,7 +4662,7 @@
 
       const results = await Promise.all(requests);
       const merged = results.flat();
-      return ensureChinaStatutoryHolidays(merged, year);
+      return ensureSomaliaPublicHolidays(ensureChinaStatutoryHolidays(merged, year), year);
     }
 
     function countryMatches(customerCountry, filterCountry) {
@@ -2979,10 +4691,6 @@
       renderRows();
       if (dashboardPrivateViewMode === "kanban") {
         renderKanbanBoard();
-      }
-      if (holidayCalendarInstance) {
-        holidayCalendarInstance.rerenderEvents();
-        renderUpcomingHolidayCards();
       }
     }
 
@@ -3589,6 +5297,57 @@
       return d.toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
     }
 
+    /** 最后跟进日相对「今天」的日历日差（当地日期，同一天为 0）；无效返回 null。 */
+    function lastFollowUpGapCalendarDays(iso) {
+      if (!iso) return null;
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return null;
+      const now = new Date();
+      const t0 = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+      const t1 = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+      const diff = Math.floor((t1 - t0) / 86400000);
+      return diff < 0 ? 0 : diff;
+    }
+
+    function getLastFollowUpWarmthMeta(iso) {
+      const days = lastFollowUpGapCalendarDays(iso);
+      if (days === null) {
+        return { title: "暂无最后跟进记录", dotClass: "", showDot: false };
+      }
+      const title = "已 " + days + " 天未联系";
+      if (days <= 3) {
+        return { title, dotClass: "crm-last-follow-dot--hot", showDot: true };
+      }
+      if (days <= 15) {
+        return { title, dotClass: "crm-last-follow-dot--warm", showDot: true };
+      }
+      return { title, dotClass: "crm-last-follow-dot--cold", showDot: true };
+    }
+
+    function mountLastFollowUpWithWarmthIndicator(td, iso) {
+      if (!td) return;
+      td.textContent = "";
+      const textStr = formatLastFollowUpShort(iso);
+      if (textStr === "—") {
+        td.textContent = "—";
+        return;
+      }
+      const meta = getLastFollowUpWarmthMeta(iso);
+      const wrap = document.createElement("span");
+      wrap.className = "inline-flex items-center gap-1.5";
+      if (meta.showDot && meta.dotClass) {
+        const dot = document.createElement("span");
+        dot.className = "crm-last-follow-dot " + meta.dotClass;
+        dot.title = meta.title;
+        dot.setAttribute("aria-label", meta.title);
+        wrap.appendChild(dot);
+      }
+      const text = document.createElement("span");
+      text.textContent = textStr;
+      wrap.appendChild(text);
+      td.appendChild(wrap);
+    }
+
     function nextFollowupIsoToDateInputValue(iso) {
       if (!iso) return "";
       const d = new Date(iso);
@@ -3627,41 +5386,244 @@
       return dueDayStart <= todayStart;
     }
 
-    const FX_RATE_STORAGE_KEY = "crm_usd_cny_rate";
-    const FX_FALLBACK_RATE = 7.15;
-    const FX_API_ENDPOINTS = [
-      "https://api.exchangerate-api.com/v4/latest/USD",
-      "https://open.er-api.com/v6/latest/USD",
-    ];
+    const FX_SNAPSHOT_STORAGE_KEY = "crm_fx_usd_eur_cny_snapshot";
+    const FX_FALLBACK_USD_CNY = 7.15;
+    /** 仅用于无缓存时的默认展示；EUR/CNY 由 USD 基准表的交叉汇率推导。 */
+    const FX_FALLBACK_USD_PER_EUR = 0.92;
+    const FX_FALLBACK_EUR_CNY = FX_FALLBACK_USD_CNY / FX_FALLBACK_USD_PER_EUR;
     const FX_API_TIMEOUT_MS = 8000;
+    /** 页面保持打开时，自动重新拉取汇率的间隔（24 小时）。 */
+    const FX_AUTO_REFRESH_MS = 86400000;
 
-    function formatCnyDisplay(cnyNumber) {
-      const n = Number.isFinite(cnyNumber) && cnyNumber >= 0 ? cnyNumber : 0;
-      return "¥" + n.toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    /** 内存中的实时汇率：CNY per 1 USD / CNY per 1 EUR */
+    let fxLiveUsdCny = FX_FALLBACK_USD_CNY;
+    let fxLiveEurCny = FX_FALLBACK_EUR_CNY;
+    let fxLastUpdateUtc = "";
+    let fxNextUpdateUtc = "";
+    let fxRefreshInFlight = false;
+    let fxAutoRefreshTimerId = null;
+    let fxCalcInputsWired = false;
+
+    function formatFxCalcOutText(amountRaw, mode) {
+      const u = Number.isFinite(fxLiveUsdCny) && fxLiveUsdCny > 0 ? fxLiveUsdCny : FX_FALLBACK_USD_CNY;
+      const ev = Number.isFinite(fxLiveEurCny) && fxLiveEurCny > 0 ? fxLiveEurCny : FX_FALLBACK_EUR_CNY;
+      const raw = amountRaw == null ? "" : String(amountRaw).trim().replace(/,/g, "");
+      if (raw === "") return "--";
+      const amt = Number.parseFloat(raw);
+      if (!Number.isFinite(amt) || amt < 0) return "--";
+      let v = NaN;
+      let dec = 2;
+      switch (mode) {
+        case "usd_cny":
+          v = amt * u;
+          dec = 2;
+          break;
+        case "eur_cny":
+          v = amt * ev;
+          dec = 2;
+          break;
+        case "cny_usd":
+          v = amt / u;
+          dec = 4;
+          break;
+        case "cny_eur":
+          v = amt / ev;
+          dec = 4;
+          break;
+        case "usd_eur":
+          v = (amt * u) / ev;
+          dec = 4;
+          break;
+        case "eur_usd":
+          v = (amt * ev) / u;
+          dec = 4;
+          break;
+        default:
+          return "--";
+      }
+      if (!Number.isFinite(v)) return "--";
+      return v.toFixed(dec);
     }
 
-    async function fetchUsdToCnyRateFromApi() {
+    function updateFxCalcDisplays() {
+      document.querySelectorAll("[data-fx-calc-wrap]").forEach((wrap) => {
+        const amt = wrap.querySelector(".fx-calc-amount");
+        const mode = wrap.querySelector(".fx-calc-mode");
+        const out = wrap.querySelector(".fx-calc-out");
+        if (!amt || !mode || !out) return;
+        out.textContent = formatFxCalcOutText(amt.value, mode.value);
+      });
+    }
+
+    function wireFxCalcInputsOnce() {
+      if (fxCalcInputsWired) return;
+      fxCalcInputsWired = true;
+      document.querySelectorAll("[data-fx-calc-wrap]").forEach((wrap) => {
+        const amt = wrap.querySelector(".fx-calc-amount");
+        const mode = wrap.querySelector(".fx-calc-mode");
+        const out = wrap.querySelector(".fx-calc-out");
+        if (!amt || !mode || !out) return;
+        const run = () => {
+          out.textContent = formatFxCalcOutText(amt.value, mode.value);
+        };
+        amt.addEventListener("input", run);
+        amt.addEventListener("change", run);
+        mode.addEventListener("change", run);
+        run();
+      });
+    }
+
+    function parseFxSnapshotJson(raw) {
+      try {
+        const o = JSON.parse(raw);
+        const u = Number.parseFloat(o && o.usdCny);
+        const e = Number.parseFloat(o && o.eurCny);
+        if (Number.isFinite(u) && u > 0 && Number.isFinite(e) && e > 0) {
+          return {
+            usdCny: u,
+            eurCny: e,
+            lastApiUpdateUtc: typeof o.lastApiUpdateUtc === "string" ? o.lastApiUpdateUtc : "",
+            nextApiUpdateUtc: typeof o.nextApiUpdateUtc === "string" ? o.nextApiUpdateUtc : "",
+          };
+        }
+      } catch (_) {
+        /* ignore */
+      }
+      return null;
+    }
+
+    function persistFxSnapshot(usdCny, eurCny, meta) {
+      const m = meta || {};
+      try {
+        window.localStorage.setItem(
+          FX_SNAPSHOT_STORAGE_KEY,
+          JSON.stringify({
+            usdCny,
+            eurCny,
+            t: Date.now(),
+            lastApiUpdateUtc: m.lastApiUpdateUtc != null ? m.lastApiUpdateUtc : null,
+            nextApiUpdateUtc: m.nextApiUpdateUtc != null ? m.nextApiUpdateUtc : null,
+          }),
+        );
+      } catch (e) {
+        /* ignore */
+      }
+    }
+
+    function updateFxLiveDisplays() {
+      const u = Number.isFinite(fxLiveUsdCny) && fxLiveUsdCny > 0 ? fxLiveUsdCny : FX_FALLBACK_USD_CNY;
+      const e = Number.isFinite(fxLiveEurCny) && fxLiveEurCny > 0 ? fxLiveEurCny : FX_FALLBACK_EUR_CNY;
+      const us = u.toFixed(4);
+      const es = e.toFixed(4);
+      const elUsd = document.getElementById("fx-live-usd-cny");
+      const elUsdM = document.getElementById("fx-live-usd-cny-mobile");
+      const elEur = document.getElementById("fx-live-eur-cny");
+      const elEurM = document.getElementById("fx-live-eur-cny-mobile");
+      if (elUsd) elUsd.textContent = us;
+      if (elUsdM) elUsdM.textContent = us;
+      if (elEur) elEur.textContent = es;
+      if (elEurM) elEurM.textContent = es;
+      updateFxCalcDisplays();
+    }
+
+    function formatFxMetaLine(lastUtc, nextUtc) {
+      let s = "数据源：er-api（主线）+ exchangerate-api（备用）· USD 基准 · 每 24h 自动刷新";
+      if (lastUtc) {
+        s = "牌价时间：" + lastUtc;
+        if (nextUtc) s += " · 数据源预计下次：" + nextUtc;
+        s += " · 每 24h 自动刷新";
+      }
+      return s;
+    }
+
+    function updateFxMetaLabels() {
+      const line = formatFxMetaLine(fxLastUpdateUtc, fxNextUpdateUtc);
+      const d = document.getElementById("fx-rate-meta-desktop");
+      const m = document.getElementById("fx-rate-meta-mobile");
+      if (d) d.textContent = line;
+      if (m) m.textContent = line;
+    }
+
+    function updateFxStaleIndicator(show) {
+      ["fx-stale-indicator-desktop", "fx-stale-indicator-mobile"].forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const tip = "网络异常，当前使用缓存汇率";
+        el.title = tip;
+        if (show) {
+          el.classList.remove("hidden");
+        } else {
+          el.classList.add("hidden");
+        }
+      });
+    }
+
+    /**
+     * USD 基准 `rates`：USD→CNY = rates.CNY；rates.EUR 为每 1 USD 兑 EUR，故 EUR→CNY = rates.CNY / rates.EUR。
+     * open.er-api v6 含 result / time_last_update_utc；v4 无 result 字段。
+     */
+    function parseUsdBaseRatesFromPayload(data) {
+      if (data && data.result === "error") {
+        return null;
+      }
+      const rates = data && data.rates;
+      if (!rates) return null;
+      const rawCny = rates.CNY != null ? rates.CNY : rates.cny;
+      const rawEur = rates.EUR != null ? rates.EUR : rates.eur;
+      const usdCny = Number.parseFloat(rawCny);
+      const eurPerUsd = Number.parseFloat(rawEur);
+      if (!Number.isFinite(usdCny) || usdCny <= 0) return null;
+      if (!Number.isFinite(eurPerUsd) || eurPerUsd <= 0) return null;
+      const eurCny = usdCny / eurPerUsd;
+      if (!Number.isFinite(eurCny) || eurCny <= 0) return null;
+      const lastApiUpdateUtc =
+        typeof data.time_last_update_utc === "string" && data.time_last_update_utc.trim()
+          ? data.time_last_update_utc.trim()
+          : typeof data.time_last_update === "string"
+            ? data.time_last_update.trim()
+            : "";
+      const nextApiUpdateUtc =
+        typeof data.time_next_update_utc === "string" && data.time_next_update_utc.trim()
+          ? data.time_next_update_utc.trim()
+          : "";
+      return { usdCny, eurCny, lastApiUpdateUtc, nextApiUpdateUtc };
+    }
+
+    const FX_API_URLS = [
+      "https://open.er-api.com/v6/latest/USD",
+      "https://api.exchangerate-api.com/v4/latest/USD",
+    ];
+
+    function fxBustCacheUrl(url) {
+      const sep = url.indexOf("?") >= 0 ? "&" : "?";
+      return url + sep + "_ts=" + Date.now() + "&_=" + Math.random().toString(36).slice(2, 11);
+    }
+
+    async function fetchUsdBaseFxFromApi() {
       let lastErr = null;
-      for (let i = 0; i < FX_API_ENDPOINTS.length; i++) {
+      for (let i = 0; i < FX_API_URLS.length; i++) {
         const controller = new AbortController();
         const timerId = window.setTimeout(() => controller.abort(), FX_API_TIMEOUT_MS);
         try {
-          const res = await fetch(FX_API_ENDPOINTS[i], {
+          const busted = fxBustCacheUrl(FX_API_URLS[i]);
+          const res = await fetch(busted, {
             signal: controller.signal,
             cache: "no-store",
+            headers: {
+              "Cache-Control": "no-cache",
+              Pragma: "no-cache",
+            },
           });
           if (!res.ok) {
             lastErr = new Error("HTTP " + res.status);
             continue;
           }
           const data = await res.json();
-          const raw =
-            data && data.rates && (data.rates.CNY != null ? data.rates.CNY : data.rates.cny);
-          const n = Number.parseFloat(raw);
-          if (Number.isFinite(n) && n > 0) {
-            return n;
+          const parsed = parseUsdBaseRatesFromPayload(data);
+          if (parsed) {
+            return parsed;
           }
-          lastErr = new Error("invalid CNY in response");
+          lastErr = new Error("invalid rates in response");
         } catch (e) {
           lastErr = e;
         } finally {
@@ -3671,103 +5633,107 @@
       throw lastErr || new Error("fx fetch failed");
     }
 
-    function persistFxToolbarRate(v) {
-      try {
-        window.localStorage.setItem(FX_RATE_STORAGE_KEY, String(v));
-      } catch (e) {
-        /* ignore quota / private mode */
+    function applyFxRatesToState(usdCny, eurCny) {
+      if (Number.isFinite(usdCny) && usdCny > 0) {
+        fxLiveUsdCny = usdCny;
       }
+      if (Number.isFinite(eurCny) && eurCny > 0) {
+        fxLiveEurCny = eurCny;
+      }
+      updateFxLiveDisplays();
     }
 
-    /** 根据当前焦点在桌面/移动哪一侧，同步另一套 Rate / USD 输入框。 */
-    function syncFxDesktopMobileInputsFromFocus() {
-      const rateInput = document.getElementById("rate-input");
-      const rateInputMobile = document.getElementById("rate-input-mobile");
-      const usdInput = document.getElementById("usd-input");
-      const usdInputMobile = document.getElementById("usd-input-mobile");
-      const ae = document.activeElement;
-      if (ae === rateInput && rateInputMobile) {
-        rateInputMobile.value = rateInput.value;
-      } else if (ae === rateInputMobile && rateInput) {
-        rateInput.value = rateInputMobile.value;
-      } else if (ae === usdInput && usdInputMobile) {
-        usdInputMobile.value = usdInput.value;
-      } else if (ae === usdInputMobile && usdInput) {
-        usdInput.value = usdInputMobile.value;
-      }
+    function setFxRefreshButtonsBusy(busy) {
+      ["fx-refresh-btn", "fx-refresh-btn-mobile"].forEach((id) => {
+        const btn = document.getElementById(id);
+        if (!btn) return;
+        if (!btn.dataset.crmFxDefaultHtml) {
+          btn.dataset.crmFxDefaultHtml = btn.innerHTML;
+        }
+        btn.disabled = Boolean(busy);
+        btn.innerHTML = busy ? "…" : btn.dataset.crmFxDefaultHtml;
+      });
     }
 
     /**
-     * 汇率 × 美金 → 人民币；用 parseFloat 取值，NaN / 非法即显示 ¥0.00 并 return。
-     * 结果写入 #cny-result 与 #cny-result-mobile。
+     * 从网络拉取并写回界面；手动刷新会 Toast，定时静默刷新不弹成功 Toast。
      */
-    function calculateCNY() {
-      syncFxDesktopMobileInputsFromFocus();
-
-      const rateInput = document.getElementById("rate-input");
-      const usdInput = document.getElementById("usd-input");
-      const cnyResult = document.getElementById("cny-result");
-      const cnyResultMobile = document.getElementById("cny-result-mobile");
-
-      const rateNum = rateInput ? parseFloat(String(rateInput.value).replace(/,/g, "")) : NaN;
-      const usdNum = usdInput ? parseFloat(String(usdInput.value).replace(/,/g, "")) : NaN;
-
-      const zeroDisplay = "¥0.00";
-      if (isNaN(rateNum) || isNaN(usdNum) || rateNum <= 0 || usdNum < 0) {
-        if (cnyResult) cnyResult.textContent = zeroDisplay;
-        if (cnyResultMobile) cnyResultMobile.textContent = zeroDisplay;
+    async function refreshFxRatesFromNetwork(opts) {
+      const options = opts || {};
+      const silent = Boolean(options.silent);
+      const showBusy = options.showBusy !== false;
+      if (fxRefreshInFlight) {
+        if (!silent && typeof showToast === "function") {
+          showToast("正在拉取汇率，请稍候…", "success");
+        }
         return;
       }
-
-      const ae = document.activeElement;
-      if (
-        !isNaN(rateNum) &&
-        rateNum > 0 &&
-        (ae === rateInput || ae === document.getElementById("rate-input-mobile"))
-      ) {
-        persistFxToolbarRate(rateNum);
+      fxRefreshInFlight = true;
+      if (showBusy) {
+        setFxRefreshButtonsBusy(true);
       }
-
-      const formatted = formatCnyDisplay(rateNum * usdNum);
-      if (cnyResult) cnyResult.textContent = formatted;
-      if (cnyResultMobile) cnyResultMobile.textContent = formatted;
+      const prevUsd = fxLiveUsdCny;
+      const prevEur = fxLiveEurCny;
+      try {
+        const pack = await fetchUsdBaseFxFromApi();
+        if (pack.lastApiUpdateUtc) {
+          fxLastUpdateUtc = pack.lastApiUpdateUtc;
+        }
+        if (pack.nextApiUpdateUtc) {
+          fxNextUpdateUtc = pack.nextApiUpdateUtc;
+        }
+        applyFxRatesToState(pack.usdCny, pack.eurCny);
+        persistFxSnapshot(fxLiveUsdCny, fxLiveEurCny, {
+          lastApiUpdateUtc: fxLastUpdateUtc,
+          nextApiUpdateUtc: fxNextUpdateUtc,
+        });
+        updateFxMetaLabels();
+        updateFxStaleIndicator(false);
+        const same =
+          Math.abs(pack.usdCny - prevUsd) < 1e-8 && Math.abs(pack.eurCny - prevEur) < 1e-8;
+        if (!silent && typeof showToast === "function") {
+          const localPull = new Date().toLocaleString("zh-CN", { hour12: false });
+          const line1 = same
+            ? "已拉取数据源当前牌价；与界面一致（供应商本轮尚未调价）。"
+            : "已拉取数据源当前牌价；界面已同步为最新数值。";
+          const line2 =
+            (fxLastUpdateUtc ? "数据源更新时间：" + fxLastUpdateUtc + " · " : "") + "本地拉取：" + localPull;
+          showToast(line1 + "\n" + line2, "success");
+        }
+      } catch (e) {
+        console.warn("FX refresh failed (silent fallback)", e);
+        updateFxStaleIndicator(true);
+      } finally {
+        fxRefreshInFlight = false;
+        if (showBusy) {
+          setFxRefreshButtonsBusy(false);
+        }
+      }
     }
 
-    let fxCalculatorInputListenersBound = false;
-
-    /** 在 DOM 就绪后为汇率/美金输入绑定 input 监听（脚本在 body 末尾时也会立即执行）。 */
-    function setupFxCalculatorInputListeners() {
-      if (fxCalculatorInputListenersBound) return;
-      const rateInput = document.getElementById("rate-input");
-      const usdInput = document.getElementById("usd-input");
-      const rateInputMobile = document.getElementById("rate-input-mobile");
-      const usdInputMobile = document.getElementById("usd-input-mobile");
-      let bound = false;
-      if (rateInput) {
-        rateInput.addEventListener("input", calculateCNY);
-        bound = true;
+    /** 顶栏事件委托：避免直接绑按钮失效；捕获阶段优先处理。 */
+    function ensureFxToolbarRefreshBinding() {
+      const bar = document.getElementById("top-app-bar");
+      if (!bar || bar.dataset.crmFxRefreshBound === "1") {
+        return;
       }
-      if (usdInput) {
-        usdInput.addEventListener("input", calculateCNY);
-        bound = true;
-      }
-      if (rateInputMobile) {
-        rateInputMobile.addEventListener("input", calculateCNY);
-        bound = true;
-      }
-      if (usdInputMobile) {
-        usdInputMobile.addEventListener("input", calculateCNY);
-        bound = true;
-      }
-      if (bound) {
-        fxCalculatorInputListenersBound = true;
-      }
+      bar.dataset.crmFxRefreshBound = "1";
+      bar.addEventListener(
+        "click",
+        (ev) => {
+          const btn = ev.target && ev.target.closest && ev.target.closest("[data-crm-fx-refresh]");
+          if (!btn) return;
+          ev.preventDefault();
+          void refreshFxRatesFromNetwork({ silent: false, showBusy: true });
+        },
+        true,
+      );
     }
 
     if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", setupFxCalculatorInputListeners);
+      document.addEventListener("DOMContentLoaded", ensureFxToolbarRefreshBinding);
     } else {
-      setupFxCalculatorInputListeners();
+      ensureFxToolbarRefreshBinding();
     }
 
     /** 移动端：抽屉侧栏 + 遮罩；md 及以上保持内联侧栏。 */
@@ -3843,42 +5809,73 @@
     }
 
     function initFxToolbar() {
-      const saved = window.localStorage.getItem(FX_RATE_STORAGE_KEY);
-      const parsedSaved = saved != null && saved !== "" ? Number.parseFloat(saved) : NaN;
-      const initialRate = Number.isFinite(parsedSaved) && parsedSaved > 0 ? parsedSaved : FX_FALLBACK_RATE;
-      const rateVal = Number.isFinite(initialRate) && initialRate > 0 ? initialRate : FX_FALLBACK_RATE;
-      const rateStr = Number(rateVal).toFixed(2);
-      const rateD = document.getElementById("rate-input");
-      const rateM = document.getElementById("rate-input-mobile");
-      if (rateD) rateD.value = rateStr;
-      if (rateM) rateM.value = rateStr;
+      ensureFxToolbarRefreshBinding();
+      try {
+        wireFxCalcInputsOnce();
+      } catch (e) {
+        console.warn("wireFxCalcInputsOnce", e);
+      }
 
-      calculateCNY();
+      const snapRaw = window.localStorage.getItem(FX_SNAPSHOT_STORAGE_KEY);
+      let snap = snapRaw ? parseFxSnapshotJson(snapRaw) : null;
+      if (!snap) {
+        try {
+          const legacy = window.localStorage.getItem("crm_usd_cny_rate");
+          const u = legacy != null && legacy !== "" ? Number.parseFloat(legacy) : NaN;
+          if (Number.isFinite(u) && u > 0) {
+            snap = { usdCny: u, eurCny: u / FX_FALLBACK_USD_PER_EUR, lastApiUpdateUtc: "", nextApiUpdateUtc: "" };
+          }
+        } catch (_) {
+          /* ignore */
+        }
+      }
+      if (snap) {
+        fxLiveUsdCny = snap.usdCny;
+        fxLiveEurCny = snap.eurCny;
+        fxLastUpdateUtc = snap.lastApiUpdateUtc || "";
+        fxNextUpdateUtc = snap.nextApiUpdateUtc || "";
+      } else {
+        fxLiveUsdCny = FX_FALLBACK_USD_CNY;
+        fxLiveEurCny = FX_FALLBACK_EUR_CNY;
+        fxLastUpdateUtc = "";
+        fxNextUpdateUtc = "";
+      }
+      updateFxLiveDisplays();
+      updateFxMetaLabels();
+
+      if (fxAutoRefreshTimerId) {
+        window.clearInterval(fxAutoRefreshTimerId);
+        fxAutoRefreshTimerId = null;
+      }
+      fxAutoRefreshTimerId = window.setInterval(() => {
+        void refreshFxRatesFromNetwork({ silent: true, showBusy: false });
+      }, FX_AUTO_REFRESH_MS);
 
       void (async () => {
         try {
-          const live = await fetchUsdToCnyRateFromApi();
-          const rounded = Number(live.toFixed(2));
-          if (Number.isFinite(rounded) && rounded > 0) {
-            const rd = document.getElementById("rate-input");
-            const rm = document.getElementById("rate-input-mobile");
-            if (rd) rd.value = String(rounded);
-            if (rm) rm.value = String(rounded);
-            persistFxToolbarRate(rounded);
-            calculateCNY();
+          const pack = await fetchUsdBaseFxFromApi();
+          if (pack.lastApiUpdateUtc) {
+            fxLastUpdateUtc = pack.lastApiUpdateUtc;
           }
+          if (pack.nextApiUpdateUtc) {
+            fxNextUpdateUtc = pack.nextApiUpdateUtc;
+          }
+          applyFxRatesToState(pack.usdCny, pack.eurCny);
+          persistFxSnapshot(fxLiveUsdCny, fxLiveEurCny, {
+            lastApiUpdateUtc: fxLastUpdateUtc,
+            nextApiUpdateUtc: fxNextUpdateUtc,
+          });
+          updateFxMetaLabels();
+          updateFxStaleIndicator(false);
         } catch (e) {
-          const rd = document.getElementById("rate-input");
-          const cur = rd ? Number.parseFloat(String(rd.value).replace(/,/g, "")) : NaN;
-          if (!Number.isFinite(cur) || cur <= 0) {
-            const fb = FX_FALLBACK_RATE.toFixed(2);
-            const rd2 = document.getElementById("rate-input");
-            const rm2 = document.getElementById("rate-input-mobile");
-            if (rd2) rd2.value = fb;
-            if (rm2) rm2.value = fb;
-            persistFxToolbarRate(FX_FALLBACK_RATE);
-            calculateCNY();
+          console.warn("实时汇率拉取失败，使用缓存或默认值（无错误弹窗）", e);
+          if (!snap) {
+            applyFxRatesToState(FX_FALLBACK_USD_CNY, FX_FALLBACK_EUR_CNY);
+            updateFxMetaLabels();
+          } else {
+            updateFxLiveDisplays();
           }
+          updateFxStaleIndicator(true);
         }
       })();
     }
@@ -3941,12 +5938,13 @@
     }
 
     function renderHolidayIntelLoading(holidayEvent) {
+      if (!holidayIntelPanelEl) return;
       const p = holidayEvent.extendedProps || {};
       const country = p.country || p.countryCode || "该国";
       const holiday = p.holiday || holidayEvent.title;
       holidayIntelPanelEl.classList.add("opacity-0", "translate-y-1");
       window.setTimeout(() => {
-        holidayIntelPanelEl.innerHTML = '<div class="flex items-center gap-3 rounded-xl border border-slate-700 bg-slate-900/70 p-4"><span class="h-5 w-5 animate-spin rounded-full border-2 border-sky-300 border-t-transparent"></span><p class="text-sm text-slate-200">正在生成 [' + country + "] [" + holiday + "] 的深度社交情报与话术...</p></div>";
+        holidayIntelPanelEl.innerHTML = '<div class="holiday-intel-card flex items-center gap-3 rounded-xl p-4"><span class="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-slate-500 border-t-slate-300"></span><p class="text-sm leading-relaxed text-[#CBD5E1]">正在生成「' + country + " · " + holiday + "」的社交情报与话术…</p></div>";
         holidayIntelPanelEl.classList.remove("opacity-0", "translate-y-1");
       }, 80);
     }
@@ -3969,11 +5967,223 @@
       };
     }
 
+    function classifyHolidayFollowupTone(holidayEn, holidayZh) {
+      const t = ((holidayEn || "") + " " + (holidayZh || "")).toLowerCase();
+      if (/memorial|remembrance|anzac|veteran|martyr|mourning|国殇|阵亡|哀悼/i.test(t)) return "solemn";
+      if (/independence|national day|国庆|独立日/i.test(t)) return "patriotic";
+      if (/eid|ramadan|passover|hanukkah|purim|yom kippur|diwali|vesak/i.test(t)) return "faith";
+      if (/new year|新年|元旦|spring festival|chinese new year|lunar new|春节/i.test(t)) return "newyear";
+      if (/christmas|圣诞|noel|xmas/i.test(t)) return "christmas";
+      if (/easter|复活|good friday|holy week|pentecost|ascension/i.test(t)) return "easter";
+      if (/labour|labor day|劳动节|may day/i.test(t)) return "labour";
+      if (/mother|father|women|teacher|护士|母亲|父亲|妇女|教师/i.test(t)) return "appreciation";
+      if (/chuseok|thanksgiving|mid-autumn|midautumn|moon festival|reunion|团圆|中秋/i.test(t)) return "family";
+      return "general";
+    }
+
+    function buildHolidayFollowupTemplates(holidayEvent) {
+      const p = holidayEvent.extendedProps || {};
+      const countryZh = p.country || getCountryZh(p.countryCode || "");
+      const countryEn = p.countryEn || HOLIDAY_COUNTRY_META[p.countryCode || ""]?.nameEn || p.countryCode || "your country";
+      const holidayZh = p.holiday || getHolidayZh(p.holidayEn || holidayEvent.title);
+      const holidayEn = (p.holidayEn || holidayEvent.title || "this holiday").replace(/^\[[^\]]+\]\s*/, "").trim();
+      const tone = classifyHolidayFollowupTone(holidayEn, holidayZh);
+      const H = holidayEn;
+      const productLine =
+        "Our team focuses on pneumatic massage systems and rehabilitation equipment that support relaxation, circulation, and everyday recovery—happy to share a concise catalog when you have a moment after the holiday.";
+      let optionA = "";
+      let optionB = "";
+      if (tone === "solemn") {
+        optionA =
+          "Dear [Customer Name],\n\nThinking of you on " +
+          H +
+          ". Wishing you and your colleagues peace and calm during this meaningful time.\n\nWith respect,\n[Your Name]";
+        optionB =
+          "Dear [Customer Name],\n\nI hope you are doing well around " +
+          H +
+          ". Whenever things feel quieter, many partners like a gentle way to unwind—" +
+          productLine +
+          "\n\nThere is no rush and no pressure—please enjoy the day first.\n\nWarm regards,\n[Your Name]";
+      } else if (tone === "patriotic") {
+        optionA =
+          "Dear [Customer Name],\n\nWarm greetings on " +
+          H +
+          " in " +
+          countryEn +
+          ". Wishing you a proud and pleasant day with your team and loved ones.\n\nKind regards,\n[Your Name]";
+        optionB =
+          "Dear [Customer Name],\n\nSincere wishes for " +
+          H +
+          ". May the day bring you energy and good health.\n\n" +
+          productLine +
+          "\n\nIf it ever helps your family or colleagues to relax after busy weeks, I would be glad to follow up gently after the holiday.\n\nBest regards,\n[Your Name]";
+      } else if (tone === "faith") {
+        optionA =
+          "Dear [Customer Name],\n\nWishing you a peaceful and blessed " +
+          H +
+          " with your family and community.\n\nKind regards,\n[Your Name]";
+        optionB =
+          "Dear [Customer Name],\n\nRespectful greetings for " +
+          H +
+          ". May this season bring you rest and wellbeing.\n\n" +
+          productLine +
+          "\n\nWhenever it feels appropriate after the holiday, I can share materials in a low-key way—your time always comes first.\n\nWarm regards,\n[Your Name]";
+      } else if (tone === "newyear") {
+        optionA =
+          "Dear [Customer Name],\n\nHappy " +
+          H +
+          "! Wishing you and your family fresh energy, good health, and a smooth year ahead in " +
+          countryEn +
+          ".\n\nCheers,\n[Your Name]";
+        optionB =
+          "Dear [Customer Name],\n\nWarm " +
+          H +
+          " greetings from our team. May the new stretch of the year be kind to you and your loved ones.\n\n" +
+          productLine +
+          "\n\nIf wellness or gentle recovery is on your radar later on, I would love to reconnect—no pitch today, just sincere wishes.\n\nBest regards,\n[Your Name]";
+      } else if (tone === "christmas") {
+        optionA =
+          "Dear [Customer Name],\n\nWishing you a peaceful " +
+          H +
+          " surrounded by the people who matter most. May the season be restful and bright.\n\nWarmly,\n[Your Name]";
+        optionB =
+          "Dear [Customer Name],\n\nMerry " +
+          H +
+          "! Hoping you get some well-deserved downtime with family and friends.\n\n" +
+          productLine +
+          "\n\nWhenever you are back in the swing of things, I can send a short overview—enjoy the holiday first.\n\nSeason's greetings,\n[Your Name]";
+      } else if (tone === "easter") {
+        optionA =
+          "Dear [Customer Name],\n\nWarm wishes for " +
+          H +
+          ". May this season bring you renewal, calm, and time with loved ones.\n\nKind regards,\n[Your Name]";
+        optionB =
+          "Dear [Customer Name],\n\nHappy " +
+          H +
+          "! Hoping you enjoy a gentle break and plenty of fresh air.\n\n" +
+          productLine +
+          "\n\nA quick catalog is easy to share after the holiday if it is useful for your team's wellness corner.\n\nBest regards,\n[Your Name]";
+      } else if (tone === "labour") {
+        optionA =
+          "Dear [Customer Name],\n\nWishing you a relaxing " +
+          H +
+          ". Hope you can step away from the desk and recharge.\n\nBest,\n[Your Name]";
+        optionB =
+          "Dear [Customer Name],\n\nSincere greetings for " +
+          H +
+          ". May you enjoy a slower pace with friends or family.\n\n" +
+          productLine +
+          "\n\nIf ergonomic comfort or recovery support is ever on your list, I am here with light-touch follow-up after the break.\n\nWarm regards,\n[Your Name]";
+      } else if (tone === "appreciation") {
+        optionA =
+          "Dear [Customer Name],\n\nWarm wishes on " +
+          H +
+          ". Thank you for the steady collaboration—hope you feel appreciated today.\n\nKind regards,\n[Your Name]";
+        optionB =
+          "Dear [Customer Name],\n\nHappy " +
+          H +
+          "! Grateful for your partnership; wishing you balance and good health.\n\n" +
+          productLine +
+          "\n\nIf a wellness-oriented gift idea for your team ever helps, I can share ideas later—today is simply about appreciation.\n\nBest regards,\n[Your Name]";
+      } else if (tone === "family") {
+        optionA =
+          "Dear [Customer Name],\n\nWarm wishes for " +
+          H +
+          ". May you enjoy good food, laughter, and unhurried time with family and friends.\n\nKind regards,\n[Your Name]";
+        optionB =
+          "Dear [Customer Name],\n\nSincere greetings for " +
+          H +
+          ". Hoping you return to work refreshed and in great spirits.\n\n" +
+          productLine +
+          "\n\nIf your team ever explores gentle recovery or at-home relaxation solutions after busy seasons, I would be happy to share a compact overview—only when it suits you.\n\nWarm regards,\n[Your Name]";
+      } else {
+        optionA =
+          "Dear [Customer Name],\n\nWarm wishes to you and your team on " +
+          H +
+          ". I hope you enjoy a pleasant break with your loved ones.\n\nKind regards,\n[Your Name]";
+        optionB =
+          "Dear [Customer Name],\n\nSending sincere greetings for " +
+          H +
+          ". May this time bring you rest and good health.\n\n" +
+          productLine +
+          "\n\nWhenever it is convenient after the holiday, I would be glad to share a short catalog—no rush at all.\n\nWarm regards,\n[Your Name]";
+      }
+      const bundle =
+        "Option A — Ice breaker (pure greeting, no pitch)\n\n" +
+        optionA +
+        "\n\n---\n\nOption B — Holiday wishes + wellness (pneumatic massage & rehab equipment)\n\n" +
+        optionB;
+      return {
+        modalTitle: holidayZh + " - " + countryZh,
+        optionA,
+        optionB,
+        bundle,
+      };
+    }
+
+    function closeHolidayFollowupModal() {
+      if (!holidayFollowupModalEl || !holidayFollowupModalOverlayEl) return;
+      holidayFollowupModalEl.classList.add("hidden");
+      holidayFollowupModalEl.classList.remove("flex");
+      holidayFollowupModalOverlayEl.classList.add("hidden");
+      document.body.classList.remove("overflow-hidden");
+    }
+
+    function openHolidayFollowupModal(holidayEvent) {
+      if (!holidayFollowupModalEl || !holidayFollowupModalOverlayEl || !holidayFollowupModalTitleEl) return;
+      const t = buildHolidayFollowupTemplates(holidayEvent);
+      holidayFollowupCopyBundle = t.bundle;
+      holidayFollowupModalTitleEl.textContent = t.modalTitle;
+      if (holidayFollowupOptAEl) holidayFollowupOptAEl.textContent = t.optionA;
+      if (holidayFollowupOptBEl) holidayFollowupOptBEl.textContent = t.optionB;
+      holidayFollowupModalOverlayEl.classList.remove("hidden");
+      holidayFollowupModalEl.classList.remove("hidden");
+      holidayFollowupModalEl.classList.add("flex");
+      document.body.classList.add("overflow-hidden");
+    }
+
+    function wireHolidayFollowupModal() {
+      if (holidayFollowupModalBound) return;
+      if (!holidayFollowupModalOverlayEl || !holidayFollowupModalEl || !holidayFollowupCopyAllBtn) return;
+      holidayFollowupModalBound = true;
+      const onOverlay = (ev) => {
+        if (ev.target === holidayFollowupModalOverlayEl) closeHolidayFollowupModal();
+      };
+      holidayFollowupModalOverlayEl.addEventListener("click", onOverlay);
+      holidayFollowupModalEl.addEventListener("click", (ev) => {
+        if (ev.target === holidayFollowupModalEl) closeHolidayFollowupModal();
+      });
+      if (holidayFollowupModalCloseBtn) {
+        holidayFollowupModalCloseBtn.addEventListener("click", () => closeHolidayFollowupModal());
+      }
+      document.addEventListener("keydown", (ev) => {
+        if (ev.key !== "Escape") return;
+        if (!holidayFollowupModalEl || holidayFollowupModalEl.classList.contains("hidden")) return;
+        closeHolidayFollowupModal();
+      });
+      if (holidayFollowupCopyAllBtn) {
+        holidayFollowupCopyAllBtn.addEventListener("click", () => {
+          const text = holidayFollowupCopyBundle || "";
+          if (!text) return;
+          navigator.clipboard.writeText(text).then(
+            () => {
+              showToast("复制成功，快去发给客户吧！", "success");
+            },
+            () => {
+              showToast("复制失败，请检查浏览器权限或手动选择文本复制。", "error");
+            },
+          );
+        });
+      }
+    }
+
     function renderHolidayIntelPanel(holiday) {
+      if (!holidayIntelPanelEl) return;
       holidayIntelPanelEl.classList.add("opacity-0", "translate-y-1");
       if (!holiday) {
         window.setTimeout(() => {
-          holidayIntelPanelEl.innerHTML = '<p class="text-sm text-slate-300">请点击左侧日历上的节日查看社交情报。</p>';
+          holidayIntelPanelEl.innerHTML =
+            '<p class="text-sm leading-relaxed text-[#CBD5E1]">请点击日历上的节日条目查看社交情报。</p>';
           holidayIntelPanelEl.classList.remove("opacity-0", "translate-y-1");
         }, 120);
         return;
@@ -3984,37 +6194,43 @@
       holidayIntelPanelEl.innerHTML = "";
 
       const header = document.createElement("div");
-      header.className = "rounded-xl border border-slate-700 bg-slate-900/75 p-3";
-      header.innerHTML = '<p class="text-xs text-slate-400">节日日期</p><h4 class="mt-1 text-lg font-semibold text-white"></h4><p class="mt-1 text-xs text-slate-300"></p>';
+      header.className = "holiday-intel-card rounded-xl p-3.5";
+      header.innerHTML =
+        '<p class="text-[11px] font-medium uppercase tracking-wide text-slate-500">节日日期</p><h4 class="mt-1.5 text-lg font-semibold leading-snug text-[#F8FAFC]"></h4><p class="mt-1 text-xs text-[#CBD5E1]"></p>';
       header.querySelector("h4").textContent = holiday.title;
       header.querySelector("p:last-child").textContent = new Date(holiday.start).toLocaleDateString("zh-CN");
 
       const insight = document.createElement("div");
-      insight.className = "mt-3 rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-3";
-      insight.innerHTML = '<p class="text-xs font-semibold text-emerald-300">节日解析</p><p class="mt-1 text-sm text-emerald-100"></p>';
+      insight.className = "holiday-intel-card mt-3 rounded-xl p-3.5";
+      insight.innerHTML =
+        '<p class="flex items-center gap-2 text-xs font-semibold text-[#F8FAFC]"><span class="text-base leading-none" aria-hidden="true">💡</span><span>节日解析</span></p><p class="mt-2 text-sm leading-relaxed text-[#CBD5E1]"></p>';
       insight.querySelector("p:last-child").textContent = p.culture_insight || "-";
 
       const taboo = document.createElement("div");
-      taboo.className = "mt-3 rounded-xl border border-rose-400/30 bg-rose-500/10 p-3";
-      taboo.innerHTML = '<p class="text-xs font-semibold text-rose-300">避坑指南</p><p class="mt-1 text-sm text-rose-100"></p>';
+      taboo.className = "holiday-intel-card mt-3 rounded-xl p-3.5";
+      taboo.innerHTML =
+        '<p class="flex items-center gap-2 text-xs font-semibold text-[#F8FAFC]"><span class="text-base leading-none text-amber-400/90" aria-hidden="true">⚠️</span><span class="text-amber-200/90">避坑指南</span></p><p class="mt-2 text-sm leading-relaxed text-[#CBD5E1]"></p>';
       taboo.querySelector("p:last-child").textContent = p.taboos || "-";
 
       const bestTime = document.createElement("div");
-      bestTime.className = "mt-3 rounded-xl border border-sky-400/30 bg-sky-500/10 p-3";
-      bestTime.innerHTML = '<p class="text-xs font-semibold text-sky-300">最佳触达时间</p><p class="mt-1 text-sm text-sky-100"></p>';
+      bestTime.className = "holiday-intel-card mt-3 rounded-xl p-3.5";
+      bestTime.innerHTML =
+        '<p class="flex items-center gap-2 text-xs font-semibold text-[#F8FAFC]"><span class="text-base leading-none" aria-hidden="true">⏰</span><span>最佳触达时间</span></p><p class="mt-2 text-sm leading-relaxed text-[#CBD5E1]"></p>';
       bestTime.querySelector("p:last-child").textContent = p.best_time || "-";
 
       const emailBox = document.createElement("div");
-      emailBox.className = "mt-3 rounded-xl border border-indigo-400/30 bg-indigo-500/10 p-3";
-      emailBox.innerHTML = '<p class="text-xs font-semibold text-indigo-300">正式商务邮件模版</p><pre class="mt-2 whitespace-pre-wrap break-words text-xs text-indigo-100"></pre><button type="button" class="mt-2 rounded-lg border border-indigo-300/40 bg-indigo-400/20 px-3 py-1.5 text-xs font-medium text-indigo-100">一键复制</button>';
+      emailBox.className = "holiday-intel-card mt-3 rounded-xl p-3.5";
+      emailBox.innerHTML =
+        '<p class="text-xs font-semibold text-[#F8FAFC]">正式商务邮件模版</p><pre class="mt-2 whitespace-pre-wrap break-words text-xs leading-relaxed text-[#CBD5E1]"></pre><button type="button" class="mt-3 rounded-lg border border-slate-600/80 bg-slate-800/80 px-3 py-1.5 text-xs font-medium text-slate-200 transition hover:bg-slate-700/90">一键复制</button>';
       emailBox.querySelector("pre").textContent = p.email_template || "";
       emailBox.querySelector("button").addEventListener("click", (event) => {
         copyTextWithFeedback(p.email_template || "", event.currentTarget);
       });
 
       const socialBox = document.createElement("div");
-      socialBox.className = "mt-3 rounded-xl border border-cyan-400/30 bg-cyan-500/10 p-3";
-      socialBox.innerHTML = '<p class="text-xs font-semibold text-cyan-300">WhatsApp 社交短模版</p><pre class="mt-2 whitespace-pre-wrap break-words text-xs text-cyan-100"></pre><button type="button" class="mt-2 rounded-lg border border-cyan-300/40 bg-cyan-400/20 px-3 py-1.5 text-xs font-medium text-cyan-100">一键复制</button>';
+      socialBox.className = "holiday-intel-card mt-3 rounded-xl p-3.5";
+      socialBox.innerHTML =
+        '<p class="text-xs font-semibold text-[#F8FAFC]">WhatsApp 社交短模版</p><pre class="mt-2 whitespace-pre-wrap break-words text-xs leading-relaxed text-[#CBD5E1]"></pre><button type="button" class="mt-3 rounded-lg border border-slate-600/80 bg-slate-800/80 px-3 py-1.5 text-xs font-medium text-slate-200 transition hover:bg-slate-700/90">一键复制</button>';
       socialBox.querySelector("pre").textContent = p.social_template || "";
       socialBox.querySelector("button").addEventListener("click", (event) => {
         copyTextWithFeedback(p.social_template || "", event.currentTarget);
@@ -4022,7 +6238,8 @@
 
       const blessBtn = document.createElement("button");
       blessBtn.type = "button";
-      blessBtn.className = "mt-3 w-full rounded-xl border border-sky-400/50 bg-sky-500/20 px-4 py-2 text-sm font-medium text-sky-200 transition hover:bg-sky-500/30 hover:text-white";
+      blessBtn.className =
+        "mt-4 w-full rounded-xl border border-slate-600/70 bg-slate-800/60 px-4 py-2.5 text-sm font-medium text-[#F8FAFC] transition hover:bg-slate-700/80";
       blessBtn.textContent = "给该国客户发祝福";
       blessBtn.addEventListener("click", () => {
         if (!selectedHolidayCountry) return;
@@ -4042,6 +6259,49 @@
       }, 120);
     }
 
+    function getDisplayedHolidayEvents() {
+      const all = Array.isArray(holidayEventsData) ? holidayEventsData : [];
+      if (holidayMarketRegionFilter === "europe") {
+        return all.filter((e) => e && e.extendedProps && HOLIDAY_MARKET_EU_CODES.has(e.extendedProps.countryCode));
+      }
+      if (holidayMarketRegionFilter === "northamerica") {
+        return all.filter((e) => e && e.extendedProps && HOLIDAY_MARKET_NA_CODES.has(e.extendedProps.countryCode));
+      }
+      return all.slice();
+    }
+
+    function applyHolidayCalendarEventSource() {
+      if (!holidayCalendarInstance) return;
+      holidayCalendarInstance.removeAllEvents();
+      holidayCalendarInstance.addEventSource(getDisplayedHolidayEvents());
+      renderUpcomingHolidayCards();
+    }
+
+    function setHolidayMarketRegion(region) {
+      const r = region === "europe" || region === "northamerica" ? region : "global";
+      holidayMarketRegionFilter = r;
+      const bar = document.getElementById("holiday-market-filter-bar");
+      if (bar) {
+        bar.querySelectorAll("[data-holiday-market]").forEach((btn) => {
+          const on = btn.getAttribute("data-holiday-market") === r;
+          btn.classList.toggle("holiday-market-chip--active", on);
+        });
+      }
+      applyHolidayCalendarEventSource();
+    }
+
+    function wireHolidayMarketFilterBar() {
+      const bar = document.getElementById("holiday-market-filter-bar");
+      if (!bar || bar.dataset.crmHolidayMarketBound === "1") return;
+      bar.dataset.crmHolidayMarketBound = "1";
+      bar.addEventListener("click", (ev) => {
+        const btn = ev.target && ev.target.closest && ev.target.closest("[data-holiday-market]");
+        if (!btn) return;
+        ev.preventDefault();
+        setHolidayMarketRegion(btn.getAttribute("data-holiday-market") || "global");
+      });
+    }
+
     async function loadHolidayEventsForRange(start, end) {
       if (!holidayCalendarInstance) return;
       const startYear = start.getFullYear();
@@ -4050,21 +6310,34 @@
       for (let year = startYear; year <= endYear; year += 1) {
         years.push(year);
       }
-      upcomingHolidaysListEl.innerHTML = '<div class="rounded-xl border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-400">正在拉取全球节日数据...</div>';
-      const yearEvents = await Promise.all(years.map(async (year) => {
-        if (holidayEventCache[year]) return holidayEventCache[year];
-        const events = await fetchGlobalHolidays(year);
-        holidayEventCache[year] = events;
-        return events;
-      }));
-      holidayEventsData = yearEvents.flat();
-      holidayCalendarInstance.removeAllEvents();
-      holidayCalendarInstance.addEventSource(holidayEventsData);
-      renderUpcomingHolidayCards();
+      if (upcomingHolidaysListEl) {
+        upcomingHolidaysListEl.innerHTML =
+          '<div class="holiday-intel-card rounded-xl px-3 py-2 text-sm text-[#CBD5E1]">正在拉取全球节日数据...</div>';
+      }
+      try {
+        const yearEvents = await Promise.all(years.map(async (year) => {
+          if (holidayEventCache[year]) return holidayEventCache[year];
+          const events = await fetchGlobalHolidays(year);
+          holidayEventCache[year] = events;
+          return events;
+        }));
+        holidayEventsData = yearEvents.flat();
+        applyHolidayCalendarEventSource();
+      } catch (e) {
+        console.error("loadHolidayEventsForRange", e);
+        if (upcomingHolidaysListEl) {
+          upcomingHolidaysListEl.innerHTML =
+            '<div class="holiday-intel-card rounded-xl px-3 py-2 text-sm text-rose-300/90">节日数据加载失败，请稍后重试。</div>';
+        }
+      }
     }
 
     function renderHolidayCalendar() {
       if (holidayCalendarInstance || typeof FullCalendar === "undefined") return;
+      if (!holidayCalendarEl) {
+        console.warn("renderHolidayCalendar: #holiday-calendar 不存在");
+        return;
+      }
       holidayCalendarInstance = new FullCalendar.Calendar(holidayCalendarEl, {
         initialView: "dayGridMonth",
         height: "auto",
@@ -4077,7 +6350,11 @@
           center: "title",
           right: "dayGridMonth,timeGridWeek",
         },
-        dayMaxEventRows: 5,
+        dayMaxEvents: 3,
+        moreLinkContent: (arg) => {
+          const n = arg && typeof arg.num === "number" ? arg.num : 0;
+          return { html: '<span class="text-[10px] font-semibold text-slate-400">+' + n + " 项</span>" };
+        },
         events: [],
         eventClassNames: (arg) => {
           const focusCodes = getHolidayFocusCountryCodes();
@@ -4085,35 +6362,35 @@
           return focused ? ["holiday-event-focus"] : ["holiday-event-dim"];
         },
         eventContent: (arg) => {
-          const flag = arg.event.extendedProps.flag || "🌍";
-          const palette = arg.event.extendedProps.palette || "#60a5fa";
+          const p = arg.event.extendedProps || {};
+          const flag = p.flag || "🌍";
+          const palette = p.palette || "#64748b";
+          const name =
+            p.holiday ||
+            String(arg.event.title || "")
+              .replace(/^\[[^\]]+\]\s*/, "")
+              .trim();
           const wrap = document.createElement("div");
-          wrap.className = "holiday-event-tag w-full bg-slate-900/85 text-slate-100";
-          wrap.style.borderLeft = "4px solid " + palette;
-
-          const flagNode = document.createElement("span");
-          flagNode.textContent = flag;
-          flagNode.className = "text-xs";
-
-          const titleNode = document.createElement("span");
-          titleNode.textContent = arg.event.title;
-          titleNode.className = "text-[11px] font-medium truncate";
-
-          wrap.appendChild(flagNode);
-          wrap.appendChild(titleNode);
+          wrap.className = "holiday-event-row w-full min-w-0";
+          wrap.style.borderLeft = "2px solid " + palette;
+          const text = document.createElement("span");
+          text.className = "min-w-0 truncate pl-1.5 text-[11px] leading-tight text-slate-400";
+          text.textContent = (flag ? flag + "\u00a0" : "") + (name || arg.event.title || "");
+          wrap.appendChild(text);
           return { domNodes: [wrap] };
         },
         datesSet: async (info) => {
           await loadHolidayEventsForRange(info.start, info.end);
-          renderUpcomingHolidayCards();
         },
         eventClick: (info) => {
           info.jsEvent.preventDefault();
-          const token = Date.now();
-          holidayIntelRequestToken = token;
-          renderHolidayIntelLoading(info.event);
-          window.setTimeout(() => {
-            if (holidayIntelRequestToken !== token) return;
+          holidayIntelRequestToken = Date.now();
+          try {
+            openHolidayFollowupModal(info.event);
+          } catch (e) {
+            console.error("openHolidayFollowupModal", e);
+          }
+          try {
             const intel = buildHolidayIntelFromEvent(info.event);
             renderHolidayIntelPanel({
               title: intel.title,
@@ -4128,28 +6405,33 @@
                 social_template: intel.social_template,
               },
             });
-          }, 1500);
+          } catch (e) {
+            console.error("holiday intel panel", e);
+          }
         },
       });
       holidayCalendarInstance.render();
+      wireHolidayMarketFilterBar();
       const today = new Date();
       loadHolidayEventsForRange(new Date(today.getFullYear(), today.getMonth(), 1), new Date(today.getFullYear(), today.getMonth() + 1, 1));
       renderHolidayIntelPanel(null);
     }
 
     function renderUpcomingHolidayCards() {
+      if (!upcomingHolidaysListEl) return;
       upcomingHolidaysListEl.innerHTML = "";
       if (!holidayCalendarInstance) return;
       const now = new Date();
       const viewStart = holidayCalendarInstance.view.currentStart;
       const viewEnd = holidayCalendarInstance.view.currentEnd;
-      const upcoming = holidayEventsData
+      const upcoming = getDisplayedHolidayEvents()
         .map((item) => ({ ...item, dateObj: new Date(item.start + "T00:00:00") }))
         .filter((item) => item.dateObj >= new Date(now.getFullYear(), now.getMonth(), now.getDate()) && item.dateObj >= viewStart && item.dateObj < viewEnd)
         .sort((a, b) => a.dateObj - b.dateObj);
 
       if (!upcoming.length) {
-        upcomingHolidaysListEl.innerHTML = '<div class="rounded-xl border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-400">当前视窗内暂无即将到来的节日。</div>';
+        upcomingHolidaysListEl.innerHTML =
+          '<div class="holiday-intel-card rounded-xl px-3 py-2 text-sm text-[#CBD5E1]/85">当前筛选与日期范围内暂无即将到来的节日。</div>';
         return;
       }
 
@@ -4157,33 +6439,55 @@
         const country = item.extendedProps.country;
         const holiday = item.extendedProps.holiday;
         const flag = item.extendedProps.flag || "🌍";
-        const palette = item.extendedProps.palette || "#60a5fa";
 
         const card = document.createElement("div");
         card.className =
-          "rounded-xl border border-slate-700 bg-slate-900/70 p-3 transition-all hover:border-blue-500/50";
-        card.style.boxShadow = "inset 3px 0 0 " + palette;
+          "holiday-intel-card rounded-xl p-3 transition hover:border-sky-500/25 hover:bg-slate-800/40 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40";
+        card.tabIndex = 0;
+        card.setAttribute("role", "button");
+        card.setAttribute("aria-label", "打开「" + holiday + "」实战跟进话术");
 
         const top = document.createElement("p");
-        top.className = "text-xs text-slate-400";
+        top.className = "text-[11px] text-slate-500";
         top.textContent = item.dateObj.toLocaleDateString("zh-CN");
 
         const title = document.createElement("p");
-        title.className = "mt-1 text-sm font-medium text-slate-100";
+        title.className = "mt-1 text-sm font-medium leading-snug text-[#F8FAFC]";
         title.textContent = flag + " " + country + " · " + holiday;
 
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "mt-2 rounded-lg border border-sky-400/40 bg-sky-500/15 px-3 py-1.5 text-xs font-medium text-sky-200 transition hover:bg-sky-500/30 hover:text-white";
-        btn.textContent = "一键生成祝福语";
-        btn.addEventListener("click", () => {
-          const message = buildHolidayIntelFromEvent(item).social_template;
-          showToast("祝福语示例:\n\n" + message, "success");
+        const hint = document.createElement("p");
+        hint.className = "mt-2 text-[10px] text-slate-500";
+        hint.textContent = "点击打开跟进策略 · 可复制英文话术";
+
+        const open = () => {
+          holidayIntelRequestToken = Date.now();
+          openHolidayFollowupModal(item);
+          const intel = buildHolidayIntelFromEvent(item);
+          renderHolidayIntelPanel({
+            title: intel.title,
+            start: intel.date,
+            extendedProps: {
+              country: intel.country,
+              holiday: item.extendedProps.holiday || item.title,
+              culture_insight: intel.culture_insight,
+              taboos: intel.taboos,
+              best_time: intel.best_time,
+              email_template: intel.email_template,
+              social_template: intel.social_template,
+            },
+          });
+        };
+        card.addEventListener("click", open);
+        card.addEventListener("keydown", (ev) => {
+          if (ev.key === "Enter" || ev.key === " ") {
+            ev.preventDefault();
+            open();
+          }
         });
 
         card.appendChild(top);
         card.appendChild(title);
-        card.appendChild(btn);
+        card.appendChild(hint);
         upcomingHolidaysListEl.appendChild(card);
       });
     }
@@ -5551,6 +7855,10 @@
       });
       row1.appendChild(bgCheckBtn);
 
+      if (customer) {
+        row1.appendChild(createCustomerLocalTimeBadge(customer.country));
+      }
+
       if (o.showOverdueIcon && customer && isOverdueNow(customer.next_followup_date)) {
         const overdueIcon = document.createElement("span");
         overdueIcon.className = "shrink-0 text-rose-400";
@@ -5651,7 +7959,7 @@
         const lastFollowCell = document.createElement("td");
         lastFollowCell.className =
           "hidden whitespace-nowrap px-2 py-2 text-xs text-slate-400 align-middle tabular-nums sm:table-cell sm:px-4 sm:py-3";
-        lastFollowCell.textContent = formatLastFollowUpShort(customer.last_follow_up);
+        mountLastFollowUpWithWarmthIndicator(lastFollowCell, customer.last_follow_up);
 
         const emailCell = document.createElement("td");
         emailCell.className = "hidden px-2 py-2 align-middle md:table-cell md:px-4 md:py-3";
@@ -5840,7 +8148,7 @@
         const lastFollowCell = document.createElement("td");
         lastFollowCell.className =
           "hidden whitespace-nowrap px-2 py-2 text-xs text-slate-400 align-middle tabular-nums sm:table-cell sm:px-4 sm:py-3";
-        lastFollowCell.textContent = formatLastFollowUpShort(customer.last_follow_up);
+        mountLastFollowUpWithWarmthIndicator(lastFollowCell, customer.last_follow_up);
 
         const emailCell = document.createElement("td");
         emailCell.className = "hidden px-2 py-2 align-middle md:table-cell md:px-4 md:py-3";
@@ -6144,6 +8452,234 @@
       return (rows || []).filter((c) => c && customerRowIsClosedFlag(c));
     }
 
+    /**
+     * 全库客户（工作台私海、公海、成交老客户）中，国家与给定 ISO2 一致的客户（用于节日雷达对碰）。
+     * 返回：姓名（联系人优先）、公司名、跟进状态、最后跟进时间、分段（workbench | public | closed）、邮箱。
+     */
+    function getImpactedCustomers(countryCode) {
+      const code = String(countryCode || "").toUpperCase().trim();
+      if (!code || code.length !== 2) return [];
+      const rows = Array.isArray(customersGlobal) ? customersGlobal : [];
+      const out = [];
+      rows.forEach((c) => {
+        if (!c) return;
+        if (resolveCustomerCountryIso2(c) !== code) return;
+        const inPub = customerRowIsInPublicPool(c);
+        const inCls = customerRowIsClosedFlag(c);
+        const seg = inCls ? "closed" : inPub ? "public" : "workbench";
+        const nm =
+          String(c.contact_name || "").trim() || String(c.company_name || "").trim() || "未命名";
+        out.push({
+          id: c.id,
+          name: nm,
+          company_name: c.company_name || "",
+          status: String(c.status || "").trim() || "—",
+          last_follow_up: c.last_follow_up || null,
+          segment: seg,
+          email: String(c.email || "").trim(),
+        });
+      });
+      out.sort((a, b) => {
+        const ta = a.last_follow_up ? new Date(a.last_follow_up).getTime() : 0;
+        const tb = b.last_follow_up ? new Date(b.last_follow_up).getTime() : 0;
+        return tb - ta;
+      });
+      return out;
+    }
+    window.getImpactedCustomers = getImpactedCustomers;
+
+    function ghexCollectImpactedForRadarGroup(g) {
+      const seen = new Set();
+      const merged = [];
+      (g && g.countries ? g.countries : []).forEach((co) => {
+        getImpactedCustomers(co.code).forEach((row) => {
+          const sid = String(row.id);
+          if (seen.has(sid)) return;
+          seen.add(sid);
+          merged.push(row);
+        });
+      });
+      merged.sort((a, b) => {
+        const ta = a.last_follow_up ? new Date(a.last_follow_up).getTime() : 0;
+        const tb = b.last_follow_up ? new Date(b.last_follow_up).getTime() : 0;
+        return tb - ta;
+      });
+      return merged;
+    }
+
+    function formatGhexCustomerLastFollow(iso) {
+      if (!iso) return "未跟进";
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return "—";
+      return d.toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+    }
+
+    function computeTodayHolidayMarketingStats(agg) {
+      const list = Array.isArray(agg) ? agg : [];
+      const todayGroups = list.filter((g) => g && ghexIsRadarDateToday(g.date));
+      const countryHit = new Set();
+      const oldIds = new Set();
+      const pubIds = new Set();
+      const benchIds = new Set();
+      const highlights = [];
+      todayGroups.forEach((g) => {
+        (g.countries || []).forEach((co) => {
+          if (getImpactedCustomers(co.code).length) {
+            countryHit.add(co.code);
+          }
+        });
+        const imp = ghexCollectImpactedForRadarGroup(g);
+        imp.forEach((row) => {
+          if (row.segment === "closed") oldIds.add(String(row.id));
+          else if (row.segment === "public") pubIds.add(String(row.id));
+          else benchIds.add(String(row.id));
+        });
+        if (imp.length) {
+          highlights.push({
+            anchor: ghexRadarCardAnchorId(g),
+            title: g.name,
+            date: g.date,
+          });
+        }
+      });
+      return {
+        countryCount: countryHit.size,
+        oldCount: oldIds.size,
+        publicCount: pubIds.size,
+        workbenchCount: benchIds.size,
+        highlights,
+      };
+    }
+
+    async function ensureRadarAggForMarketing() {
+      if (ghexLastRadarAgg && ghexLastRadarAgg.length) {
+        return ghexApplyMarketingSimulateToAgg(ghexLastRadarAgg);
+      }
+      if (window.__ghexMarketingSimulateDe) {
+        return ghexApplyMarketingSimulateToAgg([]);
+      }
+      try {
+        const raw = await ghexFetchNextPublicHolidaysWorldwide();
+        ghexLastRadarAgg = ghexAggregateWorldwideRadar(raw);
+      } catch (_) {
+        ghexLastRadarAgg = [];
+      }
+      return ghexApplyMarketingSimulateToAgg(ghexLastRadarAgg);
+    }
+
+    async function refreshDashboardHolidayMarketingCard() {
+      const lineEl = document.getElementById("dashboard-holiday-marketing-line");
+      const actionsEl = document.getElementById("dashboard-holiday-marketing-actions");
+      const cardEl = document.getElementById("dashboard-holiday-marketing-card");
+      if (!lineEl || !actionsEl || !cardEl) return;
+      lineEl.textContent = "正在同步全球节日雷达与客户库…";
+      actionsEl.innerHTML = "";
+      const agg = await ensureRadarAggForMarketing();
+      const stats = computeTodayHolidayMarketingStats(agg);
+      const totalPeople = stats.oldCount + stats.publicCount + stats.workbenchCount;
+      if (!stats.countryCount && !totalPeople) {
+        lineEl.textContent = "今日雷达中暂无与您【工作台】及【公海/老客户】国家重合的节日。";
+      } else {
+        lineEl.textContent =
+          "今日共有 " +
+          stats.countryCount +
+          " 个国家的客户正在过节，涉及 " +
+          stats.oldCount +
+          " 位老客户，" +
+          stats.publicCount +
+          " 位公海潜客，" +
+          stats.workbenchCount +
+          " 位工作台私海客户。";
+      }
+      const clearSimBtn = document.getElementById("dashboard-holiday-simulate-clear-btn");
+      if (clearSimBtn) {
+        if (window.__ghexMarketingSimulateDe) clearSimBtn.classList.remove("hidden");
+        else clearSimBtn.classList.add("hidden");
+      }
+      actionsEl.innerHTML = "";
+      stats.highlights.slice(0, 5).forEach((h) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "dashboard-holiday-jump";
+        b.textContent = "查看「" + h.title + "」详情";
+        b.dataset.ghexDashboardJump = h.anchor;
+        actionsEl.appendChild(b);
+      });
+      if (stats.highlights.length > 5) {
+        const more = document.createElement("span");
+        more.className = "self-center text-xs text-slate-500";
+        more.textContent = "等 " + stats.highlights.length + " 个节日卡片";
+        actionsEl.appendChild(more);
+      }
+    }
+
+    function closeGhexImpactModal() {
+      const modal = document.getElementById("ghex-impact-modal");
+      if (modal) modal.classList.add("hidden");
+    }
+
+    function openGhexImpactModalFromIdx(idx) {
+      const meta = ghexRadarImpactMetaByIdx[idx];
+      const modal = document.getElementById("ghex-impact-modal");
+      const titleEl = document.getElementById("ghex-impact-modal-title");
+      const subEl = document.getElementById("ghex-impact-modal-sub");
+      const bodyEl = document.getElementById("ghex-impact-modal-body");
+      if (!meta || !modal || !titleEl || !subEl || !bodyEl) return;
+      titleEl.textContent = "受影响客户";
+      subEl.textContent =
+        ghexEscapeHtml(meta.holiday || "") +
+        " · " +
+        ghexEscapeHtml(String(meta.date || "")) +
+        " · 工作台 / 公海 / 老客户";
+      const rows = (meta.items || [])
+        .map((row) => {
+          const seg =
+            row.segment === "closed" ? "老客户" : row.segment === "public" ? "公海" : "工作台";
+          return (
+            '<div class="ghex-impact-row">' +
+            '<div class="min-w-0 flex-1">' +
+            '<span class="font-medium text-slate-100">' +
+            ghexEscapeHtml(row.name) +
+            '</span> <span class="text-slate-500">· ' +
+            ghexEscapeHtml(seg) +
+            "</span>" +
+            '<p class="mt-0.5 text-xs text-slate-500">' +
+            ghexEscapeHtml(row.company_name || "—") +
+            " · 状态 " +
+            ghexEscapeHtml(row.status) +
+            " · 最近跟进 " +
+            ghexEscapeHtml(formatGhexCustomerLastFollow(row.last_follow_up)) +
+            "</p></div>" +
+            '<button type="button" class="ghex-radar-greet-btn shrink-0" data-ghex-greeting-id="' +
+            ghexEscapeHtml(String(row.id)) +
+            '" title="发送节日祝福">📧 祝福</button>' +
+            "</div>"
+          );
+        })
+        .join("");
+      bodyEl.innerHTML = rows || '<p class="text-sm text-slate-500">暂无数据</p>';
+      modal.classList.remove("hidden");
+    }
+
+    async function openHolidayExplorerToRadarCard(anchorId) {
+      const id = String(anchorId || "").trim();
+      if (!id) return;
+      switchView("holidayExplorer");
+      try {
+        await initHolidayExplorerView();
+      } catch (e) {
+        console.error("openHolidayExplorerToRadarCard", e);
+      }
+      requestAnimationFrame(() => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+          el.classList.add("ring-2", "ring-sky-400/60");
+          window.setTimeout(() => el.classList.remove("ring-2", "ring-sky-400/60"), 2400);
+        }
+      });
+    }
+
     function filterCustomersForQuotationPicker(rows) {
       return (rows || []).filter((c) => c && !customerRowIsInPublicPool(c));
     }
@@ -6245,6 +8781,7 @@
 
       populateDashboardCountryFilterOptions();
       updateWorkbenchBulkActionBar();
+      void refreshDashboardHolidayMarketingCard();
     }
 
     /** Supabase 写入成功后调用：拉取最新 customers → 全模块重绘。 */
@@ -8134,11 +10671,45 @@
       switchView("quotations");
     });
     }
-    if (navHolidays) {
-      navHolidays.addEventListener("click", (event) => {
-      event.preventDefault();
-      switchView("holidays");
-    });
+    if (navHolidayExplorer) {
+      navHolidayExplorer.addEventListener("click", (event) => {
+        event.preventDefault();
+        switchView("holidayExplorer");
+      });
+    }
+    wireGhexRadarTimelineClicks();
+    wireGhexImpactModalClicks();
+    const simDeBtn = document.getElementById("dashboard-holiday-simulate-de-btn");
+    const simClearBtn = document.getElementById("dashboard-holiday-simulate-clear-btn");
+    if (simDeBtn) {
+      simDeBtn.addEventListener("click", () => {
+        window.__ghexMarketingSimulateDe = true;
+        showToast("已模拟今日德国节日：工作台统计与全球雷达已追加测试卡片。", "success");
+        void refreshDashboardHolidayMarketingCard();
+        if (typeof currentView !== "undefined" && currentView === "holidayExplorer") {
+          void ghexSelectRadar();
+        }
+      });
+    }
+    if (simClearBtn) {
+      simClearBtn.addEventListener("click", () => {
+        window.__ghexMarketingSimulateDe = false;
+        showToast("已清除德国节日模拟。", "success");
+        void refreshDashboardHolidayMarketingCard();
+        if (typeof currentView !== "undefined" && currentView === "holidayExplorer") {
+          void ghexSelectRadar();
+        }
+      });
+    }
+    const holMarketingActions = document.getElementById("dashboard-holiday-marketing-actions");
+    if (holMarketingActions && !holMarketingActions.dataset.wiredHolJump) {
+      holMarketingActions.dataset.wiredHolJump = "1";
+      holMarketingActions.addEventListener("click", (ev) => {
+        const b = ev.target.closest("[data-ghex-dashboard-jump]");
+        if (!b) return;
+        const anchor = b.getAttribute("data-ghex-dashboard-jump");
+        void openHolidayExplorerToRadarCard(anchor);
+      });
     }
     if (navInsightsBtn) {
       navInsightsBtn.addEventListener("click", () => {
